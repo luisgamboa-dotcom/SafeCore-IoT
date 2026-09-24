@@ -1,0 +1,16 @@
+<html>
+    <head>
+        <title>Detalles del Usuario</title>
+        <link rel="stylesheet" href="../../static/style.css">
+    </head>
+    <body>
+        <h1>Detalles del Usuario</h1>
+        <p><strong>Nombre:</strong> {{ user.nombre }}</p>
+        <p><strong>Apellido:</strong> {{ user.apellido }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Teléfono:</strong> {{ user.telefono }}</p>
+        <p><strong>ID Organización:</strong> {{ user.id_organizacion }}</p>
+        <p><strong>Fecha de creación:</strong> {{ user.fecha_registro }}</p>
+        <a href="/users" class="info-button">Volver a la lista de usuarios</a>
+    </body>
+</html>

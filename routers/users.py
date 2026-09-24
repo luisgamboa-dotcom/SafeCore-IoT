@@ -1,20 +1,23 @@
 """
-    En comparacion a js, en python no se necesita un archivo de rutas para cada controlador,
-    ya que se puede crear un router para cada controlador y luego importarlo en el main.py.
-    En pocas palabras, el MVC se condensa en un solo archivo de rutas, pero se puede separar 
-    en varios routers para cada controlador.
+    Controlador de usuarios (MVC: Controller).
+    Solo recibe la petición, valida, llama al modelo (models/users.py)
+    y responde con una vista (templates/users-login/) o un redirect.
+    Aquí NO hay SQL: todo el acceso a datos vive en el modelo.
 """
 
 # routers/users.py
 import hashlib
 
+import mysql.connector
+import phonenumbers
+from email_validator import validate_email, EmailNotValidError
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from phonenumbers import NumberParseException
 
-# Esta linea importa la funcion get_conn() del archivo db.py, 
-# que se encarga de crear la conexion a la base de datos.
-from db import get_conn
+# El controlador usa el modelo, igual que en Express el controller usa el model.
+from models import users as user_model
 
 # Lo que en js se hace con express.Router(), en fastapi se hace con APIRouter()
 router = APIRouter()
@@ -23,33 +26,36 @@ router = APIRouter()
 # la carpeta templates debe estar en la raiz del proyecto, al mismo nivel que main.py.
 templates = Jinja2Templates(directory="templates")
 
-"""
-# index — equivale a postController.index (SELECT * FROM posts)
+
+def validar_telefono_chileno(telefono_raw, pais_defecto="CL"):
+    """Valida un teléfono con formato chileno por defecto.
+
+    Acepta "912345678", "+56912345678", con espacios/guiones/paréntesis.
+    Retorna (digitos_solo_numeros, None) si es válido, (None, mensaje) si no.
+    Vacío -> (None, None) porque el campo es opcional.
+    """
+    if not telefono_raw or not telefono_raw.strip():
+        return None, None
+    try:
+        numero_parseado = phonenumbers.parse(telefono_raw.strip(), pais_defecto)
+        # is_possible_number: largo y prefijo plausibles para Chile (9 dígitos móvil, etc.).
+        # No se usa is_valid_number porque su metadata rechaza rangos de prueba como 912345678.
+        if not phonenumbers.is_possible_number(numero_parseado):
+            return None, "El número de teléfono no es válido para Chile."
+        telefono_solo_digitos = phonenumbers.format_number(
+            numero_parseado,
+            phonenumbers.PhoneNumberFormat.E164
+        ).lstrip("+")
+        return telefono_solo_digitos, None
+    except NumberParseException:
+        return None, "El número de teléfono no es válido."
+
+
+# index — lista todos los usuarios (SELECT * FROM usuarios)
 @router.get("/")
 def index(request: Request):
-    # Esta linea crea la conexion a la base de datos, y la variable conn es un objeto de tipo Connection.
-    conn = get_conn()
-    # Esta linea crea un cursor, que es un objeto que permite ejecutar consultas SQL y obtener resultados.
-    cur = conn.cursor(dictionary=True)
-    # Execute es el "query" que se solia usar en js, y fetchall() es el equivalente a rows en js.
-    cur.execute("SELECT * FROM posts ORDER BY id DESC")
-    posts = cur.fetchall()
-    # Cierra el cursor y la conexion a la base de datos, para liberar recursos.
-    # Si no se cierran, se pueden generar errores de conexion y saturar la base de datos.
-    cur.close(); conn.close()
-    # Retorna la plantilla index.html, y le pasa como contexto la variable posts, que contiene los registros de la tabla posts.
-    return templates.TemplateResponse(request, "post/index.html", {"request": request,
-    "posts": posts})
-"""
-
-# create — equivale a postController.create (solo muestra formulario)
-@router.get("/")
-def create(request: Request):
-    conn = get_conn()
-    cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT * FROM usuarios ORDER BY id_usuario DESC")
-    users = cur.fetchall()
-    cur.close(); conn.close()
+    users = user_model.get_all_users()
+    # Retorna la plantilla index.html, y le pasa como contexto la variable users, que contiene los registros de la tabla usuarios.
     return templates.TemplateResponse(request, "users-login/index.html", {"request": request,
     "users": users})
 
@@ -60,7 +66,7 @@ def register(request: Request):
     return templates.TemplateResponse(request, "users-login/register.html", {"request": request})
 
 
-# store — equivale a postController.store (INSERT ... VALUES (?,?))
+# store — guarda un usuario nuevo (INSERT ... VALUES (...))
 @router.post("/register")
 def store(
     request: Request,
@@ -70,18 +76,78 @@ def store(
     telefono: str = Form(""),
     password: str = Form(...),
     confirmPassword: str = Form(...),
-    id_organizacion: str = Form(""),
-    terms: bool = Form(...),
+    id_organizacion: str = Form("")
     ):
-    if password != confirmPassword:
-        return templates.TemplateResponse(request, "users-login/register.html", {"request": request, "error": "Passwords do not match"})
-    conn = get_conn()
-    cur = conn.cursor()
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
-    cur.execute("INSERT INTO usuarios (nombre, apellido, email, telefono, password_hash, id_organizacion) VALUES (%s, %s, %s, %s, %s, %s)",
-                (nombre, apellido, email, telefono or None, password_hash, int(id_organizacion) if id_organizacion else None))
-    # commit es necesario para que los cambios se guarden en la base de datos, si no se hace commit, los cambios no se guardan.
-    # Es lo que vimos en la clase con el profesor Francisco Pareja, donde usabamos BEGIN y COMMIT para guardar los cambios en la base de datos.
-    conn.commit()
-    cur.close(); conn.close()
+
+    # Datos para repoblar el formulario si hay error
+    form_data = {"nombre": nombre,
+                 "apellido": apellido,
+                 "email": email,
+                 "telefono": telefono,
+                 "id_organizacion": id_organizacion,
+                 "password": password,
+                 "confirmPassword": confirmPassword
+                 }
+
+    for key, value in form_data.items():
+        form_data[key] = value.strip()
+
+    form_data["nombre"] = form_data["nombre"].capitalize()
+    form_data["apellido"] = form_data["apellido"].capitalize()
+
+    def form_error(field_errors):
+        # Primer mensaje como resumen global + dict por campo para resaltar cada input
+        resumen = next(iter(field_errors.values()))
+        return templates.TemplateResponse(
+            request, "users-login/register.html",
+            {**form_data, "error": resumen, "errors": field_errors})
+
+    try:
+        # validate_email comprueba la sintaxis; sin deliverability para no depender del DNS
+        email_info = validate_email(form_data["email"], check_deliverability=False)
+        # Siempre usa la versión normalizada para guardar en la Base de Datos (ej. pasa a minúsculas)
+        form_data["email"] = email_info.normalized
+
+    except EmailNotValidError:
+        # Si falla, el correo está mal escrito o tiene sintaxis inválida
+        return form_error({"email": "El correo electrónico no es válido. Revísalo e inténtalo de nuevo."})
+
+    telefono_normalizado, error_telefono = validar_telefono_chileno(form_data["telefono"])
+    if error_telefono:
+        return form_error({"telefono": error_telefono})
+
+    if form_data["password"] != form_data["confirmPassword"]:
+        return form_error({"confirmPassword": "Las contraseñas no coinciden"})
+
+    form_data["password_hash"] = hashlib.sha256(form_data["password"].encode()).hexdigest()
+
+
+    try:
+        user_model.create_user(
+            form_data["nombre"],
+            form_data["apellido"],
+            form_data["email"],
+            telefono_normalizado,
+            form_data["password_hash"],
+            int(form_data["id_organizacion"]) if form_data["id_organizacion"] else None)
+
+    except mysql.connector.Error as e:
+        if e.errno == 1062:
+            return form_error({"email": "Ese correo ya está registrado"})
+        if e.errno == 1452:
+            return form_error({"id_organizacion": "La organización elegida no existe"})
+        return form_error({"email": f"Error al guardar: {e.msg}"})
+    # commit se hace dentro del modelo; si no se hace commit, los cambios no se guardan.
     return RedirectResponse("/users", status_code=303)
+
+
+# show — muestra un usuario por id (SELECT ... WHERE id_usuario = %s)
+@router.get("/{id_usuario}")
+def show(request: Request,
+         id_usuario: int
+         ):
+    user = user_model.get_user_by_id(id_usuario)
+    if user is None:
+        return templates.TemplateResponse(request, "users-login/index.html", {"request": request})
+
+    return templates.TemplateResponse(request, "users-login/show.html", {"request": request, "user": user})

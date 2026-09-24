@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html class="light" lang="en">
+<html class="light" lang="es">
     <head>
         <meta charset="utf-8" />
         <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-        <title>SafeCore IoT Registration</title>
+        <title>Registro SafeCore IoT</title>
         <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
@@ -115,67 +115,73 @@
             <div class="w-full max-w-[480px] bg-surface-container-lowest rounded-xl shadow-[0_10px_30px_rgba(26,54,93,0.05)] border border-surface-container-highest p-stack-lg relative z-10">
                 <!-- Header -->
                 <div class="text-center mb-stack-lg">
-                    <img alt="SafeCore Logo" class="h-16 mx-auto mb-stack-md rounded-lg object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XT6t4RjaetbiNq6SSoZW6t1_dOQbWH8aKOVIyjMdnU_irfRgxPezzjTas3Rq-KFJ7le-JQL2pvPhjeBVM_v6tDj-Xq1sr6duO9HuGgnG446j7HD7kLXU7m8X2Oz3JbVLU4spKm-toKTOQsFbyr1dvA93JEI9w4wTSabtsuEaySX1jcqb4UNepRfCsFTKox5RmMdguxW5FXjj61i-_DNJMI_lUUbd85Q6Q8zfCdYe5qRTzO9eXAEikUdKg" />
-                    <h1 class="font-headline-md text-headline-md text-primary mb-stack-sm">Create Account</h1>
-                    <p class="font-body-md text-body-md text-on-surface-variant">Register for SafeCore IoT System Access</p>
+                    <img alt="Logo SafeCore" class="h-16 mx-auto mb-stack-md rounded-lg object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XT6t4RjaetbiNq6SSoZW6t1_dOQbWH8aKOVIyjMdnU_irfRgxPezzjTas3Rq-KFJ7le-JQL2pvPhjeBVM_v6tDj-Xq1sr6duO9HuGgnG446j7HD7kLXU7m8X2Oz3JbVLU4spKm-toKTOQsFbyr1dvA93JEI9w4wTSabtsuEaySX1jcqb4UNepRfCsFTKox5RmMdguxW5FXjj61i-_DNJMI_lUUbd85Q6Q8zfCdYe5qRTzO9eXAEikUdKg" />
+                    <h1 class="font-headline-md text-headline-md text-primary mb-stack-sm">Crear cuenta</h1>
+                    <p class="font-body-md text-body-md text-on-surface-variant">Regístrate para acceder al sistema SafeCore IoT</p>
                 </div>
                 <!-- Form: campos según tabla safecore_iot.usuarios -->
+                {% if error %}
+                <div class="mb-stack-md rounded-lg border border-error bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container" role="alert">
+                    {{ error }}
+                </div>
+                {% endif %}
                 <form action="/users/register" class="space-y-stack-md" method="POST">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
                         <div class="space-y-stack-xs">
-                            <label class="block font-label-md text-label-md text-on-surface" for="nombre">First Name</label>
-                            <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="nombre" name="nombre" maxlength="50" required="" type="text" />
+                            <label class="block font-label-md text-label-md text-on-surface" for="nombre">Nombre</label>
+                            <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="nombre" name="nombre" maxlength="50" required type="text" value="{{ nombre or '' }}" />
                         </div>
                         <div class="space-y-stack-xs">
-                            <label class="block font-label-md text-label-md text-on-surface" for="apellido">Last Name</label>
-                            <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="apellido" name="apellido" maxlength="50" type="text" />
+                            <label class="block font-label-md text-label-md text-on-surface" for="apellido">Apellido</label>
+                            <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="apellido" name="apellido" maxlength="50" required type="text" value="{{ apellido or '' }}" />
                         </div>
                     </div>
                     <div class="space-y-stack-xs">
-                        <label class="block font-label-md text-label-md text-on-surface" for="email">Email Address</label>
-                        <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="email" name="email" maxlength="254" required="" type="email" />
+                        <label class="block font-label-md text-label-md text-on-surface" for="email">Correo electrónico</label>
+                        <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow {% if errors and errors.email %}ring-2 ring-error border-error{% endif %}" id="email" name="email" maxlength="254" required type="email" value="{{ email or '' }}" />
+                            {% if errors and errors.email %}
+                            <p class="mt-1 text-sm text-error">{{ errors.email }}</p>
+                            {% endif %}
                     </div>
                     <div class="space-y-stack-xs">
-                        <label class="block font-label-md text-label-md text-on-surface" for="telefono">Phone (optional)</label>
-                        <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="telefono" name="telefono" maxlength="20" type="tel" />
+                        <label class="block font-label-md text-label-md text-on-surface" for="telefono">Teléfono (opcional)</label>
+                        <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="telefono" name="telefono" maxlength="20" type="tel" value="{{ telefono or '' }}" placeholder="+56 9 1234 5678" />
+                            {% if errors and errors.telefono %}
+                            <p class="mt-1 text-sm text-error">{{ errors.telefono }}</p>
+                            {% endif %}
                     </div>
                     <div class="space-y-stack-xs">
-                        <label class="block font-label-md text-label-md text-on-surface" for="password">Password</label>
+                        <label class="block font-label-md text-label-md text-on-surface" for="password">Contraseña</label>
                         <div class="relative">
-                            <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="password" name="password" minlength="8" maxlength="254" required="" type="password" />
+                            <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="password" name="password" minlength="8" maxlength="254" required type="password" />
                         </div>
                     </div>
                     <div class="space-y-stack-xs">
-                        <label class="block font-label-md text-label-md text-on-surface" for="confirmPassword">Confirm Password</label>
-                        <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="confirmPassword" name="confirmPassword" minlength="8" maxlength="254" required="" type="password" />
+                        <label class="block font-label-md text-label-md text-on-surface" for="confirmPassword">Confirmar contraseña</label>
+                        <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow {% if errors and errors.confirmPassword %}ring-2 ring-error border-error{% endif %}" id="confirmPassword" name="confirmPassword" minlength="8" maxlength="254" required type="password" />
+                            {% if errors and errors.confirmPassword %}
+                            <p class="mt-1 text-sm text-error">{{ errors.confirmPassword }}</p>
+                            {% endif %}
                     </div>
                     <div class="space-y-stack-xs">
-                        <label class="block font-label-md text-label-md text-on-surface" for="id_organizacion">Organization (optional)</label>
-                        <select class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="id_organizacion" name="id_organizacion">
-                            <option value="" selected="">No organization (personal use)</option>
-                            <!-- Opciones desde safecore_iot.organizaciones (tabla vacía: insertar organizaciones primero) -->
+                        <label class="block font-label-md text-label-md text-on-surface" for="id_organizacion">Organización (opcional)</label>
+                        <select class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow {% if errors and errors.id_organizacion %}ring-2 ring-error border-error{% endif %}" id="id_organizacion" name="id_organizacion">
+                            <option value="" selected="">Sin organización (uso personal)</option>
                         </select>
-                    </div>
-                    <div class="flex items-start gap-3 mt-stack-md">
-                        <div class="flex items-center h-6">
-                            <input class="h-4 w-4 rounded border-outline-variant text-primary-container focus:ring-primary-container bg-surface-bright cursor-pointer" id="terms" name="terms" required="" type="checkbox" />
-                        </div>
-                        <div class="text-sm leading-6">
-                            <label class="font-body-md text-body-md text-on-surface-variant cursor-pointer" for="terms">
-                                I agree to the <a class="font-label-md text-label-md text-primary-container hover:text-secondary-container transition-colors underline decoration-primary-container/30 hover:decoration-secondary-container" href="#">Terms of Service</a> and <a class="font-label-md text-label-md text-primary-container hover:text-secondary-container transition-colors underline decoration-primary-container/30 hover:decoration-secondary-container" href="#">Privacy Policy</a>.
-                            </label>
-                        </div>
+                        {% if errors and errors.id_organizacion %}
+                        <p class="mt-1 text-sm text-error">{{ errors.id_organizacion }}</p>
+                        {% endif %}
                     </div>
                     <div class="pt-stack-sm">
                         <button class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-label-md text-label-md text-on-primary bg-primary-container hover:bg-primary-container/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-container transition-all hover:-translate-y-[1px]" type="submit">
-                            Create Account
+                            Crear cuenta
                         </button>
                     </div>
                 </form>
                 <div class="mt-stack-lg text-center">
                     <p class="font-body-md text-body-md text-on-surface-variant">
-                        Already have an account?
-                        <a class="font-label-md text-label-md text-primary-container hover:text-secondary-container transition-colors ml-1" href="#">Login</a>
+                        ¿Ya tienes una cuenta?
+                        <a class="font-label-md text-label-md text-primary-container hover:text-secondary-container transition-colors ml-1" href="#">Inicia sesión</a>
                     </p>
                 </div>
             </div>

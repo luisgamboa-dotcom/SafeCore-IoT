@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="../../static/style.css">
 {% extends "layout.html" %}
 {% block content %}
 <h1>Usuarios</h1>
@@ -12,7 +13,8 @@
         Password Hash: {{ user.password_hash }}, <br>
         Estado: {{ user.id_usuario_estado }}, <br>
         Fecha de creación: {{ user.fecha_registro }} <br>
+        <a href="/users/{{ user.id_usuario }}" class="info-button">Ver detalles</a>
     </li>
-{% endfor %}</ul>
+    {% endfor %}</ul>
 {% else %}<p>Sin usuarios</p>{% endif %}
 {% endblock %}

@@ -10,7 +10,7 @@ def get_conn():
     host=os.getenv("MYSQL_HOST", "localhost"),
     user=os.getenv("MYSQL_USER", "root"),
     password=os.getenv("MYSQL_PASSWORD", ""),
-    database="safecore_iot",
+    database=os.getenv("MYSQL_DATABASE", "safecore_iot"),
     port=int(os.getenv("MYSQL_PORT", "3306")),
 )
 
