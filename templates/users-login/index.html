@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>Usuarios</h1>
+<a href="/users/register">Registrar usuario</a>
+{% if users %}
+<ul>{% for user in users %}
+    <li><strong>{{ user.id_usuario }} {{ user.email }}</strong> -> <br>
+        Nombre: {{ user.nombre }}, <br>
+        Apellido: {{ user.apellido }}, <br>
+        Teléfono: {{ user.telefono }}, <br>
+        ID Organización: {{ user.id_organizacion }}, <br>
+        Password Hash: {{ user.password_hash }}, <br>
+        Estado: {{ user.id_usuario_estado }}, <br>
+        Fecha de creación: {{ user.fecha_registro }} <br>
+    </li>
+{% endfor %}</ul>
+{% else %}<p>Sin usuarios</p>{% endif %}
+{% endblock %}
