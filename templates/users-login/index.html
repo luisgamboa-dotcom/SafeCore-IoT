@@ -14,6 +14,7 @@
         Estado: {{ user.id_usuario_estado }}, <br>
         Fecha de creación: {{ user.fecha_registro }} <br>
         <a href="/users/{{ user.id_usuario }}" class="info-button">Ver detalles</a>
+        <a href="/users/{{ user.id_usuario }}/edit" class="info-button">Editar</a>
     </li>
     {% endfor %}</ul>
 {% else %}<p>Sin usuarios</p>{% endif %}

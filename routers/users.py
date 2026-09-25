@@ -9,15 +9,13 @@
 import hashlib
 
 import mysql.connector
-import phonenumbers
-from email_validator import validate_email, EmailNotValidError
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from phonenumbers import NumberParseException
 
-# El controlador usa el modelo, igual que en Express el controller usa el model.
+# El controlador usa el modelo y los esquemas de validación.
 from models import users as user_model
+from schemas import usersValidator as user_schema
 
 # Lo que en js se hace con express.Router(), en fastapi se hace con APIRouter()
 router = APIRouter()
@@ -25,30 +23,6 @@ router = APIRouter()
 # Lo que en js se hace con app.set('view engine', 'ejs'), en fastapi se hace con Jinja2Templates()
 # la carpeta templates debe estar en la raiz del proyecto, al mismo nivel que main.py.
 templates = Jinja2Templates(directory="templates")
-
-
-def validar_telefono_chileno(telefono_raw, pais_defecto="CL"):
-    """Valida un teléfono con formato chileno por defecto.
-
-    Acepta "912345678", "+56912345678", con espacios/guiones/paréntesis.
-    Retorna (digitos_solo_numeros, None) si es válido, (None, mensaje) si no.
-    Vacío -> (None, None) porque el campo es opcional.
-    """
-    if not telefono_raw or not telefono_raw.strip():
-        return None, None
-    try:
-        numero_parseado = phonenumbers.parse(telefono_raw.strip(), pais_defecto)
-        # is_possible_number: largo y prefijo plausibles para Chile (9 dígitos móvil, etc.).
-        # No se usa is_valid_number porque su metadata rechaza rangos de prueba como 912345678.
-        if not phonenumbers.is_possible_number(numero_parseado):
-            return None, "El número de teléfono no es válido para Chile."
-        telefono_solo_digitos = phonenumbers.format_number(
-            numero_parseado,
-            phonenumbers.PhoneNumberFormat.E164
-        ).lstrip("+")
-        return telefono_solo_digitos, None
-    except NumberParseException:
-        return None, "El número de teléfono no es válido."
 
 
 # index — lista todos los usuarios (SELECT * FROM usuarios)
@@ -102,22 +76,22 @@ def store(
             request, "users-login/register.html",
             {**form_data, "error": resumen, "errors": field_errors})
 
-    try:
-        # validate_email comprueba la sintaxis; sin deliverability para no depender del DNS
-        email_info = validate_email(form_data["email"], check_deliverability=False)
-        # Siempre usa la versión normalizada para guardar en la Base de Datos (ej. pasa a minúsculas)
-        form_data["email"] = email_info.normalized
+    # Validar correo
+    correo_limpio, error_email = user_schema.validar_email(form_data["email"])
+    if error_email:
+        # Si falla
+        return form_error({"email": error_email})
+    # Siempre usa la versión normalizada
+    form_data["email"] = correo_limpio
 
-    except EmailNotValidError:
-        # Si falla, el correo está mal escrito o tiene sintaxis inválida
-        return form_error({"email": "El correo electrónico no es válido. Revísalo e inténtalo de nuevo."})
-
-    telefono_normalizado, error_telefono = validar_telefono_chileno(form_data["telefono"])
+    # Validar teléfono
+    telefono_normalizado, error_telefono = user_schema.validar_telefono_chileno(form_data["telefono"])
     if error_telefono:
         return form_error({"telefono": error_telefono})
 
-    if form_data["password"] != form_data["confirmPassword"]:
-        return form_error({"confirmPassword": "Las contraseñas no coinciden"})
+    error_claves = user_schema.validar_passwords(form_data["password"], form_data["confirmPassword"])
+    if error_claves:
+        return form_error({"confirmPassword": error_claves})
 
     form_data["password_hash"] = hashlib.sha256(form_data["password"].encode()).hexdigest()
 
@@ -151,3 +125,47 @@ def show(request: Request,
         return templates.TemplateResponse(request, "users-login/index.html", {"request": request})
 
     return templates.TemplateResponse(request, "users-login/show.html", {"request": request, "user": user})
+
+@router.get("/{id_usuario}/edit")
+def edit_form(request: Request,
+              id_usuario: int
+              ):
+    user = user_model.get_user_by_id(id_usuario)
+    if user is None:
+        return templates.TemplateResponse(request, "users-login/index.html", {"request": request})
+
+    return templates.TemplateResponse(request, "users-login/edit.html", {"request": request, "user": user})
+
+@router.post("/{id_usuario}/edit")
+def edit(
+    request: Request,
+    id_usuario: int,
+    nombre: str = Form(...),
+    apellido: str = Form(""),
+    email: str = Form(...),
+    telefono: str = Form(""),
+    id_organizacion: str = Form("")
+    ):
+
+    form_data = {"nombre": nombre,
+                 "apellido": apellido,
+                 "email": email,
+                 "telefono": telefono,
+                 "id_organizacion": id_organizacion
+                 }
+
+    try:
+        user_model.update_user(
+            id_usuario,
+            form_data["nombre"],
+            form_data["apellido"],
+            form_data["email"],
+            form_data["telefono"],
+            int(form_data["id_organizacion"]) if form_data["id_organizacion"] else None,
+            id_usuario
+        )
+        return RedirectResponse(f"/users/{id_usuario}", status_code=303)
+    except mysql.connector.Error as e:
+        return templates.TemplateResponse(request, "users-login/show.html", {"request": request, "user": form_data, "error": "Error al actualizar el usuario"})
+    
+    

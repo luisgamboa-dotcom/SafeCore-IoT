@@ -26,3 +26,12 @@ def get_user_by_id(id_usuario):
     user = cur.fetchone()
     cur.close(); conn.close()
     return user
+
+def update_user(id_usuario, nombre, apellido, email, telefono, password_hash, id_organizacion):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE usuarios SET nombre=%s, apellido=%s, email=%s, telefono=%s, id_organizacion=%s WHERE id_usuario=%s",
+        (nombre, apellido, email, telefono, id_organizacion, id_usuario))
+    conn.commit()
+    cur.close(); conn.close()
