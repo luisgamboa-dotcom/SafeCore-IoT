@@ -1,0 +1,73 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>Datos recopilados (página temporal de depuración)</h1>
+<p><a href="/users">Volver al listado</a></p>
+
+<h2>Sesiones activas en memoria ({{ sesiones|length }})</h2>
+{% if sesiones %}
+<table border="1" cellpadding="6">
+    <tr><th>Sesión (id corto)</th><th>id_usuario</th><th>Nombre</th><th>Email</th></tr>
+    {% for s in sesiones %}
+    <tr>
+        <td><code>{{ s.id }}</code></td>
+        <td>{{ s.id_usuario }}</td>
+        <td>{{ s.nombre }}</td>
+        <td>{{ s.email }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}<p>Sin sesiones activas. Inicia sesión en otra pestaña y recarga.</p>{% endif %}
+
+<h2>Usuarios en safecore_iot.usuarios ({{ usuarios|length }})</h2>
+{% if usuarios %}
+<table border="1" cellpadding="6">
+    <tr><th>id</th><th>Nombre</th><th>Apellido</th><th>Email</th><th>Teléfono</th><th>Estado</th><th>Registro</th></tr>
+    {% for u in usuarios %}
+    <tr>
+        <td>{{ u.id_usuario }}</td>
+        <td>{{ u.nombre }}</td>
+        <td>{{ u.apellido }}</td>
+        <td>{{ u.email }}</td>
+        <td>{{ u.telefono or "-" }}</td>
+        <td>{{ u.id_usuario_estado }}</td>
+        <td>{{ u.fecha_registro }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}<p>Sin usuarios registrados.</p>{% endif %}
+
+<h2>Lecturas del dispositivo en tiempo real</h2>
+<p><span id="punto-vivo" style="color:green">●</span> <span id="estado-vivo">Conectando…</span> (se actualiza cada 2 segundos desde <code>/api/ultimas</code>)</p>
+<table border="1" cellpadding="6">
+    <tr><th>Fecha/hora</th><th>Dispositivo</th><th>Magnitud</th><th>Valor</th><th>Calidad</th></tr>
+    <tbody id="tabla-vivo">
+        <tr><td colspan="5">Esperando datos…</td></tr>
+    </tbody>
+</table>
+
+<script>
+async function refrescarVivo() {
+    const punto = document.getElementById("punto-vivo");
+    const estado = document.getElementById("estado-vivo");
+    const cuerpo = document.getElementById("tabla-vivo");
+    try {
+        const resp = await fetch("/api/ultimas?limit=12");
+        const datos = await resp.json();
+        if (!datos.ok) throw new Error("respuesta no ok");
+        punto.style.color = "green";
+        estado.textContent = "En vivo — última actualización: " + new Date().toLocaleTimeString();
+        cuerpo.innerHTML = datos.lecturas.map(l =>
+            `<tr><td>${l.fecha_hora}</td><td>${l.codigo_serial}</td>` +
+            `<td>${l.magnitud}</td><td>${l.valor} ${l.simbolo}</td><td>${l.calidad}</td></tr>`
+        ).join("") || '<tr><td colspan="5">Sin lecturas aún. Envía datos a POST /api/ingest.</td></tr>';
+    } catch (e) {
+        punto.style.color = "red";
+        estado.textContent = "Sin conexión con /api/ultimas";
+    }
+}
+refrescarVivo();
+setInterval(refrescarVivo, 2000);
+</script>
+
+<p><small>Nota: las sesiones viven en la tabla MySQL <code>sesiones</code> y sobreviven reinicios de uvicorn (caducan por la firma de la cookie, 8h). Elimina esta página y su botón antes de la entrega.</small></p>
+{% endblock %}

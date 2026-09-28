@@ -27,6 +27,16 @@ def get_user_by_email(email):
     cur.close(); conn.close()
     return user
 
+def get_sesiones_activas():
+    conn = get_conn()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("""SELECT s.id_sesion, s.id_usuario, u.nombre, u.email
+                   FROM sesiones s LEFT JOIN usuarios u ON u.id_usuario = s.id_usuario
+                   ORDER BY s.fecha_creacion DESC""")
+    filas = cur.fetchall()
+    cur.close(); conn.close()
+    return filas
+
 def get_user_by_id(id_usuario):
     conn = get_conn()
     cur = conn.cursor(dictionary=True)

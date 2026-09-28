@@ -170,6 +170,26 @@ async def logout(session_id: UUID = Depends(session_cookie)):
     return respuesta
 
 
+# sesiones — página TEMPORAL de depuración: muestra sesiones activas + usuarios.
+# BORRAR antes de la entrega (ruta, template y botón del login).
+@router.get("/sesiones")
+def ver_sesiones(request: Request,
+                 id_sesion: UUID = Depends(session_cookie),
+                 sesion: SessionData = Depends(verificador)
+                 ):
+    sesiones = []
+    for row in user_model.get_sesiones_activas():
+        sesiones.append({
+            "id": row["id_sesion"][:8] + "…",
+            "id_usuario": row["id_usuario"],
+            "nombre": row["nombre"] or "(eliminado)",
+            "email": row["email"] or "(eliminado)",
+        })
+    usuarios = user_model.get_all_users()
+    return templates.TemplateResponse(request, "users-login/sesiones.html",
+        {"request": request, "sesiones": sesiones, "usuarios": usuarios})
+
+
 # show muestra un usuario por id (SELECT ... WHERE id_usuario = %s)
 @router.get("/{id_usuario}")
 def show(request: Request,

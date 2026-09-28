@@ -1,0 +1,42 @@
+<!-- Vista de TESTEO: tabla cruda sin diseno, auto-refresh cada 5 s. -->
+{% extends "layout.html" %}
+{% block content %}
+<h1>Datos en vivo (testeo USB)</h1>
+<p>Sin diseno a proposito: muestra lo que se va guardando en <code>lecturas</code>.
+Se actualiza sola cada 5 segundos. <a href="/api/ultimas?limit=50">Ver JSON</a></p>
+<p id="estado">Cargando...</p>
+<table border="1" cellpadding="4" cellspacing="0">
+  <thead><tr>
+    <th>id</th><th>fecha_hora</th><th>serial</th><th>dispositivo</th>
+    <th>magnitud</th><th>valor (crudo)</th><th>calidad</th><th>mensaje_id</th>
+  </tr></thead>
+  <tbody id="filas">
+    {% for l in lecturas %}
+    <tr>
+      <td>{{ l.id_lectura }}</td><td>{{ l.fecha_hora }}</td>
+      <td>{{ l.codigo_serial }}</td><td>{{ l.dispositivo }}</td>
+      <td>{{ l.magnitud }}</td><td>{{ l.valor }}</td>
+      <td>{{ l.calidad }}</td><td>{{ l.mensaje_id }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<script>
+async function refrescar() {
+  try {
+    const r = await fetch('/api/ultimas?limit=50');
+    const j = await r.json();
+    const tb = document.getElementById('filas');
+    tb.innerHTML = j.lecturas.map(l =>
+      `<tr><td>${l.id_lectura}</td><td>${l.fecha_hora}</td><td>${l.codigo_serial}</td>` +
+      `<td>${l.dispositivo ?? ''}</td><td>${l.magnitud}</td><td>${l.valor}</td>` +
+      `<td>${l.calidad}</td><td>${l.mensaje_id}</td></tr>`).join('');
+    document.getElementById('estado').textContent =
+      'Actualizado: ' + new Date().toLocaleTimeString() + ' (' + j.lecturas.length + ' filas)';
+  } catch (e) {
+    document.getElementById('estado').textContent = 'Sin conexion con /api/ultimas';
+  }
+}
+setInterval(refrescar, 5000);
+</script>
+{% endblock %}
