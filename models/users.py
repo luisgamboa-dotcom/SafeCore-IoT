@@ -17,6 +17,16 @@ def create_user(nombre, apellido, email, telefono, password_hash, id_organizacio
     conn.commit()
     cur.close(); conn.close()
 
+def get_user_by_email(email):
+    conn = get_conn()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT * FROM usuarios WHERE email = %s",
+                (email,)
+                )
+    user = cur.fetchone()
+    cur.close(); conn.close()
+    return user
+
 def get_user_by_id(id_usuario):
     conn = get_conn()
     cur = conn.cursor(dictionary=True)

@@ -3,6 +3,14 @@ from email_validator import validate_email, EmailNotValidError
 from phonenumbers import NumberParseException
 
 
+def normalizar_formulario(form_data):
+    for key, value in form_data.items():
+        form_data[key] = value.strip()
+    form_data["nombre"] = form_data["nombre"].capitalize()
+    form_data["apellido"] = form_data["apellido"].capitalize()
+    return form_data
+
+
 def validar_email(email):
     # Valida sintaxis y retorna el correo normalizado
     try:
@@ -14,12 +22,6 @@ def validar_email(email):
 
 
 def validar_telefono_chileno(telefono_raw, pais_defecto="CL"):
-    """Valida un teléfono con formato chileno por defecto.
-
-    Acepta "912345678", "+56912345678", con espacios/guiones/paréntesis.
-    Retorna (digitos_solo_numeros, None) si es válido, (None, mensaje) si no.
-    Vacío -> (None, None) porque el campo es opcional.
-    """
     if not telefono_raw or not telefono_raw.strip():
         return None, None
     try:
@@ -48,7 +50,7 @@ def validar_passwords(password, confirm_password):
             return "La contraseña contiene caracteres no imprimibles"
         elif i in ('"', "'", "\\", "--"):
             return "La contraseña no puede contener comillas ni barras invertidas"
-        
+
     if password != confirm_password:
         return "Las contraseñas no coinciden"
     return None

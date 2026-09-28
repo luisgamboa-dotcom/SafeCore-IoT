@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>Iniciar sesión - SafeCore IoT</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        "colors": {
+                            "surface-bright": "#f7f9fd",
+                            "on-secondary": "#ffffff",
+                            "surface-variant": "#e0e2e6",
+                            "surface-container-lowest": "#ffffff",
+                            "error": "#ba1a1a",
+                            "outline": "#74777f",
+                            "error-container": "#ffdad6",
+                            "on-primary-fixed-variant": "#2d476f",
+                            "tertiary-container": "#003a55",
+                            "on-tertiary": "#ffffff",
+                            "surface-container-high": "#e6e8ec",
+                            "on-tertiary-container": "#1ba9ed",
+                            "tertiary-fixed-dim": "#89ceff",
+                            "surface-container": "#eceef2",
+                            "on-background": "#191c1f",
+                            "surface": "#f7f9fd",
+                            "on-secondary-fixed-variant": "#2f2ebe",
+                            "on-error": "#ffffff",
+                            "primary-fixed": "#d6e3ff",
+                            "surface-dim": "#d8dade",
+                            "primary-fixed-dim": "#adc7f7",
+                            "on-secondary-container": "#fffbff",
+                            "surface-container-highest": "#e0e2e6",
+                            "secondary": "#4648d4",
+                            "on-error-container": "#93000a",
+                            "surface-tint": "#455f88",
+                            "tertiary": "#002336",
+                            "on-tertiary-fixed-variant": "#004c6e",
+                            "on-secondary-fixed": "#07006c",
+                            "on-tertiary-fixed": "#001e2f",
+                            "on-surface-variant": "#43474e",
+                            "inverse-surface": "#2d3134",
+                            "tertiary-fixed": "#c9e6ff",
+                            "on-primary-container": "#86a0cd",
+                            "outline-variant": "#c4c6cf",
+                            "on-primary-fixed": "#001b3c",
+                            "primary": "#002045",
+                            "background": "#f7f9fd",
+                            "secondary-fixed-dim": "#c0c1ff",
+                            "secondary-fixed": "#e1e0ff",
+                            "secondary-container": "#6063ee",
+                            "on-primary": "#ffffff",
+                            "inverse-on-surface": "#eff1f5",
+                            "surface-container-low": "#f2f4f8",
+                            "primary-container": "#1a365d",
+                            "inverse-primary": "#adc7f7",
+                            "on-surface": "#191c1f"
+                        },
+                        "borderRadius": {
+                            "DEFAULT": "0.25rem",
+                            "lg": "0.5rem",
+                            "xl": "0.75rem",
+                            "full": "9999px"
+                        },
+                        "spacing": {
+                            "container-max": "1280px",
+                            "stack-lg": "32px",
+                            "gutter": "24px",
+                            "margin-mobile": "16px",
+                            "stack-sm": "8px",
+                            "stack-md": "16px",
+                            "margin-desktop": "40px",
+                            "stack-xs": "4px",
+                            "stack-xl": "64px"
+                        },
+                        "fontFamily": {
+                            "headline-sm": ["Inter"],
+                            "display-lg": ["Inter"],
+                            "body-md": ["Inter"],
+                            "headline-md": ["Inter"],
+                            "body-lg": ["Inter"],
+                            "display-lg-mobile": ["Inter"],
+                            "label-sm": ["Inter"],
+                            "label-md": ["Inter"]
+                        },
+                        "fontSize": {
+                            "headline-sm": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                            "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                            "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                            "headline-md": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                            "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                            "display-lg-mobile": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                            "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                            "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}]
+                        }
+                    }
+                }
+            }
+        </script>
+        <style>
+            .material-symbols-outlined {
+                font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            }
+            body {
+                background-color: theme('colors.background');
+                background-image: radial-gradient(theme('colors.primary-fixed-dim') 1px, transparent 1px);
+                background-size: 40px 40px;
+            }
+        </style>
+    </head>
+    <body class="min-h-screen flex items-center justify-center font-body-md text-on-surface bg-background">
+        <div class="w-full max-w-md p-stack-lg bg-surface-container-lowest rounded-xl shadow-[0_10px_30px_rgba(26,54,93,0.05)] border border-outline-variant/20 mx-margin-mobile">
+            <div class="flex flex-col items-center mb-stack-lg">
+                <img alt="Logo SafeCore IoT" class="w-16 h-16 object-contain mb-stack-sm" src="https://lh3.googleusercontent.com/aida/AEtjO1XT6t4RjaetbiNq6SSoZW6t1_dOQbWH8aKOVIyjMdnU_irfRgxPezzjTas3Rq-KFJ7le-JQL2pvPhjeBVM_v6tDj-Xq1sr6duO9HuGgnG446j7HD7kLXU7m8X2Oz3JbVLU4spKm-toKTOQsFbyr1dvA93JEI9w4wTSabtsuEaySX1jcqb4UNepRfCsFTKox5RmMdguxW5FXjj61i-_DNJMI_lUUbd85Q6Q8zfCdYe5qRTzO9eXAEikUdKg" />
+                <h1 class="font-headline-md text-headline-md text-primary">Iniciar sesión</h1>
+                <p class="text-on-surface-variant font-body-md mt-stack-xs">Panel de monitoreo seguro</p>
+            </div>
+            {% if error %}
+            <div class="mb-stack-md rounded-lg border border-error bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container" role="alert">
+                {{ error }}
+            </div>
+            {% endif %}
+            <form class="space-y-stack-md" action="/users/login" method="POST">
+                <div>
+                    <label class="block font-label-md text-label-md text-on-surface mb-stack-xs" for="email">Correo electrónico</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="material-symbols-outlined text-outline">mail</span>
+                        </div>
+                        <input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg bg-surface-bright text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-200 {% if errors and errors.email %}ring-2 ring-error border-error{% endif %}" id="email" name="email" placeholder="admin@safecore.io" required="" type="email" value="{{ email or '' }}" />
+                    </div>
+                    {% if errors and errors.email %}
+                    <p class="mt-1 text-sm text-error">{{ errors.email }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block font-label-md text-label-md text-on-surface mb-stack-xs" for="password">Contraseña</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="material-symbols-outlined text-outline">lock</span>
+                        </div>
+                        <input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg bg-surface-bright text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-200 {% if errors and errors.password %}ring-2 ring-error border-error{% endif %}" id="password" name="password" placeholder="••••••••" required="" type="password" />
+                    </div>
+                    {% if errors and errors.password %}
+                    <p class="mt-1 text-sm text-error">{{ errors.password }}</p>
+                    {% endif %}
+                </div>
+                <div class="flex items-center justify-between pt-stack-xs">
+                    <div class="flex items-center">
+                        <input class="h-4 w-4 text-secondary focus:ring-secondary border-outline-variant rounded" id="remember-me" name="remember-me" type="checkbox" />
+                        <label class="ml-2 block font-label-md text-label-md text-on-surface-variant" for="remember-me">
+                            Recuérdame
+                        </label>
+                    </div>
+                    <div class="text-label-md">
+                        <a class="font-medium text-secondary hover:text-secondary-container transition-colors" href="#">
+                            ¿Olvidaste tu contraseña?
+                        </a>
+                    </div>
+                </div>
+                <button class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-label-md text-label-md text-on-primary bg-primary-container hover:bg-primary transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-container" type="submit">
+                    <span class="material-symbols-outlined mr-2 text-sm">login</span>
+                    Iniciar sesión
+                </button>
+            </form>
+            <div class="mt-stack-lg text-center">
+                <p class="font-body-md text-body-md text-on-surface-variant">
+                    ¿No tienes una cuenta?
+                    <a class="font-medium text-secondary hover:text-secondary-container transition-colors" href="/users/register">Regístrate aquí</a>
+                </p>
+            </div>
+        </div>
+    </body>
+</html>

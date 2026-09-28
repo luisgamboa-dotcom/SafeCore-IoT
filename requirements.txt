@@ -6,3 +6,4 @@ python-dotenv
 mysql-connector-python==9.4.0
 email-validator>=2.0.0
 phonenumbers>=8.13.0
+fastapi-sessions>=0.3.0
