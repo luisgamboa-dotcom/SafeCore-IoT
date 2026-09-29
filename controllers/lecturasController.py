@@ -1,4 +1,12 @@
-from fastapi import APIRouter, Request
+"""
+    Controlador de lecturas (MVC: Controller).
+    Ingesta del dispositivo y vistas de datos. Sin SQL directo salvo
+    el manejo de errores MySQL; las consultas viven en models/lecturas.py.
+    Las rutas que apuntan a estas funciones viven en routers/routes.py.
+"""
+
+# controllers/lecturasController.py
+from fastapi import Request
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -7,7 +15,6 @@ import mysql.connector
 
 from models import lecturas as lec_model
 
-router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 # Rangos de aceptacion del ADC crudo y DHT22. Fuera de rango -> 'dudosa'.
@@ -27,7 +34,6 @@ class IngestIn(BaseModel):
     readings: List[ReadingIn] = Field(min_length=1, max_length=10)
 
 
-@router.post("/api/ingest")
 def ingest(payload: IngestIn):
     dev = lec_model.get_dispositivo_por_serial(payload.device_serial)
     if dev is None:
@@ -68,12 +74,10 @@ def ingest(payload: IngestIn):
             "dudosas": dudosas, "errores": errores}
 
 
-@router.get("/api/ultimas")
 def ultimas(limit: int = 50):
     return {"ok": True, "lecturas": lec_model.get_ultimas(limit)}
 
 
-@router.get("/datos")
 def datos(request: Request):
     # Vista de testeo: a proposito sin sesion ni diseno, solo tabla cruda.
     return templates.TemplateResponse(

@@ -1,15 +1,35 @@
 # config/sessions.py — sesiones con fastapi-sessions (cookie firmada).
 import os
+# UUID es el identificador de sesión que viaja en la cookie firmada.
 from uuid import UUID
 
 from dotenv import load_dotenv
+
+# Importamos HTTPException para poder devolver un error 303 (redirección) cuando la sesión no es válida.
 from fastapi import HTTPException
-from fastapi_sessions.backends.session_backend import BackendError, SessionBackend
+
+# Importamos fastapi_sessions para manejar sesiones con cookies firmadas.
+# BackendError es la excepción que lanza el backend cuando hay un error de almacenamiento.
+# SessionBackend es la clase base para crear un backend de almacenamiento de sesiones.
+from fastapi_sessions.backends.session_backend import (
+    BackendError, 
+    SessionBackend
+)
+
+# Importamos fastapi_sessions.frontends.implementations para manejar cookies firmadas.
+# CookeiParameters es la clase que define los parámetros de la cookie (nombre, duración, etc)
+# SessionCookie es la clase que implementa la cookie firmada.
 from fastapi_sessions.frontends.implementations import (
     CookieParameters,
     SessionCookie,
 )
+
+# Importamos fastapi_sessions.session_verifier para verificar la validez de la sesión.
+# SessionVerifier es la clase base para crear un verificador de sesiones.
 from fastapi_sessions.session_verifier import SessionVerifier
+
+# Importamos pydantic para definir el modelo de datos de la sesión.
+# BaseModel es la clase base para crear modelos de datos con validación y serialización.
 from pydantic import BaseModel
 
 from config.db import get_conn
@@ -18,7 +38,7 @@ load_dotenv()
 
 
 class SessionData(BaseModel):
-    # Lo único que viaja en la cookie: el id del usuario logueado
+    # Lo único que viaja en la cookie es el id del usuario logueado
     id_usuario: int
 
 
@@ -31,7 +51,7 @@ cookie = SessionCookie(
     # False a propósito: sin cookie devuelve FrontendError y deja que el
     # verificador responda el 303 a /users/login. Con True daría 403 JSON.
     auto_error=False,
-    secret_key=os.getenv("SECRET_KEY", "cambia-esta-clave-en-el-env"),
+    secret_key=os.getenv("SECRET_KEY"),
     cookie_params=cookie_params,
 )
 
@@ -59,6 +79,8 @@ class MySQLBackend(SessionBackend[UUID, SessionData]):
             cur.execute("SELECT id_usuario FROM sesiones WHERE id_sesion = %s", (str(session_id),))
             row = cur.fetchone()
             cur.close()
+        except Exception as e:
+            raise BackendError(f"read error: {e}")
         finally:
             conn.close()
         if not row:

@@ -2,5 +2,23 @@
 <html lang="es">
 <head><meta charset="utf-8"><title>SafeCore IoT</title>
 <link rel="stylesheet" href="/static/style.css"></head>
-<body><main class="container">{% block content %}{% endblock %}</main></body>
+<body>
+    <main class="container">
+        {% if flash_msg %}
+            <div role="alert" style="border:1px solid 
+            {% if flash_ok %}
+                #2e7d32
+            {% else %}
+                #ba1a1a
+            {% endif %}
+            ;background:
+            {% if flash_ok %}
+            #e8f5e9{% else %}
+            #ffdad6{% endif %}
+            ;padding:10px 14px;border-radius:8px;margin-bottom:12px;">{{ flash_msg }}
+            </div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+    </body>
 </html>

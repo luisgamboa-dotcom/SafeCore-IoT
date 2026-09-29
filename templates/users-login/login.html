@@ -121,9 +121,9 @@
                 <h1 class="font-headline-md text-headline-md text-primary">Iniciar sesión</h1>
                 <p class="text-on-surface-variant font-body-md mt-stack-xs">Panel de monitoreo seguro</p>
             </div>
-            {% if error %}
-            <div class="mb-stack-md rounded-lg border border-error bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container" role="alert">
-                {{ error }}
+            {% if flash_msg %}
+            <div class="mb-stack-md" role="alert" style="border:1px solid {% if flash_ok %}#2e7d32{% else %}#ba1a1a{% endif %};background:{% if flash_ok %}#e8f5e9{% else %}#ffdad6{% endif %};padding:10px 14px;border-radius:8px;">
+                {{ flash_msg }}
             </div>
             {% endif %}
             <form class="space-y-stack-md" action="/users/login" method="POST">
@@ -133,11 +133,8 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span class="material-symbols-outlined text-outline">mail</span>
                         </div>
-                        <input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg bg-surface-bright text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-200 {% if errors and errors.email %}ring-2 ring-error border-error{% endif %}" id="email" name="email" placeholder="admin@safecore.io" required="" type="email" value="{{ email or '' }}" />
+                        <input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg bg-surface-bright text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-200" id="email" name="email" placeholder="admin@safecore.io" required="" type="email" value="{{ old.email or '' }}" />
                     </div>
-                    {% if errors and errors.email %}
-                    <p class="mt-1 text-sm text-error">{{ errors.email }}</p>
-                    {% endif %}
                 </div>
                 <div>
                     <label class="block font-label-md text-label-md text-on-surface mb-stack-xs" for="password">Contraseña</label>
@@ -145,11 +142,8 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span class="material-symbols-outlined text-outline">lock</span>
                         </div>
-                        <input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg bg-surface-bright text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-200 {% if errors and errors.password %}ring-2 ring-error border-error{% endif %}" id="password" name="password" placeholder="••••••••" required="" type="password" />
+                        <input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg bg-surface-bright text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-200" id="password" name="password" placeholder="••••••••" required="" type="password" />
                     </div>
-                    {% if errors and errors.password %}
-                    <p class="mt-1 text-sm text-error">{{ errors.password }}</p>
-                    {% endif %}
                 </div>
                 <div class="flex items-center justify-between pt-stack-xs">
                     <div class="flex items-center">

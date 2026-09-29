@@ -16,22 +16,14 @@ import json
 import sys
 import time
 from pathlib import Path
-
-try:
-    import serial
-except ImportError:
-    sys.exit("Falta pyserial: pip install pyserial")
-
-try:
-    import requests
-except ImportError:
-    sys.exit("Falta requests: pip install requests")
+import serial
+import requests
 
 BUFFER = Path(__file__).with_name("buffer.jsonl")
 
 
 def parse_linea(linea):
-    """Convierte una linea del Arduino en payload REST. Retorna dict o None."""
+    # Convierte una linea del Arduino en payload REST. Retorna dict o None.
     linea = linea.strip()
     if not linea or not linea.startswith("{"):
         return None  # ignora debug '# ...' y recuadros viejos
