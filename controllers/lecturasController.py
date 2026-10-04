@@ -1,8 +1,8 @@
 """
     Controlador de lecturas (MVC: Controller).
     Ingesta del dispositivo y vistas de datos. Sin SQL directo salvo
-    el manejo de errores MySQL; las consultas viven en models/lecturas.py.
-    Las rutas que apuntan a estas funciones viven en routers/routes.py.
+    el manejo de errores MySQL; las consultas viven en models/lecturasModel.py.
+    Las rutas que apuntan a estas funciones viven en routers/lecturasRoutes.py.
 """
 
 # controllers/lecturasController.py
@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 import mysql.connector
 
-from models import lecturas as lec_model
+from models import lecturasModel as lec_model
 
 templates = Jinja2Templates(directory="templates")
 
@@ -34,8 +34,8 @@ class IngestIn(BaseModel):
     readings: List[ReadingIn] = Field(min_length=1, max_length=10)
 
 
-def ingest(payload: IngestIn):
-    dev = lec_model.get_dispositivo_por_serial(payload.device_serial)
+def ingestReadings(payload: IngestIn):
+    dev = lec_model.getDeviceBySerial(payload.device_serial)
     if dev is None:
         return JSONResponse(
             status_code=404,
@@ -43,43 +43,42 @@ def ingest(payload: IngestIn):
                      "error": f"Dispositivo '{payload.device_serial}' no existe. "
                               "Createlo en dispositivos (ver sql/seed_datos_test.sql)."},
         )
-    insertadas, duplicadas, dudosas, errores = 0, 0, 0, []
+    insertadas, dudosas, errores = 0, 0, []
     try:
         for r in payload.readings:
             spec = lec_model.MAGNITUDES[r.tipo]
-            id_mag = lec_model.ensure_magnitud(spec["nombre"], spec["unidad"], spec["simbolo"])
-            id_sens = lec_model.ensure_sensor_para_magnitud(dev["id_dispositivo"], id_mag)
+            id_mag = lec_model.ensureMagnitude(spec["nombre"], spec["unidad"], spec["simbolo"])
+            id_sens = lec_model.ensureSensorForMagnitude(dev["id_dispositivo"], id_mag)
             lo, hi = RANGOS[r.tipo]
             calidad = "valida" if (lo <= float(r.valor_crudo) <= hi) else "dudosa"
             if calidad == "dudosa":
                 dudosas += 1
-            mensaje_id = f"{payload.device_serial}:{payload.seq}:{r.tipo}"
             try:
-                res = lec_model.insertar_lectura(
-                    float(r.valor_crudo), calidad, mensaje_id, id_sens, id_mag)
+                lec_model.insertReading(
+                    float(r.valor_crudo), calidad, id_sens, id_mag)
             except mysql.connector.Error as e:
                 if e.errno == 1452:
                     errores.append(f"FK inexistente para tipo '{r.tipo}'")
                     continue
+                if "trg_lecturas_validar_magnitud" in (e.msg or ""):
+                    errores.append(f"Sensor sin magnitud '{r.tipo}' permitida")
+                    continue
                 raise
-            if res["duplicada"]:
-                duplicadas += 1
-            else:
-                insertadas += 1
+            insertadas += 1
         if insertadas:
-            lec_model.touch_dispositivo(dev["id_dispositivo"])
+            lec_model.touchDevice(dev["id_dispositivo"])
     except mysql.connector.Error as e:
         return JSONResponse(status_code=500, content={"ok": False, "error": f"DB: {e.msg}"})
-    return {"ok": True, "insertadas": insertadas, "duplicadas": duplicadas,
+    return {"ok": True, "insertadas": insertadas, "duplicadas": 0,
             "dudosas": dudosas, "errores": errores}
 
 
-def ultimas(limit: int = 50):
-    return {"ok": True, "lecturas": lec_model.get_ultimas(limit)}
+def getLatestReadings(limit: int = 50):
+    return {"ok": True, "lecturas": lec_model.getLatest(limit)}
 
 
-def datos(request: Request):
+def showDataPage(request: Request):
     # Vista de testeo: a proposito sin sesion ni diseno, solo tabla cruda.
     return templates.TemplateResponse(
         request, "datos/index.html",
-        {"request": request, "lecturas": lec_model.get_ultimas(50)})
+        {"request": request, "lecturas": lec_model.getLatest(50)})

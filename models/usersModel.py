@@ -1,15 +1,20 @@
-from config.db import get_conn
+# models/usersModel.py — consultas SQL de la tabla usuarios.
+# Usado por controllers/authController.py (registro/login) y
+# controllers/usersController.py (listado/detalle/edición).
+from config.dbConfig import getConnection
 
-def get_all_users():
-    conn = get_conn()
+
+def getAllUsers():
+    conn = getConnection()
     cur = conn.cursor(dictionary=True)
     cur.execute("SELECT * FROM usuarios ORDER BY id_usuario DESC")
     users = cur.fetchall()
     cur.close(); conn.close()
     return users
 
-def create_user(nombre, apellido, email, telefono, password_hash, id_organizacion):
-    conn = get_conn()
+
+def createUser(nombre, apellido, email, telefono, password_hash, id_organizacion):
+    conn = getConnection()
     cur = conn.cursor()
     cur.execute(
         "INSERT INTO usuarios (nombre, apellido, email, telefono, password_hash, id_organizacion) VALUES (%s,%s,%s,%s,%s,%s)",
@@ -17,8 +22,9 @@ def create_user(nombre, apellido, email, telefono, password_hash, id_organizacio
     conn.commit()
     cur.close(); conn.close()
 
-def get_user_by_email(email):
-    conn = get_conn()
+
+def getUserByEmail(email):
+    conn = getConnection()
     cur = conn.cursor(dictionary=True)
     cur.execute("SELECT * FROM usuarios WHERE email = %s",
                 (email,)
@@ -27,18 +33,9 @@ def get_user_by_email(email):
     cur.close(); conn.close()
     return user
 
-def get_sesiones_activas():
-    conn = get_conn()
-    cur = conn.cursor(dictionary=True)
-    cur.execute("""SELECT s.id_sesion, s.id_usuario, u.nombre, u.email
-                   FROM sesiones s LEFT JOIN usuarios u ON u.id_usuario = s.id_usuario
-                   ORDER BY s.fecha_creacion DESC""")
-    filas = cur.fetchall()
-    cur.close(); conn.close()
-    return filas
 
-def get_user_by_id(id_usuario):
-    conn = get_conn()
+def getUserById(id_usuario):
+    conn = getConnection()
     cur = conn.cursor(dictionary=True)
     cur.execute("SELECT * FROM usuarios WHERE id_usuario = %s",
                 (id_usuario,)
@@ -47,8 +44,9 @@ def get_user_by_id(id_usuario):
     cur.close(); conn.close()
     return user
 
-def update_user(id_usuario, nombre, apellido, email, telefono, password_hash, id_organizacion):
-    conn = get_conn()
+
+def updateUser(id_usuario, nombre, apellido, email, telefono, id_organizacion):
+    conn = getConnection()
     cur = conn.cursor()
     cur.execute(
         "UPDATE usuarios SET nombre=%s, apellido=%s, email=%s, telefono=%s, id_organizacion=%s WHERE id_usuario=%s",

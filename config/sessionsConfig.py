@@ -1,4 +1,4 @@
-# config/sessions.py — sesiones con fastapi-sessions (cookie firmada).
+# config/sessionsConfig.py — sesiones con fastapi-sessions (cookie firmada).
 import os
 # UUID es el identificador de sesión que viaja en la cookie firmada.
 from uuid import UUID
@@ -32,7 +32,7 @@ from fastapi_sessions.session_verifier import SessionVerifier
 # BaseModel es la clase base para crear modelos de datos con validación y serialización.
 from pydantic import BaseModel
 
-from config.db import get_conn
+from config.dbConfig import getConnection
 
 load_dotenv()
 
@@ -59,7 +59,7 @@ cookie = SessionCookie(
 # La cookie firmada sigue validando identidad; aquí solo se guarda session_id -> id_usuario.
 class MySQLBackend(SessionBackend[UUID, SessionData]):
     async def create(self, session_id: UUID, data: SessionData):
-        conn = get_conn()
+        conn = getConnection()
         try:
             cur = conn.cursor()
             cur.execute("SELECT id_sesion FROM sesiones WHERE id_sesion = %s", (str(session_id),))
@@ -73,7 +73,7 @@ class MySQLBackend(SessionBackend[UUID, SessionData]):
             conn.close()
 
     async def read(self, session_id: UUID):
-        conn = get_conn()
+        conn = getConnection()
         try:
             cur = conn.cursor(dictionary=True)
             cur.execute("SELECT id_usuario FROM sesiones WHERE id_sesion = %s", (str(session_id),))
@@ -88,7 +88,7 @@ class MySQLBackend(SessionBackend[UUID, SessionData]):
         return SessionData(id_usuario=row["id_usuario"])
 
     async def update(self, session_id: UUID, data: SessionData) -> None:
-        conn = get_conn()
+        conn = getConnection()
         try:
             cur = conn.cursor()
             cur.execute("UPDATE sesiones SET id_usuario = %s WHERE id_sesion = %s",
@@ -101,7 +101,7 @@ class MySQLBackend(SessionBackend[UUID, SessionData]):
             conn.close()
 
     async def delete(self, session_id: UUID) -> None:
-        conn = get_conn()
+        conn = getConnection()
         try:
             cur = conn.cursor()
             cur.execute("DELETE FROM sesiones WHERE id_sesion = %s", (str(session_id),))

@@ -3,7 +3,7 @@ from email_validator import validate_email, EmailNotValidError
 from phonenumbers import NumberParseException
 
 
-def normalizar_formulario(form_data):
+def normalizeForm(form_data):
     for key, value in form_data.items():
         form_data[key] = value.strip()
     form_data["nombre"] = form_data["nombre"].capitalize()
@@ -11,7 +11,7 @@ def normalizar_formulario(form_data):
     return form_data
 
 
-def validar_email(email):
+def validateEmail(email):
     # Valida sintaxis y retorna el correo normalizado
     try:
         # Sin deliverability para no depender del DNS
@@ -21,7 +21,7 @@ def validar_email(email):
         return None, "El correo electrónico no es válido. Revísalo e inténtalo de nuevo."
 
 
-def validar_telefono_chileno(telefono_raw, pais_defecto="CL"):
+def validateChileanPhone(telefono_raw, pais_defecto="CL"):
     if not telefono_raw or not telefono_raw.strip():
         return None, None
     try:
@@ -39,7 +39,7 @@ def validar_telefono_chileno(telefono_raw, pais_defecto="CL"):
         return None, "El número de teléfono no es válido."
 
 
-def validar_passwords(password, confirm_password):
+def validatePasswords(password, confirm_password):
     password = password.strip()
     if len(password) < 8:
         return "La contraseña debe tener al menos 8 caracteres"

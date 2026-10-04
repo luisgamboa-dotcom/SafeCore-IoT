@@ -1,4 +1,4 @@
-from config.db import get_conn
+from config.dbConfig import getConnection
 import mysql.connector
 
 # tipo del puente -> magnitud a guardar. El gas se guarda en ADC crudo:
@@ -10,8 +10,8 @@ MAGNITUDES = {
 }
 
 
-def ensure_magnitud(nombre, unidad, simbolo):
-    conn = get_conn()
+def ensureMagnitude(nombre, unidad, simbolo):
+    conn = getConnection()
     cur = conn.cursor(dictionary=True)
     cur.execute("SELECT id_magnitud FROM magnitudes WHERE nombre = %s", (nombre,))
     row = cur.fetchone()
@@ -29,8 +29,8 @@ def ensure_magnitud(nombre, unidad, simbolo):
     return new_id
 
 
-def get_dispositivo_por_serial(codigo_serial):
-    conn = get_conn()
+def getDeviceBySerial(codigo_serial):
+    conn = getConnection()
     cur = conn.cursor(dictionary=True)
     cur.execute(
         "SELECT id_dispositivo, codigo_serial FROM dispositivos WHERE codigo_serial = %s",
@@ -41,9 +41,9 @@ def get_dispositivo_por_serial(codigo_serial):
     return row
 
 
-def ensure_sensor_para_magnitud(id_dispositivo, id_magnitud):
+def ensureSensorForMagnitude(id_dispositivo, id_magnitud):
     """Un sensor por (dispositivo, magnitud). Devuelve id_sensor."""
-    conn = get_conn()
+    conn = getConnection()
     cur = conn.cursor(dictionary=True)
     cur.execute(
         """SELECT s.id_sensor FROM sensores s
@@ -73,29 +73,23 @@ def ensure_sensor_para_magnitud(id_dispositivo, id_magnitud):
     return sid
 
 
-def insertar_lectura(valor, calidad, mensaje_id, id_sensor, id_magnitud):
-    """Retorna {'duplicada': bool, 'id_lectura': int|None}."""
-    conn = get_conn()
+def insertReading(valor, calidad, id_sensor, id_magnitud):
+    """Retorna {'id_lectura': int}. Sin mensaje_id (nuevo esquema): no hay deduplicación."""
+    conn = getConnection()
     cur = conn.cursor()
-    try:
-        cur.execute(
-            "INSERT INTO lecturas (valor, calidad, mensaje_id, id_sensor, id_magnitud)"
-            " VALUES (%s, %s, %s, %s, %s)",
-            (valor, calidad, mensaje_id, id_sensor, id_magnitud),
-        )
-        conn.commit()
-        lid = cur.lastrowid
-        cur.close(); conn.close()
-        return {"duplicada": False, "id_lectura": lid}
-    except mysql.connector.Error as e:
-        cur.close(); conn.close()
-        if e.errno == 1062:  # mensaje_id duplicado -> reenvio, no es error
-            return {"duplicada": True, "id_lectura": None}
-        raise
+    cur.execute(
+        "INSERT INTO lecturas (valor, calidad, id_sensor, id_magnitud)"
+        " VALUES (%s, %s, %s, %s)",
+        (valor, calidad, id_sensor, id_magnitud),
+    )
+    conn.commit()
+    lid = cur.lastrowid
+    cur.close(); conn.close()
+    return {"id_lectura": lid}
 
 
-def touch_dispositivo(id_dispositivo):
-    conn = get_conn()
+def touchDevice(id_dispositivo):
+    conn = getConnection()
     cur = conn.cursor()
     cur.execute(
         "UPDATE dispositivos SET ultima_comunicacion = NOW() WHERE id_dispositivo = %s",
@@ -105,12 +99,12 @@ def touch_dispositivo(id_dispositivo):
     cur.close(); conn.close()
 
 
-def get_ultimas(limit=50):
+def getLatest(limit=50):
     limit = max(1, min(int(limit), 200))
-    conn = get_conn()
+    conn = getConnection()
     cur = conn.cursor(dictionary=True)
     cur.execute(
-        """SELECT l.id_lectura, l.valor, l.fecha_hora, l.calidad, l.mensaje_id,
+        """SELECT l.id_lectura, l.valor, l.fecha_hora, l.calidad,
                   m.nombre AS magnitud, m.simbolo,
                   d.codigo_serial, d.nombre AS dispositivo
            FROM lecturas l

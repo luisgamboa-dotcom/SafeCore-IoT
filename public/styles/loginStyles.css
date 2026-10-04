@@ -1,0 +1,10 @@
+/* public/styles/loginStyles.css — estilos propios de users-login/login.html */
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+body {
+    background-color: theme('colors.background');
+    background-image: radial-gradient(theme('colors.primary-fixed-dim') 1px, transparent 1px);
+    background-size: 40px 40px;
+}

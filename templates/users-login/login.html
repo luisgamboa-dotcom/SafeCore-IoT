@@ -103,16 +103,7 @@
                 }
             }
         </script>
-        <style>
-            .material-symbols-outlined {
-                font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-            }
-            body {
-                background-color: theme('colors.background');
-                background-image: radial-gradient(theme('colors.primary-fixed-dim') 1px, transparent 1px);
-                background-size: 40px 40px;
-            }
-        </style>
+        <link rel="stylesheet" href="/public/styles/loginStyles.css">
     </head>
     <body class="min-h-screen flex items-center justify-center font-body-md text-on-surface bg-background">
         <div class="w-full max-w-md p-stack-lg bg-surface-container-lowest rounded-xl shadow-[0_10px_30px_rgba(26,54,93,0.05)] border border-outline-variant/20 mx-margin-mobile">
@@ -167,10 +158,6 @@
                 <p class="font-body-md text-body-md text-on-surface-variant">
                     ¿No tienes una cuenta?
                     <a class="font-medium text-secondary hover:text-secondary-container transition-colors" href="/users/register">Regístrate aquí</a>
-                </p>
-                <!-- TEMPORAL depuración: ver datos recopilados. BORRAR antes de la entrega. -->
-                <p class="mt-2">
-                    <a class="font-label-md text-label-md text-outline hover:text-secondary transition-colors" href="/users/sesiones">[Temporal] Ver datos recopilados</a>
                 </p>
             </div>
         </div>

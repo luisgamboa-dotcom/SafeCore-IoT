@@ -8,12 +8,12 @@
 CLAVE = "_form_flash"
 
 
-def flash_form(request, msg, old=None, ok=False):
+def flashForm(request, msg, old=None, ok=False):
     # Guarda mensaje global único (+ datos para repoblar, sin claves)
     request.session[CLAVE] = {"msg": msg, "old": old or {}, "ok": ok}
 
 
-def pop_form_flash(request):
+def popFormFlash(request):
     # Lee y borra el flash. Retorna (msg, old, ok)
     datos = request.session.pop(CLAVE, None) or {}
     return datos.get("msg"), datos.get("old", {}), datos.get("ok", False)
