@@ -1,9 +1,9 @@
 <!-- Vista de TESTEO: tabla cruda sin diseno, auto-refresh cada 5 s. -->
 {% extends "layout.html" %}
 {% block content %}
-    <h1>Datos en vivo (testeo USB)</h1>
+    <h1>Datos en vivo</h1>
     <p>
-        Sin diseno a proposito: muestra lo que se va guardando en <code>lecturas</code>.
+        Muestra lo que el dispositivo envía <strong>por Wi-Fi</strong>.
         Se actualiza sola cada 5 segundos. <a href="/api/ultimas?limit=50">Ver JSON</a>
     </p>
     <p id="estado">Cargando...</p>

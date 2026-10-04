@@ -5,7 +5,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
-from routers import authRoutes, usersRoutes, lecturasRoutes, usbRoutes
+from routers import authRoutes, usersRoutes, lecturasRoutes
 
 load_dotenv()
 
@@ -20,7 +20,6 @@ templates = Jinja2Templates(directory="templates")
 app.include_router(authRoutes.auth_router)
 app.include_router(usersRoutes.users_router)
 app.include_router(lecturasRoutes.lecturas_router)
-app.include_router(usbRoutes.usb_router)
 
 @app.get("/", include_in_schema=False)
 def redirectToHome():
