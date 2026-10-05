@@ -1,8 +1,6 @@
 .env
-secrets.h
 firmware/secrets.h
 .venv
 __pycache__/**
 sql/
 *.log
-node_modules/

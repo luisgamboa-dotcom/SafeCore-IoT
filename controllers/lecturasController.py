@@ -82,3 +82,11 @@ def showDataPage(request: Request):
     return templates.TemplateResponse(
         request, "datos/index.html",
         {"request": request, "lecturas": lec_model.getLatest(50)})
+
+
+try: 
+    print("Holamundo")
+except mysql.connector.Error as e:
+    if e.errno == 1024:
+        print("hubo un error de sintaxis en la consulta SQL")
+    print(f"Error al conectar a la base de datos: {e.msg}")

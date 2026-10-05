@@ -9,7 +9,7 @@ CLAVE = "_form_flash"
 
 
 def flashForm(request, msg, old=None, ok=False):
-    # Guarda mensaje global único (+ datos para repoblar, sin claves)
+    # Guarda mensaje global único mas los datos para repoblar, sin claves
     request.session[CLAVE] = {"msg": msg, "old": old or {}, "ok": ok}
 
 

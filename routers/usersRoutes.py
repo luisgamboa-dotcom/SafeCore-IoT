@@ -14,7 +14,7 @@ users_router = APIRouter(prefix="/users", tags=["users"])
 
 users_router.get("/")(usersController.listUsers)
 
+users_router.get("/{id_usuario}")(usersController.showUser)
+
 users_router.get("/{id_usuario}/edit")(usersController.showEditUserForm)
 users_router.post("/{id_usuario}/edit")(usersController.updateUser)
-
-users_router.get("/{id_usuario}")(usersController.showUser)

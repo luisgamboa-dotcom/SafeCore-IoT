@@ -7,12 +7,13 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from routers import authRoutes, usersRoutes, lecturasRoutes
 
+
 load_dotenv()
 
-app = FastAPI(title="CRUD FastAPI + Jinja2")
+app = FastAPI(title="SafeCore IoT")
+
 # Sesiones firmadas para mensajes flash (cookie "session", convive con "safecore_session").
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY"))
-app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/public", StaticFiles(directory="public"), name="public")
 templates = Jinja2Templates(directory="templates")
 
@@ -20,6 +21,7 @@ templates = Jinja2Templates(directory="templates")
 app.include_router(authRoutes.auth_router)
 app.include_router(usersRoutes.users_router)
 app.include_router(lecturasRoutes.lecturas_router)
+
 
 @app.get("/", include_in_schema=False)
 def redirectToHome():

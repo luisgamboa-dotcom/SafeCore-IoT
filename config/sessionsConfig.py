@@ -32,7 +32,7 @@ from fastapi_sessions.session_verifier import SessionVerifier
 # BaseModel es la clase base para crear modelos de datos con validación y serialización.
 from pydantic import BaseModel
 
-from config.dbConfig import getConnection
+from models import sessionsModel as sessionModel
 
 load_dotenv()
 
@@ -42,8 +42,10 @@ class SessionData(BaseModel):
     id_usuario: int
 
 
-# Cookie de 8 horas (jornada laboral). httponly=True: JS no puede leerla (anti-XSS).
-cookie_params = CookieParameters(max_age=8 * 60 * 60)
+# Cookie de 8 horas (tambien es anti-XSS).
+# XSS es un ataque que inyecta código malicioso en la página web, y la cookie firmada evita que el atacante pueda modificarla.
+
+cookie_params = CookieParameters(max_age= 8 * 60 * 60)
 
 cookie = SessionCookie(
     cookie_name="safecore_session",
@@ -57,58 +59,28 @@ cookie = SessionCookie(
 
 # Almacenamiento en MySQL (tabla sesiones): sobrevive reinicios de uvicorn.
 # La cookie firmada sigue validando identidad; aquí solo se guarda session_id -> id_usuario.
+# Las consultas viven en models/sessionsModel.py; este backend solo orquesta y traduce errores.
 class MySQLBackend(SessionBackend[UUID, SessionData]):
     async def create(self, session_id: UUID, data: SessionData):
-        conn = getConnection()
-        try:
-            cur = conn.cursor()
-            cur.execute("SELECT id_sesion FROM sesiones WHERE id_sesion = %s", (str(session_id),))
-            if cur.fetchone():
-                raise BackendError("create can't overwrite an existing session")
-            cur.execute("INSERT INTO sesiones (id_sesion, id_usuario) VALUES (%s, %s)",
-                        (str(session_id), data.id_usuario))
-            conn.commit()
-            cur.close()
-        finally:
-            conn.close()
+        if sessionModel.sessionExists(str(session_id)):
+            raise BackendError("create can't overwrite an existing session")
+        sessionModel.createSession(str(session_id), data.id_usuario)
 
     async def read(self, session_id: UUID):
-        conn = getConnection()
         try:
-            cur = conn.cursor(dictionary=True)
-            cur.execute("SELECT id_usuario FROM sesiones WHERE id_sesion = %s", (str(session_id),))
-            row = cur.fetchone()
-            cur.close()
+            id_usuario = sessionModel.getSessionUserId(str(session_id))
         except Exception as e:
             raise BackendError(f"read error: {e}")
-        finally:
-            conn.close()
-        if not row:
+        if id_usuario is None:
             return None
-        return SessionData(id_usuario=row["id_usuario"])
+        return SessionData(id_usuario=id_usuario)
 
     async def update(self, session_id: UUID, data: SessionData) -> None:
-        conn = getConnection()
-        try:
-            cur = conn.cursor()
-            cur.execute("UPDATE sesiones SET id_usuario = %s WHERE id_sesion = %s",
-                        (data.id_usuario, str(session_id)))
-            if cur.rowcount == 0:
-                raise BackendError("session does not exist, cannot update")
-            conn.commit()
-            cur.close()
-        finally:
-            conn.close()
+        if sessionModel.updateSessionUser(str(session_id), data.id_usuario) == 0:
+            raise BackendError("session does not exist, cannot update")
 
     async def delete(self, session_id: UUID) -> None:
-        conn = getConnection()
-        try:
-            cur = conn.cursor()
-            cur.execute("DELETE FROM sesiones WHERE id_sesion = %s", (str(session_id),))
-            conn.commit()
-            cur.close()
-        finally:
-            conn.close()
+        sessionModel.deleteSession(str(session_id))
 
 
 backend: MySQLBackend = MySQLBackend()

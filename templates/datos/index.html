@@ -4,7 +4,7 @@
     <h1>Datos en vivo</h1>
     <p>
         Muestra lo que el dispositivo envía <strong>por Wi-Fi</strong>.
-        Se actualiza sola cada 5 segundos. <a href="/api/ultimas?limit=50">Ver JSON</a>
+        Se actualiza sola cada 10 segundos. <a href="/api/ultimas?limit=10">Ver JSON</a>
     </p>
     <p id="estado">Cargando...</p>
     <table border="1" cellpadding="4" cellspacing="0">
@@ -33,5 +33,5 @@
             {% endfor %}
         </tbody>
     </table>
-    <script src="/public/scripts/datosScripts.js"></script>
+    <script src="/public/scripts/datosScripts.js?v=2"></script>
 {% endblock %}

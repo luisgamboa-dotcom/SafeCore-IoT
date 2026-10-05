@@ -121,6 +121,7 @@ async def loginUser(
     email: str = Form(...),
     password: str = Form(...),
     ):
+
     ctx_old = {"email": email}
 
     def redirectWithError(mensaje):
@@ -137,6 +138,9 @@ async def loginUser(
     # Mensaje genérico a propósito: no revelar si falló el correo o la clave
     if user is None or not hmac.compare_digest(esperado, recibido):
         return redirectWithError("Correo o contraseña incorrectos")
+    
+    if user["id_usuario_estado"] != 1:
+        return redirectWithError("Cuenta inactiva. Contacte al administrador.")
 
     session_id = uuid4()
     await session_backend.create(session_id, SessionData(id_usuario=user["id_usuario"]))
@@ -145,12 +149,12 @@ async def loginUser(
     return respuesta
 
 
-# logout — destruye la sesión y borra la cookie (público)
+# logout destruye la sesión y borra la cookie (público)
 async def logoutUser(request: Request, session_id: UUID = Depends(session_cookie)):
     try:
         await session_backend.delete(session_id)
     except Exception:
-        pass  # logout idempotente: si no había sesión, igual se redirige
+        pass  # si no había sesión, igual se redirige
     flashForm(request, "Sesión cerrada correctamente.", ok=True)
     respuesta = RedirectResponse("/users/login", status_code=303)
     session_cookie.delete_from_response(respuesta)
