@@ -12,5 +12,7 @@ lecturas_router = APIRouter(tags=["ingest", "datos"])
 
 
 lecturas_router.post("/api/ingest")(lecturasController.ingestReadings)
+lecturas_router.get("/api/live")(lecturasController.getLiveReadings)
 lecturas_router.get("/api/ultimas")(lecturasController.getLatestReadings)
 lecturas_router.get("/datos")(lecturasController.showDataPage)
+lecturas_router.get("/dashboard")(lecturasController.showDataPage)
