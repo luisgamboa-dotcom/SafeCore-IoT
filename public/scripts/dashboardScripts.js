@@ -37,9 +37,25 @@
   } catch (e) {}
 
   function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c];
-    });
+    var texto = String(s == null ? '' : s);
+    var salida = '';
+    for (var i = 0; i < texto.length; i++) {
+      var c = texto[i];
+      if (c === '&') {
+        salida += '&amp;';
+      } else if (c === '<') {
+        salida += '&lt;';
+      } else if (c === '>') {
+        salida += '&gt;';
+      } else if (c === '"') {
+        salida += '&quot;';
+      } else if (c === "'") {
+        salida += '&#39;';
+      } else {
+        salida += c;
+      }
+    }
+    return salida;
   }
 
   // Antiguedad del ultimo dato (formato servidor "YYYY-MM-DD HH:MM:SS").
@@ -215,28 +231,9 @@
       }
     }
 
-    // Tarjetas: una por (dispositivo, magnitud) con su ultima lectura.
-    if (elDevices) {
-      var cards = Object.values(devs).slice(0, 8);
-      if (!cards.length) {
-        elDevices.innerHTML = '';
-      } else {
-        elDevices.innerHTML = cards.map(function (l) {
-          var dot = l.calidad === 'dudosa' ? 'status-dot-warn' : 'status-dot-online';
-          return '<article class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-5 relative overflow-hidden">'
-            + '<div class="flex justify-between items-start mb-4"><div>'
-            + '<h3 class="font-semibold text-on-surface">' + esc(l.dispositivo || 'Dispositivo') + ' · ' + esc(l.codigo_serial) + '</h3>'
-            + '<p class="text-xs text-on-surface-variant mt-1">' + esc(l.magnitud) + '</p></div>'
-            + '<span class="w-3 h-3 rounded-full ' + dot + '"></span></div>'
-            + '<div class="flex justify-between items-end"><div>'
-            + '<p class="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Calidad</p>'
-            + '<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container-low text-xs font-semibold">' + esc(l.calidad) + '</span></div>'
-            + '<div class="text-right"><p class="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Lectura</p>'
-            + '<p class="text-xl font-bold text-primary">' + esc(l.valor) + '</p></div></div>'
-            + '<p class="text-xs text-on-surface-variant mt-3">' + esc(l.fecha_hora) + '</p></article>';
-        }).join('');
-      }
-    }
+    // Tarjetas por dispositivo: las sirve el servidor y no se tocan aquí
+    // (reescribirlas desde /api/live las borraba cuando el buffer en memoria
+    // estaba vacío, p. ej. tras reiniciar uvicorn).
 
     // Grafico + historial del tipo activo.
     var serie = items.filter(function (x) { return x.magnitud === tipoActivo; }).slice(0, 50).reverse();

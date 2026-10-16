@@ -5,7 +5,7 @@ from uuid import UUID
 import mysql.connector
 
 from fastapi import Depends, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from typing import List, Literal, Optional
@@ -16,6 +16,7 @@ from config.sessionsConfig import (
     verificador,
 )
 from models import lecturasModel as lec_model
+from models import dispositivosModel as dev_model
 from models import usersModel as user_model
 from utils import liveStore
 from utils.flashUtils import popFormFlash
@@ -131,10 +132,32 @@ def showDataPage(request: Request,
     roles = user_model.getUserRoles(sesion.id_usuario)
     user = user_model.getUserById(sesion.id_usuario)
     iniciales = user["nombre"][0] + (user["apellido"][0] if user and user["apellido"] else "") if user else ""
+    try:
+        dispositivos = dev_model.getActiveDevices()
+    except Exception:
+        dispositivos = []
     return templates.TemplateResponse(
         request, "datos/index.html",
-        {"request": request, "lecturas": lecturas,
+        {"request": request, "lecturas": lecturas, "dispositivos": dispositivos,
          "flash_msg": flash_msg, "flash_ok": flash_ok,
+         "is_admin": "Administrador" in roles,
+         "iniciales": iniciales, "id_usuario": sesion.id_usuario})
+
+
+def showDeviceDetail(request: Request,
+                     id_dispositivo: int,
+                     id_sesion: UUID = Depends(session_cookie),
+                     sesion: SessionData = Depends(verificador)):
+    # Detalle de un dispositivo (privado): ficha completa desde MySQL.
+    dev = dev_model.getDeviceDetail(id_dispositivo)
+    if dev is None:
+        return RedirectResponse("/dashboard", status_code=303)
+    roles = user_model.getUserRoles(sesion.id_usuario)
+    user = user_model.getUserById(sesion.id_usuario)
+    iniciales = user["nombre"][0] + (user["apellido"][0] if user and user["apellido"] else "") if user else ""
+    return templates.TemplateResponse(
+        request, "datos/dispositivo.html",
+        {"request": request, "dev": dev,
          "is_admin": "Administrador" in roles,
          "iniciales": iniciales, "id_usuario": sesion.id_usuario})
 

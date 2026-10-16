@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from config.sessionsConfig import getOptionalSession
-from routers import authRoutes, usersRoutes, lecturasRoutes, adminRoutes
+from routers import authRoutes, lecturasRoutes, adminRoutes
 
 
 load_dotenv()
@@ -18,9 +18,7 @@ app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY"))
 app.mount("/public", StaticFiles(directory="public"), name="public")
 templates = Jinja2Templates(directory="templates")
 
-# Orden de inclusión: auth (fijas) antes que users (genéricas), lecturas al final.
 app.include_router(authRoutes.auth_router)
-app.include_router(usersRoutes.users_router)
 app.include_router(lecturasRoutes.lecturas_router)
 app.include_router(adminRoutes.admin_router)
 

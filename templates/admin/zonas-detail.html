@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html class="h-full" lang="es">
+    <head>
+        <meta charset="utf-8"/>
+        <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+        <title>Detalle de zona - SafeCore IoT</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+        <script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#2E1B5A",
+        "primary-container": "#8751F8",
+        "secondary": "#6D3DF5",
+        "secondary-container": "#A37FFF",
+        "tertiary": "#3D2A63",
+        "tertiary-container": "#5B4A8A",
+        "primary-fixed": "#E9DEFF",
+        "primary-fixed-dim": "#C9B0FF",
+        "secondary-fixed": "#EDE6FF",
+        "secondary-fixed-dim": "#D5C2FF",
+        "tertiary-fixed": "#E5DBFF",
+        "tertiary-fixed-dim": "#C4AFFF",
+        "surface": "#F6F1FF",
+        "surface-bright": "#F6F1FF",
+        "surface-container-lowest": "#ffffff",
+        "surface-container-low": "#EFE7FF",
+        "surface-container": "#E9DEFF",
+        "surface-container-high": "#E2D5FF",
+        "surface-variant": "#D9C9FF",
+        "surface-tint": "#7A5CA8",
+        "background": "#F6F1FF",
+        "on-surface": "#191c1f",
+        "on-surface-variant": "#43474e",
+        "on-primary": "#ffffff",
+        "on-primary-container": "#D9C8FF",
+        "on-secondary": "#ffffff",
+        "on-tertiary": "#ffffff",
+        "on-tertiary-container": "#A37FFF",
+        "outline": "#74777f",
+        "outline-variant": "#c4c6cf",
+        "error": "#ba1a1a",
+        "error-container": "#ffdad6"
+      },
+      borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+      boxShadow: {
+        'ambient': '0 10px 30px rgba(135, 81, 248, 0.08)',
+        'ambient-hover': '0 15px 35px rgba(135, 81, 248, 0.14)'
+      }
+    }
+  }
+}
+</script>
+        <link rel="stylesheet" href="/public/styles/dashboardStyles.css">
+        <link rel="stylesheet" href="/public/styles/adminUsersStyles.css">
+    </head>
+    <body class="font-body text-on-surface antialiased flex h-screen overflow-hidden bg-background" style="font-family:Inter,system-ui,sans-serif">
+
+        <div id="edgeZone" title="Acercar para mostrar menú"></div>
+        <div id="backdrop"></div>
+
+        {% set active_page = "admin_inst" %}
+        {% include "partials/sidebar.html" %}
+        <!-- Contenido principal -->
+        <div id="mainWrap" class="flex-1 flex flex-col h-screen min-w-0 w-full">
+        {% set page_title = "Detalle de zona" %}
+        {% include "partials/topbar.html" %}
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-[1280px] mx-auto p-4 md:p-8 pb-12 flex flex-col gap-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="font-headline-md text-headline-md text-primary">{{ zona.nombre }}</h2>
+                        <p class="font-body-md text-body-md text-on-surface-variant mt-1">{{ zona.descripcion or 'Sin descripción' }} · {{ zona.instalacion }} · {{ n_dispositivos }} dispositivo(s)</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <a class="px-4 py-2 rounded-lg border border-outline-variant font-label-md text-label-md" href="/admin/instalaciones/{{ zona.id_instalacion }}">← Volver</a>
+                        <form action="/admin/instalaciones/{{ zona.id_instalacion }}/zonas/{{ zona.id_zona }}/delete" method="POST" onsubmit="return confirm('{% if n_dispositivos > 0 %}Tiene {{ n_dispositivos }} dispositivo(s): NO se eliminará.{% else %}¿Eliminar la zona {{ zona.nombre }}?{% endif %}');">
+                            <button class="px-4 py-2 rounded-lg border border-error text-error font-label-md text-label-md" type="submit">Eliminar</button>
+                        </form>
+                    </div>
+                </div>
+                {% include "partials/toast.html" %}
+                <div class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant overflow-hidden flex-1">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-surface-container-low border-b border-surface-variant text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+                                    <th class="p-4 font-semibold">Serial</th>
+                                    <th class="p-4 font-semibold">Nombre</th>
+                                    <th class="p-4 font-semibold">Modelo</th>
+                                    <th class="p-4 font-semibold">Estado</th>
+                                    <th class="p-4 font-semibold">Última comunicación</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-surface-variant font-body-md text-body-md text-on-surface">
+                                {% for d in dispositivos %}
+                                <tr class="hover:bg-surface-container-low/50 transition-colors">
+                                    <td class="p-4 font-medium text-primary">{{ d.codigo_serial }}</td>
+                                    <td class="p-4">{{ d.nombre }}</td>
+                                    <td class="p-4 text-on-surface-variant">{{ d.nombre_modelo }}</td>
+                                    <td class="p-4">{{ d.estado }}{% if not d.activo %} (dado de baja){% endif %}</td>
+                                    <td class="p-4 text-on-surface-variant">{{ d.ultima_comunicacion or '—' }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td class="p-4 text-on-surface-variant" colspan="5">Sin dispositivos en esta zona.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+        </div>
+        <script src="/public/scripts/sidebarToggle.js"></script>
+    </body>
+</html>

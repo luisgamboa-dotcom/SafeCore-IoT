@@ -12,6 +12,7 @@ from config.sessionsConfig import (
     SessionData,
     backend as session_backend,
     cookie as session_cookie,
+    verificador,
 )
 
 # El controlador usa el modelo, validaciones y mensajes flash.
@@ -145,6 +146,11 @@ async def loginUser(
     respuesta = RedirectResponse("/dashboard", status_code=303)
     session_cookie.attach_to_response(respuesta, session_id)
     return respuesta
+
+
+# /users — redirige al dashboard (exige sesión)
+def redirectToDashboard(request: Request, id_sesion: UUID = Depends(session_cookie), sesion: SessionData = Depends(verificador)):
+    return RedirectResponse("/dashboard", status_code=303)
 
 
 # logout destruye la sesión y borra la cookie (público)

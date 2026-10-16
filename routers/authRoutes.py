@@ -6,6 +6,8 @@ import controllers.authController as authController
 auth_router = APIRouter(prefix="/users", tags=["users"])
 
 
+auth_router.get("/")(authController.redirectToDashboard)
+
 auth_router.get("/register")(authController.showRegisterForm)
 auth_router.post("/register")(authController.registerUser)
 
