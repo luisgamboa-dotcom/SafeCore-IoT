@@ -1,11 +1,4 @@
-"""
-    Controlador de auth (MVC: Controller).
-    Solo autenticación: mostrar/procesar registro, login y logout.
-    Las consultas viven en models/usersModel.py y las validaciones
-    en utils/authUtils.py. Las rutas viven en routers/authRoutes.py.
-"""
-
-# controllers/authController.py
+"""Controlador de auth: registro, login y logout."""
 import hashlib
 import hmac
 from uuid import UUID, uuid4
@@ -33,9 +26,9 @@ templates = Jinja2Templates(directory="templates")
 
 # register — muestra el formulario (GET)
 def showRegisterForm(request: Request):
-    flash_msg, old, _ = popFormFlash(request)
+    flash_msg, old, flash_ok = popFormFlash(request)
     return templates.TemplateResponse(request, "users-login/register.html",
-        {"request": request, "flash_msg": flash_msg, "old": old})
+        {"request": request, "flash_msg": flash_msg, "flash_ok": flash_ok, "old": old})
 
 
 # store — guarda un usuario nuevo (INSERT ... VALUES (...))
@@ -89,13 +82,17 @@ def registerUser(
 
 
     try:
-        user_model.createUser(
+        nuevo_id = user_model.createUser(
             form_data["nombre"],
             form_data["apellido"],
             form_data["email"],
             telefono_normalizado,
             form_data["password_hash"],
             int(form_data["id_organizacion"]) if form_data["id_organizacion"] else None)
+        # Toda cuenta nueva nace con rol Usuario.
+        id_rol_usuario = user_model.getRoleIdByName("Usuario")
+        if id_rol_usuario is not None:
+            user_model.assignRole(nuevo_id, id_rol_usuario)
 
     except mysql.connector.Error as e:
         if e.errno == 1062:
@@ -105,14 +102,14 @@ def registerUser(
         return redirectWithError(f"Error al guardar: {e.msg}")
     # commit se hace dentro del modelo; si no se hace commit, los cambios no se guardan.
     flashForm(request, "Cuenta creada. ¡Bienvenido!", ok=True)
-    return RedirectResponse("/users", status_code=303)
+    return RedirectResponse("/dashboard", status_code=303)
 
 
 # login — muestra el formulario (público)
 def showLoginForm(request: Request):
-    flash_msg, old, _ = popFormFlash(request)
+    flash_msg, old, flash_ok = popFormFlash(request)
     return templates.TemplateResponse(request, "users-login/login.html",
-        {"request": request, "flash_msg": flash_msg, "old": old})
+        {"request": request, "flash_msg": flash_msg, "flash_ok": flash_ok, "old": old})
 
 
 # login — verifica credenciales y crea la sesión (público)
@@ -144,7 +141,8 @@ async def loginUser(
 
     session_id = uuid4()
     await session_backend.create(session_id, SessionData(id_usuario=user["id_usuario"]))
-    respuesta = RedirectResponse("/users", status_code=303)
+    flashForm(request, "Sesión iniciada correctamente. ¡Bienvenido!", ok=True)
+    respuesta = RedirectResponse("/dashboard", status_code=303)
     session_cookie.attach_to_response(respuesta, session_id)
     return respuesta
 

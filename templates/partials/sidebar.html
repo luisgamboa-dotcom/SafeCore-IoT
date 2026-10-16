@@ -1,0 +1,49 @@
+<!-- Sidebar compartido: dashboard y panel de administrador.
+     Contexto: active_page ("dashboard" | "admin"), is_admin (bool). -->
+<aside id="sidebar" class="bg-surface-container-lowest border-r border-outline-variant flex flex-col h-screen py-6 flex-shrink-0 z-30">
+  <div class="px-6 mb-6 w-64">
+    <a href="/home" aria-label="SafeCore IoT inicio" class="block">
+      <img src="/public/images/logo-horizontal.png" alt="SafeCore IoT" class="logo-brand h-16 w-auto object-contain" style="max-width:220px">
+    </a>
+    <p class="text-xs font-medium text-on-surface-variant mt-2 tracking-wide">Monitoreo industrial</p>
+  </div>
+  <nav class="flex-1 px-4 space-y-1">
+    <a class="flex items-center gap-3 px-4 py-3 rounded-lg {% if active_page == 'dashboard' %}text-white font-semibold bg-primary-container shadow-sm{% else %}text-on-surface-variant hover:bg-surface-container-low transition-colors{% endif %}" href="/dashboard">
+      <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">dashboard</span>
+      <span class="text-sm">Dashboard</span>
+    </a>
+    <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="/dashboard#alertas">
+      <span class="material-symbols-outlined">notifications_active</span>
+      <span class="text-sm">Alertas</span>
+    </a>
+    <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="/dashboard#dispositivos">
+      <span class="material-symbols-outlined">sensors</span>
+      <span class="text-sm">Sensores</span>
+    </a>
+    <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="/dashboard#historial">
+      <span class="material-symbols-outlined">history</span>
+      <span class="text-sm">Historial</span>
+    </a>
+    {% if is_admin %}
+    <a class="flex items-center gap-3 px-4 py-3 rounded-lg {% if active_page == 'admin' %}text-white font-semibold bg-primary-container shadow-sm{% else %}text-on-surface-variant hover:bg-surface-container-low transition-colors{% endif %}" href="/admin/users">
+      <span class="material-symbols-outlined">group</span>
+      <span class="text-sm">Panel de administrador</span>
+    </a>
+    {% endif %}
+    <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="/home">
+      <span class="material-symbols-outlined">home</span>
+      <span class="text-sm">Sitio público</span>
+    </a>
+  </nav>
+  <div class="px-6 mt-auto space-y-3">
+    <div class="flex items-center gap-2 text-on-surface-variant text-sm">
+      <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+      <span>Sistema en línea</span>
+    </div>
+    <form action="/users/logout" method="POST">
+      <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant hover:text-error hover:border-error text-sm transition-colors">
+        <span class="material-symbols-outlined text-base">logout</span> Cerrar sesión
+      </button>
+    </form>
+  </div>
+</aside>

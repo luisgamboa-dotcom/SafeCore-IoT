@@ -1,9 +1,4 @@
-"""
-    Rutas de lecturas y datos (ingesta del dispositivo + vistas).
-    Delegan en controllers/lecturasController.py.
-"""
-
-# routers/lecturasRoutes.py
+"""Rutas de lecturas y datos (ingesta del dispositivo + vistas)."""
 from fastapi import APIRouter
 
 import controllers.lecturasController as lecturasController

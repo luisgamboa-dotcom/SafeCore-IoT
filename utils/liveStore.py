@@ -1,8 +1,4 @@
-"""Buffer en vivo (solo memoria): la ingesta NO se guarda en disco/DB.
-
-Requisito del proyecto: visualizacion en tiempo real sin persistencia.
-El dispositivo tampoco guarda: si el POST falla, descarta y sigue sensando.
-"""
+"""Buffer en vivo (solo memoria): la ingesta NO se guarda en disco/DB."""
 import threading
 import time
 from collections import deque
@@ -44,9 +40,3 @@ def get_latest(limit: int = 50) -> List[Dict[str, Any]]:
         out = list(_buf)[:limit]
     # Sin claves internas.
     return [{k: v for k, v in d.items() if not k.startswith("_")} for d in out]
-
-
-def status() -> Dict[str, Any]:
-    with _lock:
-        return {"buffer": len(_buf),
-                "dispositivos": dict(_last_seen)}

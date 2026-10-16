@@ -6,6 +6,7 @@
 <title>SafeCore IoT - Dashboard</title>
 <link rel="icon" type="image/png" href="/public/images/logo-icon.png">
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <script id="tailwind-config">
@@ -63,63 +64,13 @@ tailwind.config = {
 <div id="edgeZone" title="Acercar para mostrar menú"></div>
 <div id="backdrop"></div>
 
-<!-- Sidebar -->
-<aside id="sidebar" class="bg-surface-container-lowest border-r border-outline-variant flex flex-col h-screen py-6 flex-shrink-0 z-30">
-  <div class="px-6 mb-6 w-64">
-    <a href="/home" aria-label="SafeCore IoT inicio" class="block">
-      <img src="/public/images/logo-horizontal.png" alt="SafeCore IoT" class="logo-brand h-16 w-auto object-contain" style="max-width:220px">
-    </a>
-    <p class="text-xs font-medium text-on-surface-variant mt-2 tracking-wide">Monitoreo industrial</p>
-  </div>
-  <nav class="flex-1 px-4 space-y-1">
-    <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-white font-semibold bg-primary-container shadow-sm" href="/dashboard">
-      <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">dashboard</span>
-      <span class="text-sm">Dashboard</span>
-    </a>
-    <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="/dashboard#alertas">
-      <span class="material-symbols-outlined">notifications_active</span>
-      <span class="text-sm">Alertas</span>
-    </a>
-    <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="/dashboard#dispositivos">
-      <span class="material-symbols-outlined">sensors</span>
-      <span class="text-sm">Sensores</span>
-    </a>
-    <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="/dashboard#historial">
-      <span class="material-symbols-outlined">history</span>
-      <span class="text-sm">Historial</span>
-    </a>
-    <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="/home">
-      <span class="material-symbols-outlined">home</span>
-      <span class="text-sm">Sitio público</span>
-    </a>
-  </nav>
-  <div class="px-6 mt-auto space-y-3">
-    <div class="flex items-center gap-2 text-on-surface-variant text-sm">
-      <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
-      <span>Sistema en línea</span>
-    </div>
-    <form action="/users/logout" method="POST">
-      <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant hover:text-error hover:border-error text-sm transition-colors">
-        <span class="material-symbols-outlined text-base">logout</span> Cerrar sesión
-      </button>
-    </form>
-  </div>
-</aside>
+{% set active_page = "dashboard" %}
+{% include "partials/sidebar.html" %}
 
 <!-- Main -->
 <div id="mainWrap" class="flex-1 flex flex-col h-screen min-w-0 w-full">
-  <header class="bg-white/85 backdrop-blur-md border-b border-outline-variant flex items-center gap-3 h-16 px-4 md:px-8 flex-shrink-0 z-20">
-    <button id="sidebarToggle" aria-label="Mostrar u ocultar menú" class="p-2 rounded-lg border border-outline-variant text-primary hover:bg-surface-container-low transition-colors">
-      <span class="material-symbols-outlined">menu</span>
-    </button>
-    <div class="font-semibold text-lg text-primary">Panel de control</div>
-    <div class="ml-auto flex items-center gap-3">
-      <a href="/dashboard#alertas" class="p-2 text-on-surface-variant hover:text-primary transition-colors relative" aria-label="Alertas">
-        <span class="material-symbols-outlined">notifications</span>
-      </a>
-      <img src="/public/images/logo-icon.png" alt="SafeCore" class="w-12 h-12 rounded-full border border-outline-variant bg-surface-container-low object-contain p-1">
-    </div>
-  </header>
+  {% set page_title = "Panel de control" %}
+  {% include "partials/topbar.html" %}
 
   <main class="flex-1 overflow-y-auto">
     <div class="max-w-[1280px] mx-auto p-4 md:p-8 pb-12">
@@ -144,10 +95,11 @@ tailwind.config = {
             <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">warning</span>
           </div>
         </div>
-        <div class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-5 flex items-center justify-between">
-          <div>
+        <div class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-5 flex items-center justify-between min-h-[104px]">
+          <div class="min-w-0">
             <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Última actualización</p>
-            <h3 class="text-xl font-semibold text-on-surface mt-2" id="ultimaActualizacion">{% if lecturas and lecturas[0].fecha_hora %}{{ lecturas[0].fecha_hora }}{% else %}Sin datos{% endif %}</h3>
+            <p class="text-sm font-semibold text-on-surface leading-snug" id="ultimaActualizacion">{% if lecturas and lecturas[0].fecha_hora %}{{ lecturas[0].fecha_hora }}{% else %}Sin datos{% endif %}</p>
+            <p class="mt-1"><span id="ultimaDetalle" class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-low text-[11px] font-medium text-on-surface-variant">En espera del nodo…</span></p>
           </div>
           <div class="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center text-primary-container">
             <span class="material-symbols-outlined">sync</span>
@@ -168,17 +120,18 @@ tailwind.config = {
       <div id="historial" class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
         <div class="lg:col-span-8 bg-white rounded-xl border border-outline-variant card-shadow flex flex-col">
           <div class="p-6 border-b border-outline-variant flex flex-wrap gap-3 justify-between items-center">
-            <h2 class="text-xl font-semibold text-primary">Niveles de gas (PPM)</h2>
-            <div class="flex bg-surface-container-low rounded-lg p-1 opacity-60" title="Disponible cuando se conecten gráficos">
-              <span class="px-4 py-1.5 text-xs font-semibold rounded-md">Hora</span>
-              <span class="px-4 py-1.5 text-xs font-semibold rounded-md bg-white shadow-sm text-primary">Día</span>
-              <span class="px-4 py-1.5 text-xs font-semibold rounded-md">Semana</span>
-              <span class="px-4 py-1.5 text-xs font-semibold rounded-md">Mes</span>
+            <h2 id="chartTitle" class="text-xl font-semibold text-primary">Niveles de gas (ADC)</h2>
+            <div id="sensorTabs" class="flex bg-surface-container-low rounded-lg p-1" role="tablist" aria-label="Seleccionar sensor">
+              <button type="button" data-tipo="gas" role="tab" aria-pressed="true" class="sensor-tab px-4 py-1.5 text-xs font-semibold rounded-md bg-white shadow-sm text-primary">Gas</button>
+              <button type="button" data-tipo="temp" role="tab" aria-pressed="false" class="sensor-tab px-4 py-1.5 text-xs font-semibold rounded-md">Temp</button>
+              <button type="button" data-tipo="hum" role="tab" aria-pressed="false" class="sensor-tab px-4 py-1.5 text-xs font-semibold rounded-md">Hum</button>
             </div>
           </div>
           <div class="p-6">
-            <canvas id="gasChart" class="w-full rounded-xl border border-outline-variant" height="280" aria-label="Historial de gas en vivo"></canvas>
-            <ul id="gasHistory" class="mt-3 text-xs text-on-surface-variant grid grid-cols-2 sm:grid-cols-5 gap-2"></ul>
+            <div class="relative h-[280px]">
+              <canvas id="sensorChart" class="w-full rounded-xl border border-outline-variant" aria-label="Historial del sensor en vivo"></canvas>
+            </div>
+            <ul id="sensorHistory" class="mt-3 text-xs text-on-surface-variant grid grid-cols-2 sm:grid-cols-5 gap-2"></ul>
             <div id="chartEmpty" class="chart-empty rounded-xl min-h-[60px] flex flex-col items-center justify-center text-center gap-1 p-4 mt-3">
               <p class="font-semibold text-primary text-sm">Esperando al nodo…</p>
               <p class="text-xs text-on-surface-variant max-w-md">En vivo vía <code>/api/live</code>, sin guardar en DB.</p>
@@ -283,21 +236,10 @@ tailwind.config = {
   </main>
 </div>
 
-{% if flash_msg %}
-<div id="toast" role="status" class="fixed bottom-5 right-5 z-50 max-w-sm w-[calc(100%-2.5rem)] bg-white rounded-xl border card-shadow p-4 flex items-start gap-3 {% if flash_ok %}border-green-500{% else %}border-error{% endif %}">
-  <img src="/public/images/logo-icon.png" alt="" class="w-9 h-9 object-contain flex-shrink-0 mt-0.5">
-  <div class="min-w-0">
-    <p class="font-semibold text-sm {% if flash_ok %}text-green-700{% else %}text-error{% endif %}">
-      {% if flash_ok %}Sesión iniciada{% else %}Aviso{% endif %}
-    </p>
-    <p class="text-sm text-on-surface mt-0.5">{{ flash_msg }}</p>
-  </div>
-  <button data-toast-close aria-label="Cerrar aviso" class="ml-auto p-1 text-on-surface-variant hover:text-primary transition-colors">
-    <span class="material-symbols-outlined text-base">close</span>
-  </button>
-</div>
-{% endif %}
+{% set toast_title = "Sesión iniciada" %}
+{% include "partials/toast.html" %}
 
-<script src="/public/scripts/dashboardScripts.js"></script>
+<script src="/public/scripts/sidebarToggle.js"></script>
+<script src="/public/scripts/dashboardScripts.js?v=3"></script>
 </body>
 </html>

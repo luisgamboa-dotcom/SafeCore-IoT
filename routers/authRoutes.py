@@ -1,10 +1,4 @@
-"""
-    Rutas de auth (registro, login, logout). Prefijo /users.
-    Delegan en controllers/authController.py.
-    Orden: fijas primero; las genéricas de usuarios viven en usersRoutes.py.
-"""
-
-# routers/authRoutes.py
+"""Rutas de auth (registro, login, logout). Prefijo /users."""
 from fastapi import APIRouter
 
 import controllers.authController as authController

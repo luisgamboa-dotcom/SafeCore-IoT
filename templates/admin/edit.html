@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html class="h-full" lang="es">
+    <head>
+        <meta charset="utf-8"/>
+        <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+        <title>Editar usuario - SafeCore IoT</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: { extend: { colors: {
+                    "primary": "#2E1B5A", "secondary": "#6D3DF5",
+                    "surface": "#F6F1FF", "surface-container-lowest": "#ffffff",
+                    "surface-container-low": "#EFE7FF", "surface-container": "#E9DEFF",
+                    "surface-variant": "#D9C9FF", "on-surface": "#191c1f",
+                    "on-surface-variant": "#43474e", "on-primary": "#ffffff",
+                    "on-primary-container": "#D9C8FF", "on-secondary": "#ffffff",
+                    "outline": "#74777f", "outline-variant": "#c4c6cf",
+                    "error": "#ba1a1a", "error-container": "#ffdad6",
+                    "background": "#F6F1FF"
+                } } }
+            }
+        </script>
+        <link rel="stylesheet" href="/public/styles/dashboardStyles.css">
+        <link rel="stylesheet" href="/public/styles/adminUsersStyles.css">
+    </head>
+    <body class="font-body text-on-surface antialiased flex h-screen overflow-hidden bg-background" style="font-family:Inter,system-ui,sans-serif">
+
+        <div id="edgeZone" title="Acercar para mostrar menú"></div>
+        <div id="backdrop"></div>
+
+        {% set active_page = "admin" %}
+        {% include "partials/sidebar.html" %}
+        <div id="mainWrap" class="flex-1 flex flex-col h-screen min-w-0 w-full">
+        {% set page_title = "Editar usuario" %}
+        {% include "partials/topbar.html" %}
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-[1280px] mx-auto p-4 md:p-8 pb-12 flex flex-col gap-8 items-center">
+                <div class="text-center">
+                    <h2 class="font-headline-md text-headline-md text-primary">Editar usuario</h2>
+                    <p class="font-body-md text-body-md text-on-surface-variant mt-1">{{ user.nombre }} {{ user.apellido }} ({{ user.email }})</p>
+                </div>
+                {% include "partials/toast.html" %}
+                <form action="/admin/users/{{ user.id_usuario }}/edit" method="POST" class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-6 flex flex-col gap-4 w-full max-w-xl mx-auto">
+                    <div>
+                        <label class="block font-label-md text-label-md mb-1" for="nombre">Nombre</label>
+                        <input class="w-full border border-outline-variant rounded-lg px-3 py-2" id="nombre" name="nombre" maxlength="50" required type="text" value="{{ user.nombre }}" />
+                    </div>
+                    <div>
+                        <label class="block font-label-md text-label-md mb-1" for="apellido">Apellido</label>
+                        <input class="w-full border border-outline-variant rounded-lg px-3 py-2" id="apellido" name="apellido" maxlength="50" required type="text" value="{{ user.apellido }}" />
+                    </div>
+                    <div>
+                        <label class="block font-label-md text-label-md mb-1" for="email">Correo electrónico</label>
+                        <input class="w-full border border-outline-variant rounded-lg px-3 py-2" id="email" name="email" maxlength="254" required type="email" value="{{ user.email }}" />
+                    </div>
+                    <div>
+                        <label class="block font-label-md text-label-md mb-1" for="id_organizacion">Organización</label>
+                        <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="id_organizacion" name="id_organizacion">
+                            <option value="">Sin organización (uso personal)</option>
+                            {% for o in organizaciones %}
+                            <option value="{{ o.id_organizacion }}" {% if user.id_organizacion == o.id_organizacion %}selected{% endif %}>{{ o.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-label-md text-label-md mb-1" for="id_rol">Rol</label>
+                        <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="id_rol" name="id_rol" required>
+                            {% for r in roles %}
+                            <option value="{{ r.id_catalogo_rol }}" {% if rol_actual == r.nombre_rol %}selected{% endif %}>{{ r.nombre_rol }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-label-md text-label-md mb-1" for="id_estado">Estado</label>
+                        <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="id_estado" name="id_estado" required>
+                            {% for e in estados %}
+                            <option value="{{ e.id_usuario_estado }}" {% if user.id_usuario_estado == e.id_usuario_estado %}selected{% endif %}>{{ e.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex gap-2 justify-center">
+                        <button class="bg-secondary text-on-secondary px-4 py-2 rounded-lg" type="submit">Guardar</button>
+                        <a class="px-4 py-2 rounded-lg border border-outline-variant" href="/admin/users">Cancelar</a>
+                    </div>
+                </form>
+                <footer class="mt-auto py-4 border-t border-surface-variant text-center text-label-sm font-label-sm text-on-surface-variant">
+                    © 2026 SafeCore IoT. Monitoreo de seguridad industrial.
+                </footer>
+            </div>
+        </main>
+        </div>
+        <script src="/public/scripts/sidebarToggle.js"></script>
+    </body>
+</html>

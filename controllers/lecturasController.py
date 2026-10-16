@@ -1,20 +1,22 @@
-"""
-    Controlador de lecturas (MVC: Controller).
-    Ingesta del dispositivo y vistas de datos. Sin SQL directo salvo
-    el manejo de errores MySQL; las consultas viven en models/lecturasModel.py.
-    Las rutas que apuntan a estas funciones viven en routers/lecturasRoutes.py.
-"""
-
-# controllers/lecturasController.py
+"""Controlador de lecturas: ingesta del dispositivo y vistas de datos."""
 import os
-from fastapi import Request
+from uuid import UUID
+
+import mysql.connector
+
+from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
-from typing import List, Optional
-import mysql.connector
+from typing import List, Literal, Optional
 
+from config.sessionsConfig import (
+    SessionData,
+    cookie as session_cookie,
+    verificador,
+)
 from models import lecturasModel as lec_model
+from models import usersModel as user_model
 from utils import liveStore
 from utils.flashUtils import popFormFlash
 
@@ -29,7 +31,7 @@ RANGOS = {"gas": (0, 1023), "temp": (-40.0, 80.0), "hum": (0.0, 100.0)}
 
 
 class ReadingIn(BaseModel):
-    tipo: str = Field(pattern="^(gas|temp|hum)$")
+    tipo: Literal["gas", "temp", "hum"]
     valor_crudo: float
 
 
@@ -42,12 +44,7 @@ class IngestIn(BaseModel):
 
 
 def ingestReadings(payload: IngestIn):
-    """Ingesta en vivo: califica, publica en memoria y (opcional) persiste.
-
-    - Siempre responde 200 aunque la DB este caida: el nodo es autonomo
-      y no debe depender del PC/BBDD para seguir funcionando.
-    - Con SAVE_READINGS=0 (defecto) no se hace ningun INSERT.
-    """
+    """Ingesta en vivo: califica y publica en memoria (persiste solo con SAVE_READINGS=1)."""
     calificadas = []
     dudosas = 0
     for r in payload.readings:
@@ -125,12 +122,19 @@ def getLatestReadings(limit: int = 50):
     return getLiveReadings(limit)
 
 
-def showDataPage(request: Request):
-    # Dashboard principal: solo memoria, funciona sin MySQL.
+def showDataPage(request: Request,
+                 id_sesion: UUID = Depends(session_cookie),
+                 sesion: SessionData = Depends(verificador)):
+    # Dashboard principal (privado: exige sesión): solo memoria, funciona sin MySQL.
     lecturas = liveStore.get_latest(50)
     flash_msg, _, flash_ok = popFormFlash(request)
+    roles = user_model.getUserRoles(sesion.id_usuario)
+    user = user_model.getUserById(sesion.id_usuario)
+    iniciales = user["nombre"][0] + (user["apellido"][0] if user and user["apellido"] else "") if user else ""
     return templates.TemplateResponse(
         request, "datos/index.html",
         {"request": request, "lecturas": lecturas,
-         "flash_msg": flash_msg, "flash_ok": flash_ok})
+         "flash_msg": flash_msg, "flash_ok": flash_ok,
+         "is_admin": "Administrador" in roles,
+         "iniciales": iniciales, "id_usuario": sesion.id_usuario})
 

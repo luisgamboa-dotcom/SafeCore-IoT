@@ -1,0 +1,16 @@
+<!-- Ventana flotante de avisos (misma del dashboard): roja en error, verde en éxito.
+     Contexto: flash_msg, flash_ok. El autocierre vive en sidebarToggle.js. -->
+{% if flash_msg %}
+<div id="toast" role="status" class="fixed bottom-5 right-5 z-50 max-w-sm w-[calc(100%-2.5rem)] bg-white rounded-xl border card-shadow p-4 flex items-start gap-3 {% if flash_ok %}border-green-500{% else %}border-error{% endif %}">
+  <img src="/public/images/logo-icon.png" alt="" class="w-9 h-9 object-contain flex-shrink-0 mt-0.5">
+  <div class="min-w-0">
+    <p class="font-semibold text-sm {% if flash_ok %}text-green-700{% else %}text-error{% endif %}">
+      {{ toast_title if toast_title else ("Listo" if flash_ok else "Aviso") }}
+    </p>
+    <p class="text-sm text-on-surface mt-0.5">{{ flash_msg }}</p>
+  </div>
+  <button data-toast-close aria-label="Cerrar aviso" class="ml-auto p-1 text-on-surface-variant hover:text-primary transition-colors">
+    <span class="material-symbols-outlined text-base">close</span>
+  </button>
+</div>
+{% endif %}

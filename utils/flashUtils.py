@@ -1,9 +1,4 @@
-"""
-    Mensajes flash (estilo connect-flash de Node).
-    Guarda un mensaje + datos en la sesión, sobrevive UN redirect
-    y se borra al leerse. Requiere SessionMiddleware (ver main.py).
-    Convención: las claves nunca se flashean ni se repueblan.
-"""
+"""Mensajes flash: sobreviven UN redirect y se borran al leerse."""
 
 CLAVE = "_form_flash"
 

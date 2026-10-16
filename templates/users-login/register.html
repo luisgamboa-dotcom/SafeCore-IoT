@@ -4,6 +4,7 @@
         <meta charset="utf-8" />
         <meta content="width=device-width, initial-scale=1.0" name="viewport" />
         <title>Registro SafeCore IoT</title>
+        <link rel="icon" type="image/png" href="/public/images/logo-icon.png">
         <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
@@ -15,52 +16,52 @@
                     extend: {
                         "colors": {
                             "on-surface-variant": "#43474e",
-                            "inverse-primary": "#adc7f7",
-                            "tertiary-fixed": "#c9e6ff",
+                            "inverse-primary": "#C9B0FF",
+                            "tertiary-fixed": "#E5DBFF",
                             "surface-container-lowest": "#ffffff",
                             "on-secondary-container": "#fffbff",
-                            "secondary-fixed": "#e1e0ff",
-                            "secondary-container": "#6063ee",
+                            "secondary-fixed": "#EDE6FF",
+                            "secondary-container": "#A37FFF",
                             "inverse-surface": "#2d3134",
                             "on-tertiary": "#ffffff",
-                            "tertiary-fixed-dim": "#89ceff",
-                            "surface-bright": "#f7f9fd",
-                            "primary-fixed-dim": "#adc7f7",
-                            "primary-fixed": "#d6e3ff",
-                            "primary-container": "#1a365d",
+                            "tertiary-fixed-dim": "#C4AFFF",
+                            "surface-bright": "#F6F1FF",
+                            "primary-fixed-dim": "#C9B0FF",
+                            "primary-fixed": "#E9DEFF",
+                            "primary-container": "#8751F8",
                             "error": "#ba1a1a",
-                            "surface-container": "#eceef2",
-                            "surface-tint": "#455f88",
+                            "surface-container": "#E9DEFF",
+                            "surface-tint": "#7A5CA8",
                             "outline": "#74777f",
-                            "background": "#f7f9fd",
-                            "on-tertiary-fixed": "#001e2f",
-                            "secondary-fixed-dim": "#c0c1ff",
-                            "on-secondary-fixed-variant": "#2f2ebe",
-                            "on-primary-container": "#86a0cd",
-                            "secondary": "#4648d4",
-                            "on-primary-fixed-variant": "#2d476f",
-                            "on-secondary-fixed": "#07006c",
+                            "background": "#F6F1FF",
+                            "on-tertiary-fixed": "#2E1B5A",
+                            "secondary-fixed-dim": "#D5C2FF",
+                            "on-secondary-fixed-variant": "#6D3DF5",
+                            "on-primary-container": "#D9C8FF",
+                            "secondary": "#6D3DF5",
+                            "on-primary-fixed-variant": "#4A357A",
+                            "on-secondary-fixed": "#2E1B5A",
                             "outline-variant": "#c4c6cf",
                             "on-surface": "#191c1f",
-                            "tertiary": "#002336",
+                            "tertiary": "#3D2A63",
                             "error-container": "#ffdad6",
                             "on-background": "#191c1f",
                             "on-secondary": "#ffffff",
-                            "surface-variant": "#e0e2e6",
-                            "on-primary-fixed": "#001b3c",
+                            "surface-variant": "#D9C9FF",
+                            "on-primary-fixed": "#2E1B5A",
                             "on-error": "#ffffff",
                             "on-error-container": "#93000a",
-                            "tertiary-container": "#003a55",
+                            "tertiary-container": "#5B4A8A",
                             "on-primary": "#ffffff",
-                            "surface-container-low": "#f2f4f8",
-                            "primary": "#002045",
-                            "surface-container-high": "#e6e8ec",
+                            "surface-container-low": "#EFE7FF",
+                            "primary": "#2E1B5A",
+                            "surface-container-high": "#E2D5FF",
                             "surface-dim": "#d8dade",
-                            "surface-container-highest": "#e0e2e6",
+                            "surface-container-highest": "#D9C9FF",
                             "inverse-on-surface": "#eff1f5",
-                            "surface": "#f7f9fd",
-                            "on-tertiary-fixed-variant": "#004c6e",
-                            "on-tertiary-container": "#1ba9ed"
+                            "surface": "#F6F1FF",
+                            "on-tertiary-fixed-variant": "#4A357A",
+                            "on-tertiary-container": "#A37FFF"
                         },
                         "borderRadius": {
                             "DEFAULT": "0.25rem",
@@ -108,23 +109,21 @@
         <!-- Suppressed TopNavBar due to transactional page intent (Registration) -->
         <main class="flex-grow flex items-center justify-center py-stack-xl px-gutter relative overflow-hidden">
             <!-- Ambient Background Effect -->
-            <div class="absolute inset-0 z-0 pointer-events-none" style="background-image: radial-gradient(circle at top right, rgba(26, 54, 93, 0.05) 0%, transparent 40%), radial-gradient(circle at bottom left, rgba(96, 99, 238, 0.03) 0%, transparent 40%);">
-                <div class="absolute inset-0 opacity-[0.02] bg-[radial-gradient(#002045_1px,transparent_1px)] [background-size:16px_16px]"></div>
+            <div class="absolute inset-0 z-0 pointer-events-none" style="background-image: radial-gradient(circle at top right, rgba(135, 81, 248, 0.05) 0%, transparent 40%), radial-gradient(circle at bottom left, rgba(96, 99, 238, 0.03) 0%, transparent 40%);">
+                <div class="absolute inset-0 opacity-[0.02] bg-[radial-gradient(#2E1B5A_1px,transparent_1px)] [background-size:16px_16px]"></div>
             </div>
             <!-- Registration Card -->
-            <div class="w-full max-w-[480px] bg-surface-container-lowest rounded-xl shadow-[0_10px_30px_rgba(26,54,93,0.05)] border border-surface-container-highest p-stack-lg relative z-10">
+            <div class="w-full max-w-[480px] bg-surface-container-lowest rounded-xl shadow-[0_10px_30px_rgba(135,81,248,0.05)] border border-surface-container-highest p-stack-lg relative z-10">
                 <!-- Header -->
                 <div class="text-center mb-stack-lg">
-                    <img alt="Logo SafeCore" class="h-16 mx-auto mb-stack-md rounded-lg object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XT6t4RjaetbiNq6SSoZW6t1_dOQbWH8aKOVIyjMdnU_irfRgxPezzjTas3Rq-KFJ7le-JQL2pvPhjeBVM_v6tDj-Xq1sr6duO9HuGgnG446j7HD7kLXU7m8X2Oz3JbVLU4spKm-toKTOQsFbyr1dvA93JEI9w4wTSabtsuEaySX1jcqb4UNepRfCsFTKox5RmMdguxW5FXjj61i-_DNJMI_lUUbd85Q6Q8zfCdYe5qRTzO9eXAEikUdKg" />
+                    <a href="/home" aria-label="SafeCore IoT inicio" class="inline-block">
+                        <img alt="SafeCore IoT" class="h-32 w-auto mx-auto mb-stack-md object-contain" style="max-width:230px" src="/public/images/logo-vertical.png" />
+                    </a>
                     <h1 class="font-headline-md text-headline-md text-primary mb-stack-sm">Crear cuenta</h1>
                     <p class="font-body-md text-body-md text-on-surface-variant">Regístrate para acceder al sistema SafeCore IoT</p>
                 </div>
-                <!-- Form: campos según tabla safecore_iot.usuarios (mensaje flash global) -->
-                {% if flash_msg %}
-                <div class="mb-stack-md" role="alert" style="border:1px solid {% if flash_ok %}#2e7d32{% else %}#ba1a1a{% endif %};background:{% if flash_ok %}#e8f5e9{% else %}#ffdad6{% endif %};padding:10px 14px;border-radius:8px;">
-                    {{ flash_msg }}
-                </div>
-                {% endif %}
+                <!-- Form: campos según tabla safecore_iot.usuarios (avisos en ventana flotante) -->
+                {% include "partials/toast.html" %}
                 <form action="/users/register" class="space-y-stack-md" method="POST">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
                         <div class="space-y-stack-xs">
@@ -175,5 +174,6 @@
             </div>
         </main>
         <!-- Suppressed Footer due to transactional page intent (Registration) -->
+        <script src="/public/scripts/sidebarToggle.js"></script>
     </body>
 </html>

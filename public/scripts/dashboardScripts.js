@@ -1,99 +1,40 @@
-/* SafeCore IoT Dashboard — sidebar: botón alterna y el contenido se reajusta.
-   Desktop: sidebar en flujo (margin-left) -> todo lo demás cambia de tamaño.
-   Móvil: sidebar como drawer fijo + backdrop. Hover solo desktop con mouse fino. */
-(function () {
-  var sidebar = document.getElementById('sidebar');
-  var toggle = document.getElementById('sidebarToggle');
-  var edge = document.getElementById('edgeZone');
-  var backdrop = document.getElementById('backdrop');
-  if (!sidebar) return;
-
-  var HOVER_MIN_WIDTH = 1024;
-  var hoverTimer = null;
-
-  function isDesktop() {
-    return window.innerWidth >= HOVER_MIN_WIDTH &&
-      window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  }
-  function isOpen() { return !sidebar.classList.contains('sidebar-hidden'); }
-
-  function openSidebar() {
-    sidebar.classList.remove('sidebar-hidden');
-    if (!isDesktop() && backdrop) backdrop.classList.add('backdrop-show');
-    try { localStorage.setItem('safecore_sidebar', 'open'); } catch (e) {}
-  }
-  function closeSidebar() {
-    sidebar.classList.add('sidebar-hidden');
-    if (backdrop) backdrop.classList.remove('backdrop-show');
-    try { localStorage.setItem('safecore_sidebar', 'closed'); } catch (e) {}
-  }
-
-  if (toggle) toggle.addEventListener('click', function () {
-    if (isOpen()) closeSidebar(); else openSidebar();
-  });
-  if (backdrop) backdrop.addEventListener('click', closeSidebar);
-  document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape' && !isDesktop()) closeSidebar();
-  });
-
-  // Hover en borde izquierdo, solo desktop con mouse fino.
-  if (edge) {
-    edge.addEventListener('mouseenter', function () {
-      if (!isDesktop()) return;
-      if (!isOpen()) openSidebar();
-    });
-    sidebar.addEventListener('mouseleave', function () {
-      if (!isDesktop()) return;
-      clearTimeout(hoverTimer);
-      hoverTimer = setTimeout(function () { closeSidebar(); }, 400);
-    });
-    sidebar.addEventListener('mouseenter', function () { clearTimeout(hoverTimer); });
-  }
-
-  // Estado inicial: abierto en desktop, cerrado en móvil.
-  var saved = null;
-  try { saved = localStorage.getItem('safecore_sidebar'); } catch (e) {}
-  if (window.innerWidth < HOVER_MIN_WIDTH) closeSidebar();
-  else if (saved === 'closed') closeSidebar();
-  else openSidebar();
-
-  window.addEventListener('resize', function () {
-    if (window.innerWidth < HOVER_MIN_WIDTH) {
-      if (backdrop && isOpen()) backdrop.classList.add('backdrop-show');
-      else if (backdrop) backdrop.classList.remove('backdrop-show');
-    } else if (backdrop) backdrop.classList.remove('backdrop-show');
-  });
-
-  // Toast inferior derecho: autocierre temporal.
-  var toast = document.getElementById('toast');
-  if (toast) {
-    var t = setTimeout(function () {
-      toast.classList.add('toast-hide');
-      setTimeout(function () { toast.remove(); }, 350);
-    }, 4500);
-    var btn = toast.querySelector('[data-toast-close]');
-    if (btn) btn.addEventListener('click', function () {
-      clearTimeout(t);
-      toast.classList.add('toast-hide');
-      setTimeout(function () { toast.remove(); }, 300);
-    });
-  }
-})();
-
+/* (lógica del sidebar movida a sidebarToggle.js) */
 /* SafeCore en vivo sin guardar: polling a /api/live cada 5 s.
-   Refleja TODO en el dashboard: KPIs, grafico de gas, alertas y tarjetas.
+   Grafico Chart.js con pestanas Gas/Temp/Hum + KPIs, alertas y tarjetas.
    No depende de MySQL. */
 (function () {
   var elHora = document.getElementById('ultimaActualizacion');
+  var elDetalle = document.getElementById('ultimaDetalle');
   var elEstado = document.getElementById('estadoGeneral');
   var elKpiSens = document.getElementById('kpiSensores');
   var elKpiAlert = document.getElementById('kpiAlertas');
   var elAlertas = document.getElementById('alertasLive');
   var elDevices = document.getElementById('devicesLive');
-  var elChart = document.getElementById('gasChart');
-  var elHist = document.getElementById('gasHistory');
+  var elChart = document.getElementById('sensorChart');
+  var elHist = document.getElementById('sensorHistory');
   var elEmpty = document.getElementById('chartEmpty');
-  if (!elAlertas && !elDevices && !elChart) return;
+  var elTitle = document.getElementById('chartTitle');
+  var elTabs = document.getElementById('sensorTabs');
+  if (!elChart || !elTabs || !elTitle) {
+    // HTML viejo en cache: se avisa en el panel en vez de fallar en silencio.
+    var aviso = document.getElementById('chartEmpty');
+    if (aviso) {
+      aviso.style.display = '';
+      aviso.querySelector('p').textContent = 'Recarga la página (Ctrl+Shift+R): hay una versión nueva del panel.';
+    }
+    if (!elAlertas && !elDevices) return;
+  }
+
+  var TIPOS = {
+    gas: {titulo: 'Niveles de gas (ADC)', unidad: 'ADC', color: '#8751F8', umbral: 200},
+    temp: {titulo: 'Temperatura (°C)', unidad: '°C', color: '#E8590C', umbral: null},
+    hum: {titulo: 'Humedad (%)', unidad: '%', color: '#1971C2', umbral: null}
+  };
+  var tipoActivo = 'gas';
+  try {
+    var guardado = localStorage.getItem('safecore_tipo');
+    if (guardado && TIPOS[guardado]) tipoActivo = guardado;
+  } catch (e) {}
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -112,47 +53,121 @@
     var m = Math.floor(s / 60);
     return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min';
   }
-  function ageTxt(fechaHora) {
-    var s = ageSecs(fechaHora);
-    return s < 0 ? '' : ' (hace ' + ageFmt(s) + ')';
+
+  // --- Chart.js (un solo grafico reutilizado por pestana) ---
+  var chart = null;
+  function ensureChart() {
+    if (chart || !elChart || typeof Chart === 'undefined') return chart;
+    chart = new Chart(elChart, {
+      type: 'line',
+      data: {labels: [], datasets: []},
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: {mode: 'index', intersect: false},
+        plugins: {legend: {display: false}},
+        scales: {
+          x: {ticks: {maxTicksLimit: 8, font: {size: 10}}},
+          y: {ticks: {font: {size: 10}}}
+        }
+      }
+    });
+    return chart;
   }
 
-  function drawGas(values) {
-    if (!elChart) return;
-    var dpr = window.devicePixelRatio || 1;
-    var W = elChart.clientWidth || 600, H = 280;
-    elChart.width = W * dpr; elChart.height = H * dpr;
-    var ctx = elChart.getContext('2d');
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, W, H);
-    if (!values.length) return;
-    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
-    if (max - min < 1) { max += 1; min -= 1; }
-    // Umbral de alarma local (200 ADC) como linea de referencia.
-    function y(v) { return H - 20 - ((v - min) / (max - min)) * (H - 50); }
-    function x(i) { return 10 + (i / Math.max(1, values.length - 1)) * (W - 20); }
-    ctx.strokeStyle = '#ba1a1a'; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(0, y(200)); ctx.lineTo(W, y(200)); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.strokeStyle = '#8751F8'; ctx.lineWidth = 2.5; ctx.beginPath();
-    values.forEach(function (v, i) { if (i === 0) ctx.moveTo(x(i), y(v)); else ctx.lineTo(x(i), y(v)); });
-    ctx.stroke();
-    ctx.fillStyle = '#2E1B5A'; ctx.font = '12px Inter,system-ui,sans-serif';
-    ctx.fillText('max ' + Math.round(max), 10, 16);
-    ctx.fillText('min ' + Math.round(min), 10, H - 6);
-    ctx.fillStyle = '#ba1a1a';
-    ctx.fillText('umbral 200', W - 90, y(200) - 6);
+  function renderChart(serie) {
+    var cfg = TIPOS[tipoActivo];
+    if (elTitle) elTitle.textContent = cfg.titulo;
+    var vals = serie.map(function (x) { return Number(x.valor); });
+    var labels = serie.map(function (x) { return String(x.fecha_hora || '').slice(11) || String(x.seq); });
+    if (elEmpty) {
+      if (!serie.length) {
+        elEmpty.style.display = '';
+        elEmpty.querySelector('p').textContent = tipoActivo === 'gas'
+          ? 'Esperando al nodo…'
+          : 'Sin datos de ' + (tipoActivo === 'temp' ? 'temperatura' : 'humedad') + ' todavía…';
+      } else {
+        elEmpty.style.display = 'none';
+      }
+    }
+    if (elChart) elChart.style.display = serie.length ? '' : 'none';
+    if (!serie.length) return;
+    if (typeof Chart === 'undefined') {
+      if (elEmpty) {
+        elEmpty.style.display = '';
+        elEmpty.querySelector('p').textContent = 'Sin conexión para cargar Chart.js';
+      }
+      return;
+    }
+    var c = ensureChart();
+    if (!c) return;
+    var data = {
+      labels: labels,
+      datasets: [{
+        label: cfg.titulo + ' (' + cfg.unidad + ')',
+        data: vals,
+        borderColor: cfg.color,
+        backgroundColor: cfg.color + '22',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        borderWidth: 2
+      }]
+    };
+    if (cfg.umbral != null) {
+      data.datasets.push({
+        label: 'Umbral ' + cfg.umbral,
+        data: vals.map(function () { return cfg.umbral; }),
+        borderColor: '#ba1a1a',
+        borderDash: [6, 4],
+        pointRadius: 0,
+        borderWidth: 1.5,
+        fill: false
+      });
+    }
+    c.data = data;
+    c.update('none');
   }
 
+  function marcarTabs() {
+    if (!elTabs) return;
+    var btns = elTabs.querySelectorAll('.sensor-tab');
+    btns.forEach(function (b) {
+      var on = b.getAttribute('data-tipo') === tipoActivo;
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.classList.toggle('bg-white', on);
+      b.classList.toggle('shadow-sm', on);
+      b.classList.toggle('text-primary', on);
+    });
+  }
+  if (elTabs) {
+    elTabs.addEventListener('click', function (ev) {
+      var b = ev.target.closest('.sensor-tab');
+      if (!b) return;
+      tipoActivo = b.getAttribute('data-tipo');
+      try { localStorage.setItem('safecore_tipo', tipoActivo); } catch (e) {}
+      marcarTabs();
+      tick();
+    });
+  }
+  marcarTabs();
+
+  var ultimos = [];
   async function tick() {
-    var items = [];
+    var items = ultimos;
     try {
-      var r = await fetch('/api/live?limit=50', {cache: 'no-store'});
+      var r = await fetch('/api/live?limit=150', {cache: 'no-store'});
       if (!r.ok) throw new Error('http ' + r.status);
       items = ((await r.json()).lecturas) || [];
+      ultimos = items;
     } catch (e) {
-      if (elEstado) elEstado.textContent = 'Sin servidor (¿uvicorn con --host 0.0.0.0?)';
-      return;
+      if (items.length) {
+        // Sin servidor pero con datos previos: se muestra lo ultimo.
+      } else {
+        if (elEstado) elEstado.textContent = 'Sin servidor (¿uvicorn con --host 0.0.0.0?)';
+        return;
+      }
     }
     var dud = items.filter(function (x) { return x.calidad === 'dudosa'; });
     var devs = {};
@@ -160,8 +175,16 @@
     var nDevs = Object.keys(devs).length;
 
     if (elHora) elHora.textContent = items.length && items[0].fecha_hora
-      ? items[0].fecha_hora + ' · en vivo · seq ' + (items[0].seq != null ? items[0].seq : '—') + ageTxt(items[0].fecha_hora)
-      : 'En espera del nodo…';
+      ? items[0].fecha_hora : 'Sin datos';
+    if (elDetalle) {
+      if (!items.length) {
+        elDetalle.textContent = 'En espera del nodo…';
+      } else {
+        var s = ageSecs(items[0].fecha_hora);
+        elDetalle.textContent = 'en vivo · seq ' + (items[0].seq != null ? items[0].seq : '—')
+          + (s >= 0 ? ' · hace ' + ageFmt(s) : '');
+      }
+    }
     if (elEstado) {
       var ageS = items.length ? ageSecs(items[0].fecha_hora) : -1;
       if (!items.length) { elEstado.textContent = 'En espera'; }
@@ -215,15 +238,15 @@
       }
     }
 
-    // Grafico de gas + ultimos valores.
-    var gas = items.filter(function (x) { return x.magnitud === 'gas'; }).slice(0, 50).reverse();
-    drawGas(gas.map(function (x) { return Number(x.valor); }));
+    // Grafico + historial del tipo activo.
+    var serie = items.filter(function (x) { return x.magnitud === tipoActivo; }).slice(0, 50).reverse();
+    renderChart(serie);
     if (elHist) {
-      elHist.innerHTML = gas.slice(-10).map(function (x) {
-        return '<li class="px-2 py-1 rounded bg-surface-container-low">' + esc(x.valor) + ' <span class="opacity-70">· ' + esc((x.fecha_hora || '').slice(11)) + '</span></li>';
+      var cfg = TIPOS[tipoActivo];
+      elHist.innerHTML = serie.slice(-10).map(function (x) {
+        return '<li class="px-2 py-1 rounded bg-surface-container-low">' + esc(x.valor) + ' ' + esc(cfg.unidad) + ' <span class="opacity-70">· ' + esc((x.fecha_hora || '').slice(11)) + '</span></li>';
       }).join('');
     }
-    if (elEmpty) elEmpty.style.display = gas.length ? 'none' : '';
   }
   tick();
   setInterval(tick, 5000);

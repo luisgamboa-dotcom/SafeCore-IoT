@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html class="h-full" lang="es">
+    <head>
+        <meta charset="utf-8"/>
+        <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+        <title>Gestión de usuarios - SafeCore IoT</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+        <script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#2E1B5A",
+        "primary-container": "#8751F8",
+        "secondary": "#6D3DF5",
+        "secondary-container": "#A37FFF",
+        "tertiary": "#3D2A63",
+        "tertiary-container": "#5B4A8A",
+        "primary-fixed": "#E9DEFF",
+        "primary-fixed-dim": "#C9B0FF",
+        "secondary-fixed": "#EDE6FF",
+        "secondary-fixed-dim": "#D5C2FF",
+        "tertiary-fixed": "#E5DBFF",
+        "tertiary-fixed-dim": "#C4AFFF",
+        "surface": "#F6F1FF",
+        "surface-bright": "#F6F1FF",
+        "surface-container-lowest": "#ffffff",
+        "surface-container-low": "#EFE7FF",
+        "surface-container": "#E9DEFF",
+        "surface-container-high": "#E2D5FF",
+        "surface-variant": "#D9C9FF",
+        "surface-tint": "#7A5CA8",
+        "background": "#F6F1FF",
+        "on-surface": "#191c1f",
+        "on-surface-variant": "#43474e",
+        "on-primary": "#ffffff",
+        "on-primary-container": "#D9C8FF",
+        "on-secondary": "#ffffff",
+        "on-tertiary": "#ffffff",
+        "on-tertiary-container": "#A37FFF",
+        "outline": "#74777f",
+        "outline-variant": "#c4c6cf",
+        "error": "#ba1a1a",
+        "error-container": "#ffdad6"
+      },
+      borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+      boxShadow: {
+        'ambient': '0 10px 30px rgba(135, 81, 248, 0.08)',
+        'ambient-hover': '0 15px 35px rgba(135, 81, 248, 0.14)'
+      }
+    }
+  }
+}
+</script>
+        <link rel="stylesheet" href="/public/styles/dashboardStyles.css">
+        <link rel="stylesheet" href="/public/styles/adminUsersStyles.css">
+    </head>
+    <body class="font-body text-on-surface antialiased flex h-screen overflow-hidden bg-background" style="font-family:Inter,system-ui,sans-serif">
+
+        <div id="edgeZone" title="Acercar para mostrar menú"></div>
+        <div id="backdrop"></div>
+
+        {% set active_page = "admin" %}
+        {% include "partials/sidebar.html" %}
+        <!-- Contenido principal -->
+        <div id="mainWrap" class="flex-1 flex flex-col h-screen min-w-0 w-full">
+        {% set page_title = "Gestión de usuarios" %}
+        {% include "partials/topbar.html" %}
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-[1280px] mx-auto p-4 md:p-8 pb-12 flex flex-col gap-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="font-headline-md text-headline-md text-primary">Gestión de usuarios</h2>
+                        <p class="font-body-md text-body-md text-on-surface-variant mt-1">Administra el acceso y los roles del personal del sistema.</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <span class="font-label-md text-label-md text-on-surface-variant">Conectado como <strong>{{ admin_nombre }}</strong> (Administrador)</span>
+                        <form action="/admin/users" method="GET" class="flex items-center gap-2">
+                            <input class="bg-surface border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:outline-none focus:border-secondary" name="q" placeholder="Buscar por nombre o correo..." type="text" value="{{ q or '' }}" />
+                            <button class="bg-surface-container text-on-surface px-4 py-2 rounded-lg font-label-md text-label-md" type="submit">Buscar</button>
+                        </form>
+                        <a class="bg-secondary text-on-secondary hover:bg-secondary/90 px-4 py-2 rounded-lg font-label-md text-label-md flex items-center gap-1 transition-all" href="/users/register">
+                            <span class="material-symbols-outlined text-[18px]">add</span>
+                            Agregar usuario
+                        </a>
+                    </div>
+                </div>
+                {% include "partials/toast.html" %}
+                <div class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant overflow-hidden flex-1">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-surface-container-low border-b border-surface-variant text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+                                    <th class="p-4 font-semibold">Usuario</th>
+                                    <th class="p-4 font-semibold">Rol</th>
+                                    <th class="p-4 font-semibold">Estado</th>
+                                    <th class="p-4 font-semibold hidden sm:table-cell">Fecha de registro</th>
+                                    <th class="p-4 font-semibold text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-surface-variant font-body-md text-body-md text-on-surface">
+                                {% for u in usuarios %}
+                                <tr class="hover:bg-surface-container-low/50 transition-colors">
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0">{{ u.nombre[0] }}{{ u.apellido[0] if u.apellido else '' }}</div>
+                                            <div>
+                                                <div class="font-medium text-primary">{{ u.nombre }} {{ u.apellido }}</div>
+                                                <div class="text-on-surface-variant text-[14px]">{{ u.email }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-variant text-on-surface-variant border border-outline-variant">{{ u.roles or 'Sin rol' }}</span>
+                                    </td>
+                                    <td class="p-4">
+                                        {% if u.estado == 'Activo' %}
+                                        <span class="inline-flex items-center gap-1.5 text-label-sm font-label-sm text-[#059669]">
+                                            <span class="w-2 h-2 rounded-full bg-[#059669]"></span>
+                                            Activo
+                                        </span>
+                                        {% else %}
+                                        <span class="inline-flex items-center gap-1.5 text-label-sm font-label-sm text-error">
+                                            <span class="w-2 h-2 rounded-full bg-error"></span>
+                                            {{ u.estado }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="p-4 hidden sm:table-cell text-on-surface-variant">{{ u.fecha_registro }}</td>
+                                    <td class="p-4 text-right">
+                                        <a class="text-secondary hover:underline font-label-md text-label-md" href="/admin/users/{{ u.id_usuario }}/edit">Ver</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="px-4 py-3 border-t border-surface-variant bg-surface-container-lowest flex items-center justify-between">
+                        <span class="font-label-sm text-label-sm text-on-surface-variant">Mostrando {{ usuarios|length }} de {{ total }} usuarios{% if q %} (filtro: "{{ q }}"){% endif %}</span>
+                    </div>
+                </div>
+                <footer class="mt-auto py-4 border-t border-surface-variant text-center text-label-sm font-label-sm text-on-surface-variant">
+                    © 2026 SafeCore IoT. Monitoreo de seguridad industrial.
+                </footer>
+            </div>
+        </main>
+        </div>
+        <script src="/public/scripts/sidebarToggle.js"></script>
+    </body>
+</html>

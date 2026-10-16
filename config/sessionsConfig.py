@@ -5,31 +5,21 @@ from uuid import UUID
 
 from dotenv import load_dotenv
 
-# Importamos HTTPException para poder devolver un error 303 (redirección) cuando la sesión no es válida.
-from fastapi import HTTPException
+from fastapi import Depends, HTTPException, Request
 
-# Importamos fastapi_sessions para manejar sesiones con cookies firmadas.
-# BackendError es la excepción que lanza el backend cuando hay un error de almacenamiento.
-# SessionBackend es la clase base para crear un backend de almacenamiento de sesiones.
 from fastapi_sessions.backends.session_backend import (
-    BackendError, 
+    BackendError,
     SessionBackend
 )
 
-# Importamos fastapi_sessions.frontends.implementations para manejar cookies firmadas.
-# CookeiParameters es la clase que define los parámetros de la cookie (nombre, duración, etc)
-# SessionCookie es la clase que implementa la cookie firmada.
+from fastapi_sessions.frontends.session_frontend import FrontendError
 from fastapi_sessions.frontends.implementations import (
     CookieParameters,
     SessionCookie,
 )
 
-# Importamos fastapi_sessions.session_verifier para verificar la validez de la sesión.
-# SessionVerifier es la clase base para crear un verificador de sesiones.
 from fastapi_sessions.session_verifier import SessionVerifier
 
-# Importamos pydantic para definir el modelo de datos de la sesión.
-# BaseModel es la clase base para crear modelos de datos con validación y serialización.
 from pydantic import BaseModel
 
 from models import sessionsModel as sessionModel
@@ -42,10 +32,8 @@ class SessionData(BaseModel):
     id_usuario: int
 
 
-# Cookie de 8 horas (tambien es anti-XSS).
-# XSS es un ataque que inyecta código malicioso en la página web, y la cookie firmada evita que el atacante pueda modificarla.
-
-cookie_params = CookieParameters(max_age= 8 * 60 * 60)
+# Cookie de 8 horas, firmada y httponly (anti-XSS).
+cookie_params = CookieParameters(max_age=8 * 60 * 60)
 
 cookie = SessionCookie(
     cookie_name="safecore_session",
@@ -117,3 +105,30 @@ class VerificadorSesion(SessionVerifier[UUID, SessionData]):
 
 
 verificador = VerificadorSesion()
+
+
+async def getOptionalSession(request: Request):
+    # Sesión opcional: retorna SessionData o None (nunca levanta 303).
+    try:
+        session_id = cookie(request)
+    except Exception:
+        return None
+    if isinstance(session_id, FrontendError):
+        return None
+    try:
+        return await backend.read(session_id)
+    except Exception:
+        return None
+
+
+async def requireAdminUser(request: Request,
+                           id_sesion: UUID = Depends(cookie),
+                           sesion: SessionData = Depends(verificador)):
+    # Autorización por rol: solo Administrador pasa; el resto vuelve al login (303).
+    # El rol se consulta en cada request para que revocar sea inmediato.
+    from models import usersModel as user_model
+    from utils.flashUtils import flashForm
+    if "Administrador" not in user_model.getUserRoles(sesion.id_usuario):
+        flashForm(request, "Acceso denegado: tu usuario no tiene permisos de administrador.")
+        raise HTTPException(status_code=303, headers={"Location": "/users/login"})
+    return sesion
