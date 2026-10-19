@@ -1,5 +1,4 @@
-# models/organizationsModel.py — consultas SQL de la tabla organizaciones.
-# Usado por controllers/adminController.py (gestión y edición de usuarios).
+"""SQL for organizations."""
 from config.dbConfig import getConnection
 
 

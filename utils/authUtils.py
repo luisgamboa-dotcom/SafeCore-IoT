@@ -1,3 +1,4 @@
+"""Validation helpers: email, Chilean phone and passwords."""
 import phonenumbers
 from email_validator import validate_email, EmailNotValidError
 from phonenumbers import NumberParseException
@@ -12,9 +13,7 @@ def normalizeForm(form_data):
 
 
 def validateEmail(email):
-    # Valida sintaxis y retorna el correo normalizado
     try:
-        # Sin deliverability para no depender del DNS
         email_info = validate_email(email, check_deliverability=False)
         return email_info.normalized, None
     except EmailNotValidError:
@@ -26,8 +25,6 @@ def validateChileanPhone(telefono_raw, pais_defecto="CL"):
         return None, None
     try:
         numero_parseado = phonenumbers.parse(telefono_raw.strip(), pais_defecto)
-        # is_possible_number: largo y prefijo plausibles para Chile (9 dígitos móvil, etc.).
-        # No se usa is_valid_number porque su metadata rechaza rangos de prueba como 912345678.
         if not phonenumbers.is_possible_number(numero_parseado):
             return None, "El número de teléfono no es válido para Chile."
         telefono_solo_digitos = phonenumbers.format_number(

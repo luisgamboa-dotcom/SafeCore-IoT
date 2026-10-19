@@ -1,1 +1,1 @@
-# utils package: normalización y validación de datos para los controladores.
+# utils package: normalization, validation and flash helpers.

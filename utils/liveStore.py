@@ -38,5 +38,4 @@ def get_latest(limit: int = 50) -> List[Dict[str, Any]]:
     limit = max(1, min(int(limit), _MAX))
     with _lock:
         out = list(_buf)[:limit]
-    # Sin claves internas.
     return [{k: v for k, v in d.items() if not k.startswith("_")} for d in out]

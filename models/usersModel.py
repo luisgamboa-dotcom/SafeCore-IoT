@@ -1,6 +1,4 @@
-# models/usersModel.py — consultas SQL de la tabla usuarios.
-# Usado por controllers/authController.py (registro/login) y
-# controllers/adminController.py (gestión).
+"""SQL for users, roles and states."""
 from config.dbConfig import getConnection
 
 

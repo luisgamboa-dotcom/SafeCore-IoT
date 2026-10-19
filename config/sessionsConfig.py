@@ -1,6 +1,5 @@
-# config/sessionsConfig.py — sesiones con fastapi-sessions (cookie firmada).
+# Sesion firmada con cookies y backend MySQL
 import os
-# UUID es el identificador de sesión que viaja en la cookie firmada.
 from uuid import UUID
 
 from dotenv import load_dotenv
@@ -28,26 +27,20 @@ load_dotenv()
 
 
 class SessionData(BaseModel):
-    # Lo único que viaja en la cookie es el id del usuario logueado
     id_usuario: int
 
 
-# Cookie de 8 horas, firmada y httponly (anti-XSS).
 cookie_params = CookieParameters(max_age=8 * 60 * 60)
 
 cookie = SessionCookie(
     cookie_name="safecore_session",
     identifier="safecore_verifier",
-    # False a propósito: sin cookie devuelve FrontendError y deja que el
-    # verificador responda el 303 a /users/login. Con True daría 403 JSON.
+    # auto_error=False: El verificador responde con un 303 -> /users/login (Verdadero responderia con un error de JSON)
     auto_error=False,
     secret_key=os.getenv("SECRET_KEY"),
     cookie_params=cookie_params,
 )
 
-# Almacenamiento en MySQL (tabla sesiones): sobrevive reinicios de uvicorn.
-# La cookie firmada sigue validando identidad; aquí solo se guarda session_id -> id_usuario.
-# Las consultas viven en models/sessionsModel.py; este backend solo orquesta y traduce errores.
 class MySQLBackend(SessionBackend[UUID, SessionData]):
     async def create(self, session_id: UUID, data: SessionData):
         if sessionModel.sessionExists(str(session_id)):
@@ -70,7 +63,6 @@ class MySQLBackend(SessionBackend[UUID, SessionData]):
     async def delete(self, session_id: UUID) -> None:
         sessionModel.deleteSession(str(session_id))
 
-
 backend: MySQLBackend = MySQLBackend()
 
 
@@ -79,7 +71,6 @@ class VerificadorSesion(SessionVerifier[UUID, SessionData]):
         self._identifier = cookie.identifier
         self._auto_error = True
         self._backend = backend
-        # Sin sesión válida el navegador vuelve al login (303, no JSON).
         self._auth_http_exception = HTTPException(
             status_code=303, headers={"Location": "/users/login"}
         )
@@ -108,7 +99,6 @@ verificador = VerificadorSesion()
 
 
 async def getOptionalSession(request: Request):
-    # Sesión opcional: retorna SessionData o None (nunca levanta 303).
     try:
         session_id = cookie(request)
     except Exception:
@@ -124,8 +114,7 @@ async def getOptionalSession(request: Request):
 async def requireAdminUser(request: Request,
                            id_sesion: UUID = Depends(cookie),
                            sesion: SessionData = Depends(verificador)):
-    # Autorización por rol: solo Administrador pasa; el resto vuelve al login (303).
-    # El rol se consulta en cada request para que revocar sea inmediato.
+    # Role is checked on every request so revocation is immediate.
     from models import usersModel as user_model
     from utils.flashUtils import flashForm
     if "Administrador" not in user_model.getUserRoles(sesion.id_usuario):

@@ -1,6 +1,4 @@
-/* public/scripts/sidebarToggle.js — sidebar colapsable compartido (dashboard y admin).
-   Botón alterna, borde izquierdo abre al hover (solo desktop con mouse), drawer + backdrop en móvil.
-   Requiere IDs: sidebar, sidebarToggle, edgeZone, backdrop, mainWrap. */
+/* Sidebar colapsable: requiere IDs sidebar, sidebarToggle, edgeZone, backdrop, mainWrap. */
 (function () {
   var sidebar = document.getElementById('sidebar');
   var toggle = document.getElementById('sidebarToggle');

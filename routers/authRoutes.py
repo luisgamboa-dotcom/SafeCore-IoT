@@ -1,4 +1,4 @@
-"""Rutas de auth (registro, login, logout). Prefijo /users."""
+"""Auth routes: register, login, logout (/users)."""
 from fastapi import APIRouter
 
 import controllers.authController as authController

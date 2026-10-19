@@ -1,5 +1,4 @@
-# config/dbConfig.py — pool perezoso: no conecta al importar.
-# Permite correr en modo en-vivo-sin-guardar sin MySQL arriba.
+"""Lazy DB pool: does not connect at import time."""
 import os
 from dotenv import load_dotenv
 from mysql.connector import pooling
@@ -7,6 +6,7 @@ from mysql.connector import pooling
 load_dotenv()
 
 pool = None
+
 
 
 def getPool():
@@ -19,7 +19,7 @@ def getPool():
             user=os.getenv("MYSQL_USER"),
             password=os.getenv("MYSQL_PASSWORD"),
             database=os.getenv("MYSQL_DATABASE"),
-            port=int(os.getenv("MYSQL_PORT") or 3306),
+            port=int(os.getenv("MYSQL_PORT")),
         )
     return pool
 

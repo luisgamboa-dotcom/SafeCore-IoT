@@ -1,7 +1,3 @@
-/* (lógica del sidebar movida a sidebarToggle.js) */
-/* SafeCore en vivo sin guardar: polling a /api/live cada 5 s.
-   Grafico Chart.js con pestanas Gas/Temp/Hum + KPIs, alertas y tarjetas.
-   No depende de MySQL. */
 (function () {
   var elHora = document.getElementById('ultimaActualizacion');
   var elDetalle = document.getElementById('ultimaDetalle');
@@ -170,6 +166,50 @@
   marcarTabs();
 
   var ultimos = [];
+  var APAGADO_SEG = 300;
+
+  // Rellena las tarjetas [data-serial] con lo fresco del buffer: items viene
+  // ordenado de mas nuevo a mas viejo, el primer item de un serial es su
+  // paquete mas reciente. Sin items -> Apagado. Edad > 5 min -> Apagado.
+  function actualizarTarjetas(items) {
+    var grid = document.getElementById('devicesLive');
+    if (!grid) return;
+    var porSerial = {};
+    items.forEach(function (x) {
+      var ser = x.codigo_serial || '';
+      if (!porSerial[ser]) porSerial[ser] = x;
+    });
+    grid.querySelectorAll('[data-serial]').forEach(function (card) {
+      var ser = card.getAttribute('data-serial');
+      var it = porSerial[ser];
+      var dot = card.querySelector('.js-dot');
+      var est = card.querySelector('.js-estado');
+      var lec = card.querySelector('.js-lectura');
+      var fec = card.querySelector('.js-fecha');
+      if (!dot || !est || !lec || !fec) return;
+      if (!it) {
+        dot.className = 'js-dot w-3 h-3 rounded-full status-dot-crit';
+        est.className = 'js-estado inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container-low text-xs font-semibold text-error';
+        est.textContent = 'Apagado';
+        lec.textContent = '—';
+        fec.textContent = '—';
+        return;
+      }
+      var age = ageSecs(it.fecha_hora);
+      lec.textContent = esc(it.magnitud) + ': ' + esc(it.valor);
+      fec.textContent = esc(it.fecha_hora) + (age >= 0 ? ' · hace ' + ageFmt(age) : '');
+      if (age > APAGADO_SEG) {
+        dot.className = 'js-dot w-3 h-3 rounded-full status-dot-crit';
+        est.className = 'js-estado inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container-low text-xs font-semibold text-error';
+        est.textContent = 'Apagado';
+      } else {
+        dot.className = 'js-dot w-3 h-3 rounded-full status-dot-online';
+        est.className = 'js-estado inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container-low text-xs font-semibold';
+        est.textContent = 'online';
+      }
+    });
+  }
+
   async function tick() {
     var items = ultimos;
     try {
@@ -231,9 +271,9 @@
       }
     }
 
-    // Tarjetas por dispositivo: las sirve el servidor y no se tocan aquí
-    // (reescribirlas desde /api/live las borraba cuando el buffer en memoria
-    // estaba vacío, p. ej. tras reiniciar uvicorn).
+    // Tarjetas por dispositivo: identidad la sirve el servidor y los valores
+    // vivos se inyectan aqui desde el buffer (dashboard en modo test, sin DB).
+    actualizarTarjetas(items);
 
     // Grafico + historial del tipo activo.
     var serie = items.filter(function (x) { return x.magnitud === tipoActivo; }).slice(0, 50).reverse();

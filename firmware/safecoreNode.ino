@@ -28,9 +28,9 @@ const char* FW_VERSION = "2.1-autonomo";
 // ---------- Configuracion de conexion WiFi ----------
 // SSID y clave viven en secrets.h. El servidor es el PC donde corre FastAPI:
 // usa su IP de la red WiFi actual (NO localhost/127.0.0.1).
-// Red actual (hotspot POCO): PC = 10.151.234.30. Si el hotspot se reinicia
+// Red actual (hotspot POCO): PC = 10.110.143.30. Si el hotspot se reinicia
 // y la IP cambia, actualiza solo esta linea y reflashea.
-const char* SERVIDOR_HOST = "10.151.234.30";
+const char* SERVIDOR_HOST = "10.110.143.30";
 const int SERVIDOR_PUERTO = 8000;
 const char* API_RUTA = "/api/ingest";
 

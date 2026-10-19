@@ -1,5 +1,4 @@
-# models/sessionsModel.py — consultas SQL de la tabla sesiones.
-# Usado por config/sessionsConfig.py (backend de fastapi-sessions).
+"""SQL for the sesiones (sessions) table."""
 from config.dbConfig import getConnection
 
 
