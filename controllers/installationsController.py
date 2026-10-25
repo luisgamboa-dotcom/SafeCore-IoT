@@ -140,21 +140,17 @@ def updateInstallation(request: Request,
     return RedirectResponse(f"/admin/installations/{id_installation}", status_code=303)
 
 
-# Zone count precheck: fk_zona_inst is CASCADE and would silently delete them.
 def deleteInstallation(request: Request,
                        id_installation: int,
                        id_sesion: UUID = Depends(session_cookie),
                        sesion: SessionData = Depends(requireAdminUser)):
-    if inst_model.countZones(id_installation) > 0:
-        flashForm(request, "No se puede eliminar: tiene zonas asociadas.")
-        return RedirectResponse(f"/admin/installations/{id_installation}", status_code=303)
     try:
-        ok = inst_model.deleteInstallation(id_installation)
+        ok = inst_model.forceDeleteInstallation(id_installation)
     except mysql.connector.Error as e:
         flashForm(request, f"Error al eliminar: {e.msg}")
         return RedirectResponse(f"/admin/installations/{id_installation}", status_code=303)
     if not ok:
         flashForm(request, "La instalación no existe.")
         return RedirectResponse("/admin/installations", status_code=303)
-    flashForm(request, "Instalación eliminada correctamente.", ok=True)
+    flashForm(request, "Instalación eliminada correctamente (incluyendo sus zonas y dispositivos).", ok=True)
     return RedirectResponse("/admin/installations", status_code=303)

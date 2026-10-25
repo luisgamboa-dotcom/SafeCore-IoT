@@ -79,7 +79,7 @@ tailwind.config = {
                     </div>
                     <div class="flex gap-2">
                         <a class="px-4 py-2 rounded-lg border border-outline-variant font-label-md text-label-md" href="/admin/installations/{{ zona.id_instalacion }}">← Volver</a>
-                        <form action="/admin/installations/{{ zona.id_instalacion }}/zones/{{ zona.id_zona }}/delete" method="POST" onsubmit="return confirm('{% if n_dispositivos > 0 %}Tiene {{ n_dispositivos }} dispositivo(s): NO se eliminará.{% else %}¿Eliminar la zona {{ zona.nombre }}?{% endif %}');">
+                        <form action="/admin/installations/{{ zona.id_instalacion }}/zones/{{ zona.id_zona }}/delete" method="POST" onsubmit="return confirm('ATENCIÓN: se eliminarán también sus dispositivos, sensores y lecturas de forma PERMANENTE. ¿Eliminar la zona {{ zona.nombre }}?');">
                             <button class="px-4 py-2 rounded-lg border border-error text-error font-label-md text-label-md" type="submit">Eliminar</button>
                         </form>
                     </div>

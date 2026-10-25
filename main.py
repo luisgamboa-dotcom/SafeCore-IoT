@@ -3,12 +3,15 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
+from utils import discovery
 from routers import (authRoutes, homeRoutes, readingRoutes, deviceRoutes,
                      adminPanelRoutes, userRoutes, organizationRoutes,
-                     installationRoutes, zoneRoutes)
+                     installationRoutes, zoneRoutes, myOrganizationRoutes)
 
 
 load_dotenv()
+
+discovery.iniciar_descubrimiento()  # nodos FW 3.1+ reparan su IP solos
 
 app = FastAPI(title="SafeCore IoT")
 
@@ -24,4 +27,4 @@ app.include_router(userRoutes.admin_router)
 app.include_router(organizationRoutes.admin_router)
 app.include_router(installationRoutes.admin_router)
 app.include_router(zoneRoutes.admin_router)
-
+app.include_router(myOrganizationRoutes.my_org_router)

@@ -65,18 +65,39 @@
                             <option value="{{ o.id_organizacion }}" {% if user.id_organizacion == o.id_organizacion %}selected{% endif %}>{{ o.nombre }}</option>
                             {% endfor %}
                         </select>
+                        <p class="text-[12px] text-on-surface-variant mt-1">El rol Supervisor requiere una organización asignada.</p>
                     </div>
                     <div>
-                        <label class="block font-label-md text-label-md mb-1" for="id_rol">Rol</label>
-                        <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="id_rol" name="id_rol" required>
+                        <span class="block font-label-md text-label-md mb-1">Roles</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-outline-variant rounded-lg p-3">
                             {% for r in roles %}
-                            <option value="{{ r.id_catalogo_rol }}" {% if rol_actual == r.nombre_rol %}selected{% endif %}>{{ r.nombre_rol }}</option>
+                            {% if 'Administrador' == r.nombre_rol and not is_superadmin %}
+                                {% if r.nombre_rol in roles_usuario %}
+                                <label class="flex items-center gap-2 px-2 py-1 rounded bg-surface-container-low opacity-80" title="Solo el Superadmin puede asignar este rol">
+                                    <input type="checkbox" checked disabled class="accent-[#6D3DF5]" />
+                                    <span class="font-label-md text-label-md">Administrador 🔒</span>
+                                </label>
+                                {% endif %}
+                            {% elif r.nombre_rol == 'Superadmin' %}
+                                {% if 'Superadmin' in roles_usuario %}
+                                <label class="flex items-center gap-2 px-2 py-1 rounded bg-surface-container-low opacity-80" title="Rol protegido: no se puede quitar desde la página">
+                                    <input type="checkbox" checked disabled class="accent-[#6D3DF5]" />
+                                    <span class="font-label-md text-label-md">Superadmin</span>
+                                </label>
+                                {% endif %}
+                            {% else %}
+                            <label class="flex items-center gap-2 px-2 py-1 rounded hover:bg-surface-container-low">
+                                <input type="checkbox" name="id_roles" value="{{ r.id_catalogo_rol }}" {% if r.nombre_rol in roles_usuario %}checked{% endif %} {% if auto_edicion_limitada %}disabled{% endif %} class="accent-[#6D3DF5]" />
+                                <span class="font-label-md text-label-md">{{ r.nombre_rol }}</span>
+                            </label>
+                            {% endif %}
                             {% endfor %}
-                        </select>
+                        </div>
+                        <p class="text-[12px] text-on-surface-variant mt-1">Puede tener más de un rol a la vez.</p>
                     </div>
                     <div>
                         <label class="block font-label-md text-label-md mb-1" for="id_estado">Estado</label>
-                        <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="id_estado" name="id_estado" required>
+                        <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="id_estado" name="id_estado" required {% if auto_edicion_limitada %}disabled{% endif %}>
                             {% for e in estados %}
                             <option value="{{ e.id_usuario_estado }}" {% if user.id_usuario_estado == e.id_usuario_estado %}selected{% endif %}>{{ e.nombre }}</option>
                             {% endfor %}

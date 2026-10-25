@@ -10,3 +10,8 @@ admin_router.get("/installations/{id_installation}/zones/create")(zonesControlle
 admin_router.post("/installations/{id_installation}/zones")(zonesController.storeZone)
 admin_router.post("/installations/{id_installation}/zones/{id_zone}/delete")(zonesController.deleteZone)
 admin_router.get("/installations/{id_installation}/zones/{id_zone}")(zonesController.showZoneDetail)
+
+# Vista global de zonas
+admin_router.get("/zones")(zonesController.showZonesPage)
+admin_router.get("/zones/create")(zonesController.showZonesCreateForm)
+admin_router.post("/zones")(zonesController.storeZoneGlobal)

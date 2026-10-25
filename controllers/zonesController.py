@@ -76,13 +76,53 @@ def deleteZone(request: Request,
                id_zone: int,
                id_sesion: UUID = Depends(session_cookie),
                sesion: SessionData = Depends(requireAdminUser)):
-    if zone_model.countDevicesByZone(id_zone) > 0:
-        flashForm(request, "No se puede eliminar: tiene dispositivos asociados.")
-        return RedirectResponse(f"/admin/installations/{id_installation}/zones/{id_zone}", status_code=303)
     try:
-        zone_model.deleteZone(id_zone)
+        zone_model.forceDeleteZone(id_zone)
     except mysql.connector.Error as e:
         flashForm(request, f"Error al eliminar: {e.msg}")
         return RedirectResponse(f"/admin/installations/{id_installation}/zones/{id_zone}", status_code=303)
-    flashForm(request, "Zona eliminada correctamente.", ok=True)
+    flashForm(request, "Zona eliminada correctamente (incluyendo sus dispositivos).", ok=True)
     return RedirectResponse(f"/admin/installations/{id_installation}", status_code=303)
+
+
+# Vista global de todas las zonas del sistema, con creacion independiente.
+def showZonesPage(request: Request,
+                  id_sesion: UUID = Depends(session_cookie),
+                  sesion: SessionData = Depends(requireAdminUser)):
+    flash_msg, _, flash_ok = popFormFlash(request)
+    return templates.TemplateResponse(request, "admin/zones.html",
+        {"request": request, "zonas": zone_model.getAllZonesWithCounts(),
+         "flash_msg": flash_msg, "flash_ok": flash_ok,
+         **adminContext(sesion, user_model.getUserById(sesion.id_usuario))})
+
+
+def showZonesCreateForm(request: Request,
+                        id_sesion: UUID = Depends(session_cookie),
+                        sesion: SessionData = Depends(requireAdminUser)):
+    flash_msg, _, flash_ok = popFormFlash(request)
+    return templates.TemplateResponse(request, "admin/zones-create2.html",
+        {"request": request, "instalaciones": inst_model.getAllInstallations(),
+         "flash_msg": flash_msg, "flash_ok": flash_ok,
+         **adminContext(sesion, user_model.getUserById(sesion.id_usuario))})
+
+
+def storeZoneGlobal(request: Request,
+                    id_sesion: UUID = Depends(session_cookie),
+                    sesion: SessionData = Depends(requireAdminUser),
+                    id_instalacion: str = Form(...),
+                    nombre: str = Form(...),
+                    descripcion: str = Form("")):
+    if not inst_model.getInstallationById(int(id_instalacion)):
+        flashForm(request, "La instalación no existe.")
+        return RedirectResponse("/admin/zones/create", status_code=303)
+    nombre = (nombre or "").strip()
+    if not nombre:
+        flashForm(request, "El nombre de la zona es obligatorio.")
+        return RedirectResponse("/admin/zones/create", status_code=303)
+    try:
+        zone_model.createZone(nombre, (descripcion or "").strip() or None, int(id_instalacion))
+    except mysql.connector.Error as e:
+        flashForm(request, f"Error al guardar: {e.msg}")
+        return RedirectResponse("/admin/zones/create", status_code=303)
+    flashForm(request, "Zona creada correctamente.", ok=True)
+    return RedirectResponse("/admin/zones", status_code=303)

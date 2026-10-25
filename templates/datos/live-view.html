@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>SafeCore IoT - JSON en vivo</title>
+<link rel="icon" type="image/png" href="/public/images/logo-icon.png">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#2E1B5A",
+        "primary-container": "#8751F8",
+        "secondary": "#6D3DF5",
+        "secondary-container": "#A37FFF",
+        "primary-fixed": "#E9DEFF",
+        "secondary-fixed": "#EDE6FF",
+        "tertiary-fixed": "#E5DBFF",
+        "surface": "#F6F1FF",
+        "surface-container-lowest": "#ffffff",
+        "surface-container-low": "#EFE7FF",
+        "surface-container": "#E9DEFF",
+        "surface-container-high": "#E2D5FF",
+        "outline": "#74777f",
+        "outline-variant": "#c4c6cf",
+        "error": "#ba1a1a",
+        "error-container": "#ffdad6"
+      },
+      borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+      boxShadow: { 'ambient': '0 10px 30px rgba(135, 81, 248, 0.08)' }
+    }
+  }
+}
+</script>
+<link rel="stylesheet" href="/public/styles/dashboardStyles.css">
+</head>
+<body class="font-body text-on-surface antialiased flex h-screen overflow-hidden bg-background" style="font-family:Inter,system-ui,sans-serif">
+
+<div id="edgeZone" title="Acercar para mostrar menú"></div>
+<div id="backdrop"></div>
+
+{% set active_page = "dashboard" %}
+{% include "partials/sidebar.html" %}
+
+<div id="mainWrap" class="flex-1 flex flex-col h-screen min-w-0 w-full">
+  {% set page_title = "JSON en vivo" %}
+  {% include "partials/topbar.html" %}
+
+  <main class="flex-1 overflow-y-auto">
+    <div class="max-w-[1280px] mx-auto p-4 md:p-8 pb-12">
+
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div>
+          <h1 class="text-2xl font-bold text-primary">Lecturas en vivo (página temporal)</h1>
+          <p class="text-sm text-on-surface-variant mt-1">Todo lo que envía el dispositivo antes y después del envío a la base de datos.</p>
+        </div>
+        <span id="modoChip" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-surface-container-low">Cargando…</span>
+      </div>
+
+      <!-- Lote en curso -->
+      <section class="bg-white rounded-xl border border-outline-variant card-shadow p-5 md:p-6">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <h2 class="text-xl font-semibold text-primary">Lote en curso (aún sin enviar)</h2>
+          <span id="pendientesChip" class="inline-flex items-center px-3 py-1.5 rounded-full bg-primary-fixed text-primary text-xs font-semibold">0 lecturas acumuladas</span>
+        </div>
+        <div class="mb-4">
+          <div class="flex justify-between text-xs text-on-surface-variant mb-1">
+            <span>Próximo envío en <span id="envioEn" class="font-semibold text-primary">—</span> s</span>
+            <span>Ciclo de acumulación: {{ intervalo }} s (editable en <code>controllers/readingsController.py</code>)</span>
+          </div>
+          <div class="h-2 w-full rounded-full bg-surface-container-low overflow-hidden">
+            <div id="envioBarra" class="h-full bg-secondary rounded-full transition-all duration-1000" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-xs uppercase tracking-wider text-on-surface-variant border-b border-outline-variant">
+                <th class="py-2 pr-4">Hora</th>
+                <th class="py-2 pr-4">Dispositivo</th>
+                <th class="py-2 pr-4">Magnitud</th>
+                <th class="py-2 pr-4">Valor</th>
+                <th class="py-2 pr-4">Calidad</th>
+                <th class="py-2">Seq / FW</th>
+              </tr>
+            </thead>
+            <tbody id="loteLista">
+              <tr><td colspan="6" class="py-4 text-center text-on-surface-variant">Esperando datos del dispositivo…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Historial de lotes -->
+      <section class="bg-white rounded-xl border border-outline-variant card-shadow p-5 md:p-6 mt-6">
+        <h2 class="text-xl font-semibold text-primary mb-4">Últimos lotes procesados</h2>
+        <div id="historialLista" class="space-y-4">
+          <p class="text-sm text-on-surface-variant">Aún no ha vencido ningún ciclo de acumulación desde que el servidor arrancó.</p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script src="/public/scripts/sidebarToggle.js"></script>
+<script src="/public/scripts/batchLive.js?v=1"></script>
+</body>
+</html>

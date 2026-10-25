@@ -88,7 +88,7 @@ tailwind.config = {
                     <p class="font-body-md text-body-md"><strong>Zonas asociadas:</strong> {{ n_zonas }}</p>
                     <div class="flex gap-2 mt-2">
                         <a class="px-4 py-2 rounded-lg border border-outline-variant font-label-md text-label-md" href="/admin/installations/{{ inst.id_instalacion }}/edit">Editar</a>
-                        <form action="/admin/installations/{{ inst.id_instalacion }}/delete" method="POST" onsubmit="return confirm('{% if n_zonas > 0 %}Tiene {{ n_zonas }} zona(s): NO se eliminará.{% else %}¿Eliminar la instalación {{ inst.nombre }}?{% endif %}');">
+                        <form action="/admin/installations/{{ inst.id_instalacion }}/delete" method="POST" onsubmit="return confirm('ATENCIÓN: se eliminarán también sus zonas, dispositivos y lecturas de forma PERMANENTE. ¿Eliminar la instalación {{ inst.nombre }}?');">
                             <button class="px-4 py-2 rounded-lg border border-error text-error font-label-md text-label-md" type="submit">Eliminar</button>
                         </form>
                     </div>

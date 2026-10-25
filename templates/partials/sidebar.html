@@ -24,6 +24,12 @@
       <span class="material-symbols-outlined">history</span>
       <span class="text-sm">Historial</span>
     </a>
+    {% if id_organizacion %}
+    <a class="flex items-center gap-3 px-4 py-3 rounded-lg {% if active_page == 'mi_org' %}text-white font-semibold bg-primary-container shadow-sm{% else %}text-on-surface-variant hover:bg-surface-container-low transition-colors{% endif %}" href="/mi-organizacion">
+      <span class="material-symbols-outlined">apartment</span>
+      <span class="text-sm">Mi organización</span>
+    </a>
+    {% endif %}
     {% if is_admin %}
     <a class="flex items-center gap-3 px-4 py-3 rounded-lg {% if active_page in ['admin', 'admin_orgs', 'admin_inst', 'admin_panel'] %}text-white font-semibold bg-primary-container shadow-sm{% else %}text-on-surface-variant hover:bg-surface-container-low transition-colors{% endif %}" href="/admin">
       <span class="material-symbols-outlined">group</span>

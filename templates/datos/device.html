@@ -87,6 +87,7 @@ tailwind.config = {
                     <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">ID</p><p class="font-semibold">{{ dev.id_dispositivo }}</p></div>
                     <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Nombre</p><p class="font-semibold">{{ dev.nombre }}</p></div>
                     <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Código serial</p><p class="font-semibold">{{ dev.codigo_serial }}</p></div>
+                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Identificador único (MAC)</p><p class="font-semibold">{{ dev.identificador_unico or '—' }}</p></div>
                     <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Versión de firmware</p><p class="font-semibold">{{ dev.firmware_version or '—' }}</p></div>
                     <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Modelo</p><p class="font-semibold">{{ dev.nombre_modelo }}{% if dev.fabricante %} ({{ dev.fabricante }}){% endif %}</p></div>
                     <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Estado</p><p class="font-semibold">{{ dev.estado }}{% if not dev.activo %} (dado de baja){% endif %}</p></div>
@@ -97,10 +98,42 @@ tailwind.config = {
                     <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Última comunicación (BD)</p><p class="font-semibold">{{ dev.ultima_comunicacion or '—' }}</p></div>
                     <div data-serial="{{ dev.codigo_serial }}"><p class="text-xs text-on-surface-variant uppercase tracking-wider">Última lectura (en vivo)</p><p class="dev-live font-semibold">—</p></div>
                 </div>
+
+                <section class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-6">
+                    <div class="flex flex-wrap gap-3 justify-between items-center mb-4">
+                        <h2 id="devChartTitle" class="text-xl font-semibold text-primary">Niveles de gas (ADC)</h2>
+                        <div id="devTabs" class="flex bg-surface-container-low rounded-lg p-1" role="tablist" aria-label="Seleccionar magnitud del dispositivo">
+                            <button type="button" data-tipo="gas" role="tab" aria-pressed="true" class="px-4 py-1.5 text-xs font-semibold rounded-md bg-white shadow-sm text-primary">Gas</button>
+                            <button type="button" data-tipo="temp" role="tab" aria-pressed="false" class="px-4 py-1.5 text-xs font-semibold rounded-md">Temp</button>
+                            <button type="button" data-tipo="hum" role="tab" aria-pressed="false" class="px-4 py-1.5 text-xs font-semibold rounded-md">Hum</button>
+                        </div>
+                    </div>
+                    <div class="relative h-[280px]">
+                        <canvas id="devChart" class="w-full rounded-xl border border-outline-variant" aria-label="Historial del dispositivo"></canvas>
+                    </div>
+                    <div id="devChartEmpty" class="chart-empty rounded-xl min-h-[60px] flex flex-col items-center justify-center text-center gap-1 p-4 mt-3" style="display:none">
+                        <p class="font-semibold text-primary text-sm">Sin datos del dispositivo todavía…</p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 mt-4">
+                        <div class="rounded-lg bg-surface-container-low px-3 py-2 text-center">
+                            <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Máximo</p>
+                            <p id="devStatMax" class="text-lg font-bold text-primary">—</p>
+                        </div>
+                        <div class="rounded-lg bg-surface-container-low px-3 py-2 text-center">
+                            <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Mínimo</p>
+                            <p id="devStatMin" class="text-lg font-bold text-primary">—</p>
+                        </div>
+                        <div class="rounded-lg bg-surface-container-low px-3 py-2 text-center">
+                            <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Promedio</p>
+                            <p id="devStatProm" class="text-lg font-bold text-primary">—</p>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
         </div>
         <script src="/public/scripts/sidebarToggle.js"></script>
         <script src="/public/scripts/devLive.js"></script>
+        <script src="/public/scripts/deviceChart.js?v=3"></script>
     </body>
 </html>

@@ -30,6 +30,37 @@ def getZoneById(id_zona):
         closeConnection(conn, cur)
 
 
+def getAllZones():
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT z.id_zona, z.nombre, z.id_instalacion, i.nombre AS instalacion"
+                    " FROM zonas z"
+                    " JOIN instalaciones i ON i.id_instalacion = z.id_instalacion"
+                    " ORDER BY i.nombre, z.nombre")
+        return cur.fetchall()
+    finally:
+        closeConnection(conn, cur)
+
+
+def getAllZonesWithCounts():
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("""SELECT z.id_zona, z.nombre, z.descripcion, z.id_instalacion,
+                              i.nombre AS instalacion, COUNT(d.id_dispositivo) AS n_dispositivos
+                       FROM zonas z
+                       JOIN instalaciones i ON i.id_instalacion = z.id_instalacion
+                       LEFT JOIN dispositivos d ON d.id_zona = z.id_zona
+                       GROUP BY z.id_zona
+                       ORDER BY i.nombre, z.nombre""")
+        return cur.fetchall()
+    finally:
+        closeConnection(conn, cur)
+
+
 def getDevicesByZone(id_zona):
     conn = getConnection()
     cur = None
@@ -69,3 +100,23 @@ def deleteZone(id_zona):
         conn.commit()
     finally:
         closeConnection(conn, cur)
+
+
+def updateZone(id_zona, nombre, descripcion):
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute("UPDATE zonas SET nombre = %s, descripcion = %s WHERE id_zona = %s",
+                    (nombre, descripcion, id_zona))
+        conn.commit()
+    finally:
+        closeConnection(conn, cur)
+
+
+def forceDeleteZone(id_zona):
+    """BORRADO FORZADO: elimina primero dispositivos + sensores + lecturas."""
+    from models import devicesModel as dev_model
+    for d in getDevicesByZone(id_zona):
+        dev_model.deleteDeviceCascade(d["id_dispositivo"])
+    deleteZone(id_zona)

@@ -87,7 +87,10 @@ tailwind.config = {
                         <a class="px-4 py-2 rounded-lg border border-outline-variant font-label-md text-label-md" href="/admin/organizations">← Volver</a>
                         <button class="bg-secondary text-on-secondary px-4 py-2 rounded-lg font-label-md text-label-md" type="button" onclick="document.getElementById('modal-agregar').style.display='flex'">+ Agregar usuarios</button>
                         <a class="px-4 py-2 rounded-lg border border-outline-variant font-label-md text-label-md" href="/admin/organizations/{{ org.id_organizacion }}/edit">Editar</a>
-                        <form action="/admin/organizations/{{ org.id_organizacion }}/delete" method="POST" onsubmit="return confirm('{% if tiene_relaciones %}Tiene usuarios o instalaciones: NO se eliminará, quedará desactivada. ¿Continuar?{% else %}¿Eliminar la organización {{ org.nombre }}?{% endif %}');">
+                        <form action="/admin/organizations/{{ org.id_organizacion }}/delete" method="POST" onsubmit="return confirm('ATENCIÓN: se eliminarán también sus instalaciones, zonas, dispositivos y lecturas de forma PERMANENTE. ¿Eliminar la organización {{ org.nombre }}?');">
+                        {% if is_superadmin %}
+                        <a class="px-3 py-1.5 rounded-lg border border-outline-variant font-label-sm text-label-sm" href="/mi-organizacion?org={{ org.id_organizacion }}">Abrir en Mi organización</a>
+                        {% endif %}
                             <button class="px-4 py-2 rounded-lg border border-error text-error font-label-md text-label-md" type="submit">{% if tiene_relaciones %}Desactivar{% else %}Eliminar{% endif %}</button>
                         </form>
                     </div>

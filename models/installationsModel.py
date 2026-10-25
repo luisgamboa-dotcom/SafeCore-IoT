@@ -39,6 +39,22 @@ def getInstallationById(id_instalacion):
         closeConnection(conn, cur)
 
 
+def getInstallationsByOrganization(id_organizacion):
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("""SELECT i.*, d.calle, d.numero, d.ciudad, d.region, d.codigo_postal
+                       FROM instalaciones i
+                       JOIN direcciones d ON d.id_direccion = i.id_direccion
+                       WHERE i.id_organizacion = %s
+                       ORDER BY i.nombre""",
+                    (id_organizacion,))
+        return cur.fetchall()
+    finally:
+        closeConnection(conn, cur)
+
+
 def getZonesByInstallation(id_instalacion):
     conn = getConnection()
     cur = None
@@ -116,8 +132,17 @@ def deleteInstallation(id_instalacion):
         if row is None:
             return False
         cur.execute("DELETE FROM instalaciones WHERE id_instalacion = %s", (id_instalacion,))
+        conn.commit()
         cur.execute("DELETE FROM direcciones WHERE id_direccion = %s", (row["id_direccion"],))
         conn.commit()
         return True
     finally:
         closeConnection(conn, cur)
+
+
+def forceDeleteInstallation(id_instalacion):
+    """BORRADO FORZADO: borra las zonas (con sus dispositivos) y la dirección."""
+    from models import zonesModel as zone_model
+    for z in getZonesByInstallation(id_instalacion):
+        zone_model.forceDeleteZone(z["id_zona"])
+    return deleteInstallation(id_instalacion)

@@ -109,15 +109,11 @@ def deleteOrganization(request: Request,
                        id_sesion: UUID = Depends(session_cookie),
                        sesion: SessionData = Depends(requireAdminUser)):
     try:
-        org_model.deleteOrganization(id_organization)
+        org_model.forceDeleteOrganization(id_organization)
     except mysql.connector.Error as e:
-        if e.errno in (1451, 1452):
-            org_model.deactivateOrganization(id_organization)
-            flashForm(request, "No se puede eliminar porque tiene usuarios o instalaciones: quedó desactivada.", ok=False)
-        else:
-            flashForm(request, f"Error al eliminar: {e.msg}")
+        flashForm(request, f"Error al eliminar: {e.msg}")
         return RedirectResponse(f"/admin/organizations/{id_organization}", status_code=303)
-    flashForm(request, "Organización eliminada correctamente.", ok=True)
+    flashForm(request, "Organización eliminada correctamente (incluyendo sus instalaciones).", ok=True)
     return RedirectResponse("/admin/organizations", status_code=303)
 
 

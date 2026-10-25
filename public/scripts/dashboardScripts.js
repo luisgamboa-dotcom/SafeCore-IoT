@@ -2,7 +2,7 @@
   var elHora = document.getElementById('ultimaActualizacion');
   var elDetalle = document.getElementById('ultimaDetalle');
   var elEstado = document.getElementById('estadoGeneral');
-  var elKpiSens = document.getElementById('kpiSensores');
+  var elKpiDisp = document.getElementById('kpiDispositivos');
   var elKpiAlert = document.getElementById('kpiAlertas');
   var elAlertas = document.getElementById('alertasLive');
   var elDevices = document.getElementById('devicesLive');
@@ -11,6 +11,9 @@
   var elEmpty = document.getElementById('chartEmpty');
   var elTitle = document.getElementById('chartTitle');
   var elTabs = document.getElementById('sensorTabs');
+  var elStatMax = document.getElementById('chartStatsMax');
+  var elStatMin = document.getElementById('chartStatsMin');
+  var elStatProm = document.getElementById('chartStatsProm');
   if (!elChart || !elTabs || !elTitle) {
     // HTML viejo en cache: se avisa en el panel en vez de fallar en silencio.
     var aviso = document.getElementById('chartEmpty');
@@ -142,6 +145,23 @@
     c.update('none');
   }
 
+  function fmtStat(v) { return Math.round(v * 100) / 100; }
+
+  function pintarStats(serie) {
+    if (!elStatMax || !elStatMin || !elStatProm) return;
+    var vals = serie.map(function (x) { return Number(x.valor); })
+      .filter(function (v) { return !isNaN(v); });
+    if (!vals.length) {
+      elStatMax.textContent = elStatMin.textContent = elStatProm.textContent = '—';
+      return;
+    }
+    var prom = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+    var unidad = TIPOS[tipoActivo].unidad;
+    elStatMax.textContent = fmtStat(Math.max.apply(null, vals)) + ' ' + unidad;
+    elStatMin.textContent = fmtStat(Math.min.apply(null, vals)) + ' ' + unidad;
+    elStatProm.textContent = fmtStat(prom) + ' ' + unidad;
+  }
+
   function marcarTabs() {
     if (!elTabs) return;
     var btns = elTabs.querySelectorAll('.sensor-tab');
@@ -166,7 +186,36 @@
   marcarTabs();
 
   var ultimos = [];
+  var semillaBD = null;
   var APAGADO_SEG = 300;
+
+  // Semilla del grafico: historial desde la base de datos (cronologico).
+  async function cargarSemilla() {
+    try {
+      var r = await fetch('/api/historico?limit=150', {cache: 'no-store'});
+      if (!r.ok) return;
+      var d = await r.json();
+      if (d.ok && d.lecturas) semillaBD = d.lecturas;
+    } catch (e) { /* se mantiene la semilla anterior */ }
+  }
+  cargarSemilla();
+  setInterval(cargarSemilla, 30000);
+
+  function clave(item) {
+    return item.fecha_hora + '|' + item.magnitud + '|' + item.valor;
+  }
+
+  function serieDelGrafico(items) {
+    var viva = items.filter(function (x) { return x.magnitud === tipoActivo; }).slice(0, 50).reverse();
+    if (!semillaBD) return viva;
+    var fusion = {};
+    semillaBD.filter(function (x) { return x.magnitud === tipoActivo; })
+      .forEach(function (x) { fusion[clave(x)] = x; });
+    viva.forEach(function (x) { if (!fusion[clave(x)]) fusion[clave(x)] = x; });
+    return Object.values(fusion)
+      .sort(function (a, b) { return String(a.fecha_hora).localeCompare(String(b.fecha_hora)); })
+      .slice(-60);
+  }
 
   // Rellena las tarjetas [data-serial] con lo fresco del buffer: items viene
   // ordenado de mas nuevo a mas viejo, el primer item de un serial es su
@@ -226,8 +275,12 @@
       }
     }
     var dud = items.filter(function (x) { return x.calidad === 'dudosa'; });
+    // Dispositivos activos: seriales distintos con lectura reciente (<= 5 min).
     var devs = {};
-    items.forEach(function (x) { devs[(x.codigo_serial || '') + '|' + x.magnitud] = x; });
+    items.forEach(function (x) {
+      var edad = ageSecs(x.fecha_hora);
+      if (edad >= 0 && edad <= APAGADO_SEG) devs[x.codigo_serial || ''] = true;
+    });
     var nDevs = Object.keys(devs).length;
 
     if (elHora) elHora.textContent = items.length && items[0].fecha_hora
@@ -249,7 +302,7 @@
       }
       else elEstado.textContent = dud.length ? 'Revisar (' + dud.length + ' dudosa)' : 'En vivo';
     }
-    if (elKpiSens) elKpiSens.textContent = items.length ? String(nDevs) : '—';
+    if (elKpiDisp) elKpiDisp.textContent = items.length ? String(nDevs) : '—';
     if (elKpiAlert) elKpiAlert.textContent = String(dud.length);
 
     // Alertas: dudosas primero, luego las 5 mas recientes.
@@ -275,9 +328,10 @@
     // vivos se inyectan aqui desde el buffer (dashboard en modo test, sin DB).
     actualizarTarjetas(items);
 
-    // Grafico + historial del tipo activo.
-    var serie = items.filter(function (x) { return x.magnitud === tipoActivo; }).slice(0, 50).reverse();
+    // Grafico + historial del tipo activo: semilla de BD + puntos en vivo.
+    var serie = serieDelGrafico(items);
     renderChart(serie);
+    pintarStats(serie);
     if (elHist) {
       var cfg = TIPOS[tipoActivo];
       elHist.innerHTML = serie.slice(-10).map(function (x) {

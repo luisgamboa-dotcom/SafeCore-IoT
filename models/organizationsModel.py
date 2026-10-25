@@ -97,3 +97,30 @@ def deleteOrganization(id_organizacion):
         conn.commit()
     finally:
         _cerrar(conn, cur)
+
+
+def forceDeleteOrganization(id_organizacion):
+    """BORRADO FORZADO: instalaciones (con zonas/dispositivos/lecturas) + usuarios desvinculados."""
+    from models import installationsModel as inst_model
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT id_instalacion FROM instalaciones WHERE id_organizacion = %s",
+                    (id_organizacion,))
+        instalaciones = cur.fetchall()
+    finally:
+        _cerrar(conn, cur)
+    for inst in instalaciones:
+        inst_model.forceDeleteInstallation(inst["id_instalacion"])
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute("UPDATE usuarios SET id_organizacion = NULL WHERE id_organizacion = %s",
+                    (id_organizacion,))
+        cur.execute("DELETE FROM organizaciones WHERE id_organizacion = %s", (id_organizacion,))
+        conn.commit()
+        return True
+    finally:
+        _cerrar(conn, cur)

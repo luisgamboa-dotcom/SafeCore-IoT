@@ -6,8 +6,8 @@
 // - El servidor tampoco guarda (modo en-vivo-sin-guardar, solo memoria).
 //
 // Endpoint: POST http://SERVIDOR:8000/api/ingest
-// Payload: {"device_serial":"SC-001","fw":"2.1-autonomo","seq":42,
-//           "uptime_ms":12345,"readings":[{"tipo":"gas","valor_crudo":512}, ...]}
+// Payload: {"device_serial":"SC-001","device_id":"40:91:51:52:89:38","fw":"2.1-autonomo",
+//           "seq":42,"uptime_ms":12345,"readings":[{"tipo":"gas","valor_crudo":512}, ...]}
 // Comandos por Monitor Serie (opcionales): PING | RATE=10 | THR=200 | DEVICE=SC-001
 
 #include <DHT.h>
@@ -30,7 +30,7 @@ const char* FW_VERSION = "2.1-autonomo";
 // usa su IP de la red WiFi actual (NO localhost/127.0.0.1).
 // Red actual (hotspot POCO): PC = 10.110.143.30. Si el hotspot se reinicia
 // y la IP cambia, actualiza solo esta linea y reflashea.
-const char* SERVIDOR_HOST = "10.110.143.30";
+const char* SERVIDOR_HOST = "10.115.20.30";
 const int SERVIDOR_PUERTO = 8000;
 const char* API_RUTA = "/api/ingest";
 
@@ -151,6 +151,7 @@ void loop() {
   digitalWrite(PIN_ALARMA, alarm ? HIGH : LOW);
 
   String payload = String("{\"device_serial\":\"") + DEVICE_SERIAL
+    + "\",\"device_id\":\"" + WiFi.macAddress()
     + "\",\"fw\":\"" + FW_VERSION
     + "\",\"seq\":" + seq
     + ",\"uptime_ms\":" + ahora

@@ -78,22 +78,84 @@ tailwind.config = {
                         <p class="font-body-md text-body-md text-on-surface-variant mt-1">Administra el acceso y los roles del personal del sistema.</p>
                     </div>
                     <div class="flex items-center gap-2 w-full md:w-auto">
-                        <span class="font-label-md text-label-md text-on-surface-variant">Conectado como <strong>{{ admin_nombre }}</strong> (Administrador)</span>
-                        <form action="/admin/users" method="GET" class="flex items-center gap-2">
-                            <input class="bg-surface border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:outline-none focus:border-secondary" name="q" placeholder="Buscar por nombre o correo..." type="text" value="{{ q or '' }}" />
-                            <button class="bg-surface-container text-on-surface px-4 py-2 rounded-lg font-label-md text-label-md" type="submit">Buscar</button>
-                        </form>
+                        <span class="font-label-md text-label-md text-on-surface-variant">Conectado como <strong>{{ admin_nombre }}</strong> ({{ 'Superadmin' if is_superadmin else 'Administrador' }})</span>
                     </div>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-2 flex-wrap items-center">
                     <a class="px-4 py-2 rounded-lg border border-outline-variant font-label-md text-label-md" href="/admin">← Volver</a>
+                    <button id="btnFiltros" type="button" class="px-4 py-2 rounded-lg bg-surface-container text-on-surface border border-outline-variant font-label-md text-label-md flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[18px]">tune</span> Filtros y orden
+                    </button>
                 </div>
                 {% include "partials/toast.html" %}
+                <div id="panelFiltros" class="hidden bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-6">
+                    <form action="/admin/users" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                        <div>
+                            <label class="block font-label-md text-label-md mb-1" for="q">Buscar</label>
+                            <input class="w-full bg-surface border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md" id="q" name="q" placeholder="Nombre o correo..." type="text" value="{{ q or '' }}" />
+                        </div>
+                        <div>
+                            <label class="block font-label-md text-label-md mb-1" for="sort">Ordenar por</label>
+                            <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="sort" name="sort">
+                                <option value="id" {% if f_sort == 'id' %}selected{% endif %}>ID</option>
+                                <option value="fecha" {% if f_sort == 'fecha' %}selected{% endif %}>Fecha de registro</option>
+                                <option value="nombre" {% if f_sort == 'nombre' %}selected{% endif %}>Nombre</option>
+                                <option value="email" {% if f_sort == 'email' %}selected{% endif %}>Email</option>
+                                <option value="rol" {% if f_sort == 'rol' %}selected{% endif %}>Rol</option>
+                                <option value="estado" {% if f_sort == 'estado' %}selected{% endif %}>Estado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-label-md text-label-md mb-1" for="dir">Dirección</label>
+                            <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="dir" name="dir">
+                                <option value="asc" {% if f_dir != 'desc' %}selected{% endif %}>Ascendente ↑</option>
+                                <option value="desc" {% if f_dir == 'desc' %}selected{% endif %}>Descendente ↓</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-label-md text-label-md mb-1" for="estado">Estado</label>
+                            <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="estado" name="estado">
+                                <option value="">Todos</option>
+                                <option value="Activo" {% if f_estado == 'Activo' %}selected{% endif %}>Activo</option>
+                                <option value="Inactivo" {% if f_estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-label-md text-label-md mb-1" for="rol2">Rol</label>
+                            <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="rol2" name="rol">
+                                <option value="">Todos</option>
+                                {% for r in roles %}
+                                <option value="{{ r.nombre_rol }}" {% if f_rol == r.nombre_rol %}selected{% endif %}>{{ r.nombre_rol }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-label-md text-label-md mb-1" for="org">Organización</label>
+                            <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="org" name="org">
+                                <option value="">Todas</option>
+                                <option value="0" {% if f_org == '0' %}selected{% endif %}>Sin organización</option>
+                                {% for o in organizaciones %}
+                                <option value="{{ o.id_organizacion }}" {% if f_org == o.id_organizacion|string %}selected{% endif %}>{{ o.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="bg-secondary text-on-secondary px-4 py-2 rounded-lg font-label-md text-label-md" type="submit">Aplicar</button>
+                            <a class="px-4 py-2 rounded-lg border border-outline-variant font-label-md text-label-md" href="/admin/users">Limpiar</a>
+                        </div>
+                    </form>
+                </div>
+                <script>
+                    document.getElementById('btnFiltros').addEventListener('click', function () {
+                        document.getElementById('panelFiltros').classList.toggle('hidden');
+                    });
+                </script>
                 <div class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant overflow-hidden flex-1">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-surface-container-low border-b border-surface-variant text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+                                    <th class="p-4 font-semibold">ID</th>
                                     <th class="p-4 font-semibold">Usuario</th>
                                     <th class="p-4 font-semibold">Rol</th>
                                     <th class="p-4 font-semibold">Estado</th>
@@ -104,6 +166,7 @@ tailwind.config = {
                             <tbody class="divide-y divide-surface-variant font-body-md text-body-md text-on-surface">
                                 {% for u in usuarios %}
                                 <tr class="hover:bg-surface-container-low/50 transition-colors">
+                                    <td class="p-4 text-on-surface-variant">{{ u.id_usuario }}</td>
                                     <td class="p-4">
                                         <div class="flex items-center gap-4">
                                             <div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0">{{ u.nombre[0] }}{{ u.apellido[0] if u.apellido else '' }}</div>
@@ -131,7 +194,12 @@ tailwind.config = {
                                     </td>
                                     <td class="p-4 hidden sm:table-cell text-on-surface-variant">{{ u.fecha_registro }}</td>
                                     <td class="p-4 text-right">
+                                        {% set roles_fila = (u.roles or '').split(', ') %}
+                                        {% if is_superadmin or ('Administrador' not in roles_fila and 'Superadmin' not in roles_fila) %}
                                         <a class="text-secondary hover:underline font-label-md text-label-md" href="/admin/users/{{ u.id_usuario }}/edit">Ver</a>
+                                        {% else %}
+                                        <span class="text-on-surface-variant/50 font-label-md text-label-md cursor-not-allowed" title="Solo el Superadmin puede administrar esta cuenta">🔒 Solo Superadmin</span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}

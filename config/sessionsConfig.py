@@ -117,7 +117,8 @@ async def requireAdminUser(request: Request,
     # Role is checked on every request so revocation is immediate.
     from models import usersModel as user_model
     from utils.flashUtils import flashForm
-    if "Administrador" not in user_model.getUserRoles(sesion.id_usuario):
+    roles = user_model.getUserRoles(sesion.id_usuario)
+    if "Administrador" not in roles and "Superadmin" not in roles:
         flashForm(request, "Acceso denegado: tu usuario no tiene permisos de administrador.")
         raise HTTPException(status_code=303, headers={"Location": "/users/login"})
     return sesion
