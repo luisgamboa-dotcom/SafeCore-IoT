@@ -67,7 +67,7 @@ tailwind.config = {
 {% set active_page = "dashboard" %}
 {% include "partials/sidebar.html" %}
 
-<!-- Main -->
+<!-- Contenido principal -->
 <div id="mainWrap" class="flex-1 flex flex-col h-screen min-w-0 w-full">
   {% set page_title = "Panel de control" %}
   {% include "partials/topbar.html" %}
@@ -75,7 +75,7 @@ tailwind.config = {
   <main class="flex-1 overflow-y-auto">
     <div class="max-w-[1280px] mx-auto p-4 md:p-8 pb-12">
 
-      <!-- KPIs -->
+      <!-- Indicadores -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-5 flex items-center justify-between">
           <div>
@@ -120,7 +120,7 @@ tailwind.config = {
       <div id="historial" class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
         <div class="lg:col-span-8 bg-white rounded-xl border border-outline-variant card-shadow flex flex-col">
           <div class="p-6 border-b border-outline-variant flex flex-wrap gap-3 justify-between items-center">
-            <h2 id="chartTitle" class="text-xl font-semibold text-primary">Niveles de gas (ADC)</h2>
+            <h2 id="chartTitle" class="text-xl font-semibold text-primary">Niveles de gas (ppm)</h2>
             <div id="sensorTabs" class="flex bg-surface-container-low rounded-lg p-1" role="tablist" aria-label="Seleccionar sensor">
               <button type="button" data-tipo="gas" role="tab" aria-pressed="true" class="sensor-tab px-4 py-1.5 text-xs font-semibold rounded-md bg-white shadow-sm text-primary">Gas</button>
               <button type="button" data-tipo="temp" role="tab" aria-pressed="false" class="sensor-tab px-4 py-1.5 text-xs font-semibold rounded-md">Temp</button>

@@ -98,15 +98,10 @@ tailwind.config = {
                                 {% endfor %}
                             </select>
                         </div>
-                        <div>
-                            <label class="block font-label-md text-label-md mb-1" for="id_estado_dispositivo">Estado</label>
-                            <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="id_estado_dispositivo" name="id_estado_dispositivo" required>
-                                {% for e in estados %}
-                                <option value="{{ e.id_estado_dispositivo }}">{{ e.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
                     </div>
+                    <p class="rounded-lg bg-surface-container-low border border-surface-variant px-3 py-2 font-body-md text-body-md text-on-surface-variant">
+                        El estado lo gestiona el sistema: el dispositivo se crea <strong>offline</strong> y pasa a <strong>online</strong> al conectarse.
+                    </p>
                     <div>
                         <label class="block font-label-md text-label-md mb-1" for="id_zona">Zona</label>
                         <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="id_zona" name="id_zona" required>

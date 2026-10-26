@@ -119,11 +119,13 @@ tailwind.config = {
                                         <span class="px-2 py-1 rounded-full text-label-sm font-label-sm bg-surface-container text-on-surface-variant">inactivo</span>
                                         {% endif %}
                                     </td>
-                                    <td class="p-4 text-right">
+                                    <td class="p-4 text-left">
                                         {% if d.ultima_ip %}
-                                        <a class="px-3 py-1.5 rounded-lg border border-secondary-container font-label-sm text-label-sm font-medium text-secondary hover:bg-secondary-fixed"
-                                           href="http://{{ d.ultima_ip }}/" target="_blank" rel="noopener">PWA {{ d.ultima_ip }}</a>
-                                        <div class="text-label-sm text-on-surface-variant mt-1">visto hace {{ d.ultima_ip_hace }} (misma red del nodo)</div>
+                                        <a class="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-secondary-container px-3 py-1.5 font-label-sm text-label-sm font-medium text-secondary hover:bg-secondary-fixed"
+                                           href="http://{{ d.ultima_ip }}/" target="_blank" rel="noopener" title="Abrir la PWA del nodo ({{ d.ultima_ip }})">
+                                            <span class="material-symbols-outlined text-[16px]">open_in_new</span> PWA
+                                        </a>
+                                        <div class="font-label-sm text-label-sm text-on-surface-variant mt-1 whitespace-nowrap" title="Misma red del nodo">{{ d.ultima_ip }} &middot; {{ d.ultima_ip_hace }}</div>
                                         {% else %}<span class="text-on-surface-variant">—</span>{% endif %}
                                     </td>
                                     <td class="p-4 text-right">

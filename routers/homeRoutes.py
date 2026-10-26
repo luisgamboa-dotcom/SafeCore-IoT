@@ -1,4 +1,4 @@
-"""Home routes: landing page and root redirect."""
+"""Rutas de inicio: página de bienvenida y redirección raíz."""
 from fastapi import APIRouter
 
 import controllers.homeController as homeController

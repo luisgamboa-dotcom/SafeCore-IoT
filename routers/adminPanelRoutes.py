@@ -1,4 +1,4 @@
-"""Admin panel home routes (/admin)."""
+"""Rutas de inicio del panel admin (/admin)."""
 from fastapi import APIRouter
 
 import controllers.adminPanelController as adminPanelController

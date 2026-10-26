@@ -1,9 +1,9 @@
-"""SQL for the dispositivos (devices) tables."""
+"""SQL de las tablas de dispositivos."""
 from config.dbConfig import getConnection
 from utils.commonUtils import closeConnection
 
 
-# 5 minutes without data -> considered powered off (estado forced to offline).
+# 5 minutos sin datos -> se considera apagado (estado forzado a offline).
 OFFLINE_ID = 2
 
 
@@ -24,7 +24,7 @@ def markTimedOutDevices():
 
 
 def getActiveDevices(id_organizacion=None):
-    # Identity only: dynamic-looking readings belong to the live buffer (JS tick).
+    # Solo identidad: las lecturas dinámicas pertenecen al búfer en vivo (tick de JS).
     conn = getConnection()
     cur = None
     try:
@@ -133,7 +133,9 @@ def getAllDevices():
 
 
 def createDevice(codigo_serial, identificador_unico, nombre, firmware_version,
-                 fecha_instalacion, id_modelo, id_estado_dispositivo, id_zona):
+                 fecha_instalacion, id_modelo, id_zona):
+    """Crea el dispositivo siempre en estado offline; el sistema lo pasa a online
+    cuando el nodo se conecta."""
     conn = getConnection()
     cur = None
     try:
@@ -144,7 +146,7 @@ def createDevice(codigo_serial, identificador_unico, nombre, firmware_version,
                 fecha_instalacion, id_modelo, id_estado_dispositivo, id_zona)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
             (codigo_serial, identificador_unico, nombre, firmware_version,
-             fecha_instalacion or None, id_modelo, id_estado_dispositivo, id_zona),
+             fecha_instalacion or None, id_modelo, OFFLINE_ID, id_zona),
         )
         conn.commit()
         return cur.lastrowid
@@ -153,7 +155,7 @@ def createDevice(codigo_serial, identificador_unico, nombre, firmware_version,
 
 
 def updateDevice(id_dispositivo, codigo_serial, identificador_unico, nombre,
-                 firmware_version, fecha_instalacion, id_modelo,
+                 firmware_version, notas, fecha_instalacion, id_modelo,
                  id_estado_dispositivo, id_zona, activo):
     conn = getConnection()
     cur = None
@@ -161,13 +163,61 @@ def updateDevice(id_dispositivo, codigo_serial, identificador_unico, nombre,
         cur = conn.cursor()
         cur.execute(
             """UPDATE dispositivos SET codigo_serial = %s, identificador_unico = %s,
-                   nombre = %s, firmware_version = %s, fecha_instalacion = %s,
+                   nombre = %s, firmware_version = %s, notas = %s, fecha_instalacion = %s,
                    id_modelo = %s, id_estado_dispositivo = %s, id_zona = %s, activo = %s
                WHERE id_dispositivo = %s""",
             (codigo_serial, identificador_unico, nombre, firmware_version,
-             fecha_instalacion or None, id_modelo, id_estado_dispositivo, id_zona,
-             activo, id_dispositivo),
+             notas, fecha_instalacion or None, id_modelo, id_estado_dispositivo,
+             id_zona, activo, id_dispositivo),
         )
+        conn.commit()
+    finally:
+        closeConnection(conn, cur)
+
+
+def getSensoresOfDevice(id_dispositivo):
+    """Sensores del dispositivo con frecuencia de muestreo, estado y magnitudes."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("""SELECT s.id_sensor, s.frecuencia_muestreo, s.habilitado,
+                              GROUP_CONCAT(m.nombre SEPARATOR ', ') AS magnitudes
+                       FROM sensores s
+                       LEFT JOIN sensores_magnitudes sm ON sm.id_sensor = s.id_sensor
+                       LEFT JOIN magnitudes m ON m.id_magnitud = sm.id_magnitud
+                       WHERE s.id_dispositivo = %s
+                       GROUP BY s.id_sensor
+                       ORDER BY s.id_sensor""",
+                    (id_dispositivo,))
+        return cur.fetchall()
+    finally:
+        closeConnection(conn, cur)
+
+
+def tieneLecturas(id_dispositivo):
+    """True cuando algún sensor del dispositivo tiene lecturas guardadas (historial)."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute("""SELECT EXISTS(SELECT 1 FROM lecturas l
+                       JOIN sensores s ON s.id_sensor = l.id_sensor
+                       WHERE s.id_dispositivo = %s)""",
+                    (id_dispositivo,))
+        fila = cur.fetchone()
+        return bool(fila and fila[0])
+    finally:
+        closeConnection(conn, cur)
+
+
+def updateSensorFrecuencia(id_sensor, frecuencia_muestreo):
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute("UPDATE sensores SET frecuencia_muestreo = %s WHERE id_sensor = %s",
+                    (frecuencia_muestreo, id_sensor))
         conn.commit()
     finally:
         closeConnection(conn, cur)

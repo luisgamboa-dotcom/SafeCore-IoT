@@ -1,4 +1,4 @@
-"""Shared helpers: session header context, DB cleanup and address parsing."""
+"""Utilidades compartidas: contexto de cabecera de sesión, limpieza de BD y parseo de direcciones."""
 from config.sessionsConfig import SessionData
 from models import usersModel as user_model
 

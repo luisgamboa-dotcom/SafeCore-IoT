@@ -1,4 +1,4 @@
-"""Admin users management."""
+"""Gestión de usuarios del panel admin."""
 from typing import List
 from uuid import UUID
 

@@ -1,4 +1,4 @@
-"""SQL for organizations."""
+"""SQL de organizaciones."""
 from config.dbConfig import getConnection
 
 

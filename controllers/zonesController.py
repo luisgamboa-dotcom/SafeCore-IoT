@@ -1,4 +1,4 @@
-"""Admin zones management (nested under installations)."""
+"""Gestión de zonas del panel admin (anidadas bajo instalaciones)."""
 from uuid import UUID
 
 import mysql.connector
@@ -70,7 +70,7 @@ def showZoneDetail(request: Request,
          **adminContext(sesion, user_model.getUserById(sesion.id_usuario))})
 
 
-# Device count precheck: fk_dev_zona is RESTRICT (and reglas_alerta→zonas is CASCADE).
+# Conteo previo de dispositivos: fk_dev_zona es RESTRICT (y reglas_alerta→zonas es CASCADE).
 def deleteZone(request: Request,
                id_installation: int,
                id_zone: int,

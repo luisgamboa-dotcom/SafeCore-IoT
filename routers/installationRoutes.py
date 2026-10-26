@@ -1,4 +1,4 @@
-"""Admin installations routes (/admin/installations)."""
+"""Rutas de instalaciones del panel admin (/admin/installations)."""
 from fastapi import APIRouter
 
 import controllers.installationsController as installationsController

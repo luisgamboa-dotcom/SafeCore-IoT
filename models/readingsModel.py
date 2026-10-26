@@ -1,9 +1,9 @@
-"""SQL for readings, magnitudes and sensors (ingest persistence)."""
+"""SQL de lecturas, magnitudes y sensores (persistencia de la ingesta)."""
 from config.dbConfig import getConnection
 from utils.commonUtils import closeConnection
 
 MAGNITUDES = {
-    "gas": {"nombre": "MQ-2 ADC crudo", "unidad": "adc", "simbolo": "adc"},
+    "gas": {"nombre": "Gases inflamables", "unidad": "partes por millon", "simbolo": "ppm"},
     "temp": {"nombre": "Temperatura", "unidad": "C", "simbolo": "C"},
     "hum": {"nombre": "Humedad", "unidad": "%", "simbolo": "%"},
 }
@@ -142,7 +142,7 @@ def touchDevice(id_dispositivo):
 
 
 def markDeviceAlive(id_dispositivo):
-    """Last communication NOW + estado back to online (1) if it was offline."""
+    """Última comunicación AHORA + estado de vuelta a online (1) si estaba offline."""
     conn = getConnection()
     cur = None
     try:
@@ -195,7 +195,6 @@ def getLatest(limit=50, id_organizacion=None):
 
 
 _MANG_TIPO = {v["nombre"]: k for k, v in MAGNITUDES.items()}
-_MANG_TIPO["Gases inflamables"] = "gas"  # nombre usado por el seed del MQ-2.
 
 
 def getSerieZona(id_zona, limite=300):

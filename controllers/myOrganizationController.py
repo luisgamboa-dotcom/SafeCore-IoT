@@ -1,5 +1,5 @@
-"""My organization page: read-only view for members, edit for supervisors
-and admins of their own organization. Deletion lives only in the admin panel."""
+"""Página Mi organización: vista de solo lectura para miembros, edición para supervisores
+y administradores de su propia organización. La eliminación vive solo en el panel admin."""
 from uuid import UUID
 
 import mysql.connector

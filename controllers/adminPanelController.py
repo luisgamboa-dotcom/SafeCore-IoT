@@ -1,4 +1,4 @@
-"""Admin panel home page."""
+"""Página principal del panel de administración."""
 from uuid import UUID
 
 from fastapi import Depends, Request

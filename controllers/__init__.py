@@ -1,1 +1,1 @@
-# controllers package: one controller per section, mirroring the models.
+# Paquete de controladores: un controlador por sección, en espejo de los modelos.

@@ -1,4 +1,4 @@
-"""Auth routes: register, login, logout (/users)."""
+"""Rutas de autenticación: registro, inicio y cierre de sesión (/users)."""
 from fastapi import APIRouter
 
 import controllers.authController as authController

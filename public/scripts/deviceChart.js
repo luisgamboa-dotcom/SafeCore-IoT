@@ -6,7 +6,7 @@
   var serial = elSerialBox.getAttribute('data-serial');
 
   var TIPOS = {
-    gas: {titulo: 'Niveles de gas (ADC)', unidad: 'ADC', color: '#8751F8', umbral: 200},
+    gas: {titulo: 'Niveles de gas (ppm)', unidad: 'ppm', color: '#8751F8', umbral: 200},
     temp: {titulo: 'Temperatura (°C)', unidad: '°C', color: '#E8590C', umbral: null},
     hum: {titulo: 'Humedad (%)', unidad: '%', color: '#1971C2', umbral: null}
   };

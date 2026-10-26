@@ -67,10 +67,11 @@ tailwind.config = {
 {% set active_page = "dashboard" %}
 {% include "partials/sidebar.html" %}
 
-<!-- Main -->
+<!-- Contenido principal -->
 <div id="mainWrap" class="flex-1 flex flex-col h-screen min-w-0 w-full">
   {% set page_title = "Detalle de dispositivo" %}
   {% include "partials/topbar.html" %}
+  {% include "partials/toast.html" %}
 
   <main class="flex-1 overflow-y-auto">
             <div class="max-w-[1280px] mx-auto p-4 md:p-8 pb-12 flex flex-col gap-8">
@@ -83,25 +84,109 @@ tailwind.config = {
                         <a class="px-4 py-2 rounded-lg border border-outline-variant font-label-md text-label-md" href="/dashboard">← Volver</a>
                     </div>
                 </div>
-                <div class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
-                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">ID</p><p class="font-semibold">{{ dev.id_dispositivo }}</p></div>
-                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Nombre</p><p class="font-semibold">{{ dev.nombre }}</p></div>
-                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Código serial</p><p class="font-semibold">{{ dev.codigo_serial }}</p></div>
-                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Identificador único (MAC)</p><p class="font-semibold">{{ dev.identificador_unico or '—' }}</p></div>
-                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Versión de firmware</p><p class="font-semibold">{{ dev.firmware_version or '—' }}</p></div>
-                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Modelo</p><p class="font-semibold">{{ dev.nombre_modelo }}{% if dev.fabricante %} ({{ dev.fabricante }}){% endif %}</p></div>
-                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Estado</p><p class="font-semibold">{{ dev.estado }}{% if not dev.activo %} (dado de baja){% endif %}</p></div>
-                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Zona</p><p class="font-semibold">{{ dev.zona }}</p></div>
-                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Instalación</p><p class="font-semibold">{{ dev.instalacion or '—' }}</p></div>
-                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Fecha de alta</p><p class="font-semibold">{{ dev.fecha_alta }}</p></div>
-                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Fecha de instalación</p><p class="font-semibold">{{ dev.fecha_instalacion or '—' }}</p></div>
-                    <div><p class="text-xs text-on-surface-variant uppercase tracking-wider">Última comunicación (BD)</p><p class="font-semibold">{{ dev.ultima_comunicacion or '—' }}</p></div>
-                    <div data-serial="{{ dev.codigo_serial }}"><p class="text-xs text-on-surface-variant uppercase tracking-wider">Última lectura (en vivo)</p><p class="dev-live font-semibold">—</p></div>
+                {% set badge_estado = {'online': 'bg-green-100 text-green-800 border-green-300',
+                                       'offline': 'bg-red-100 text-red-800 border-red-300',
+                                       'mantenimiento': 'bg-amber-100 text-amber-800 border-amber-300'}.get((dev.estado or '').lower(), 'bg-surface-container-low text-on-surface-variant border-outline-variant') %}
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <section class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-5 lg:col-span-2">
+                        <h3 class="font-title-md text-title-md text-primary mb-4">Datos del dispositivo</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                            <div>
+                                <p class="text-[11px] text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">Identificación</p>
+                                <div class="flex flex-col gap-2 text-sm">
+                                    <div class="flex justify-between gap-3"><span class="text-on-surface-variant">ID</span><span class="font-semibold">{{ dev.id_dispositivo }}</span></div>
+                                    <div class="flex justify-between gap-3"><span class="text-on-surface-variant">Código serial</span><span class="font-semibold font-mono">{{ dev.codigo_serial }}</span></div>
+                                    <div class="flex justify-between gap-3"><span class="text-on-surface-variant">Identificador único (MAC)</span><span class="font-semibold font-mono">{{ dev.identificador_unico or '—' }}</span></div>
+                                    <div class="flex justify-between gap-3"><span class="text-on-surface-variant">Nombre</span><span class="font-semibold">{{ dev.nombre }}</span></div>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-[11px] text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">Equipo</p>
+                                <div class="flex flex-col gap-2 text-sm">
+                                    <div class="flex justify-between gap-3"><span class="text-on-surface-variant">Modelo</span><span class="font-semibold">{{ dev.nombre_modelo }}{% if dev.fabricante %} ({{ dev.fabricante }}){% endif %}</span></div>
+                                    <div class="flex justify-between gap-3"><span class="text-on-surface-variant">Versión de firmware</span><span class="font-semibold font-mono">{{ dev.firmware_version or '—' }}</span></div>
+                                    <div class="flex justify-between items-center gap-3"><span class="text-on-surface-variant">Estado</span>
+                                        <span class="px-2 py-0.5 rounded-full border text-xs font-semibold capitalize {{ badge_estado }}">{{ dev.estado }}</span>
+                                        {% if not dev.activo %}<span class="px-2 py-0.5 rounded-full border border-outline-variant bg-surface-container-low text-on-surface-variant text-xs font-semibold">Dado de baja</span>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sm:col-span-2 pt-2 border-t border-surface-variant">
+                                <p class="text-[11px] text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">Ubicación</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                                    <div class="flex justify-between gap-3"><span class="text-on-surface-variant">Zona</span><span class="font-semibold">{{ dev.zona }}</span></div>
+                                    <div class="flex justify-between gap-3"><span class="text-on-surface-variant">Instalación</span><span class="font-semibold">{{ dev.instalacion or '—' }}</span></div>
+                                </div>
+                            </div>
+                            {% if dev.notas %}
+                            <div class="sm:col-span-2 pt-2 border-t border-surface-variant">
+                                <p class="text-[11px] text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">Notas</p>
+                                <p class="text-sm whitespace-pre-line">{{ dev.notas }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </section>
+                    <section class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-5">
+                        <h3 class="font-title-md text-title-md text-primary mb-4">Estado y fechas</h3>
+                        <div class="flex flex-col gap-3 text-sm">
+                            <div class="flex justify-between gap-3"><span class="text-on-surface-variant">Fecha de alta</span><span class="font-semibold">{{ dev.fecha_alta }}</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-on-surface-variant">Fecha de instalación</span><span class="font-semibold">{{ dev.fecha_instalacion or '—' }}</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-on-surface-variant">Última comunicación (BD)</span><span class="font-semibold">{{ dev.ultima_comunicacion or '—' }}</span></div>
+                            <div class="flex justify-between gap-3" data-serial="{{ dev.codigo_serial }}"><span class="text-on-surface-variant">Última lectura (en vivo)</span><span class="dev-live font-semibold">—</span></div>
+                        </div>
+                    </section>
+                    <section class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-5 lg:col-span-3">
+                        <h3 class="font-title-md text-title-md text-primary mb-4">Mantenimiento</h3>
+                        {% if ultimo_mant %}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-4 text-sm mb-4 pb-4 border-b border-surface-variant">
+                            <div><p class="text-[11px] text-on-surface-variant uppercase tracking-wider">Último tipo</p><p class="font-semibold capitalize">{{ ultimo_mant.tipo }}</p></div>
+                            <div><p class="text-[11px] text-on-surface-variant uppercase tracking-wider">Estado del mantenimiento</p><p class="font-semibold capitalize">{{ ultimo_mant.estado }}</p></div>
+                            <div><p class="text-[11px] text-on-surface-variant uppercase tracking-wider">Fecha programada</p><p class="font-semibold">{{ ultimo_mant.fecha_programada or '—' }}</p></div>
+                            <div><p class="text-[11px] text-on-surface-variant uppercase tracking-wider">Fecha de ejecución</p><p class="font-semibold">{{ ultimo_mant.fecha_ejecucion or 'Sin ejecutar' }}</p></div>
+                            <div><p class="text-[11px] text-on-surface-variant uppercase tracking-wider">Responsable</p><p class="font-semibold">{{ ultimo_mant.responsable_nombre }} {{ ultimo_mant.responsable_apellido }}</p></div>
+                            <div><p class="text-[11px] text-on-surface-variant uppercase tracking-wider">Próxima fecha</p><p class="font-semibold">{{ ultimo_mant.proxima_fecha or '—' }}</p></div>
+                            <div class="sm:col-span-2"><p class="text-[11px] text-on-surface-variant uppercase tracking-wider">Resultado</p><p class="font-semibold">{{ ultimo_mant.resultado or '—' }}</p></div>
+                        </div>
+                        {% endif %}
+                        <details {% if not ultimo_mant %}class="opacity-90"{% endif %}>
+                            <summary class="cursor-pointer text-sm font-semibold text-secondary hover:underline">Historial de mantenimientos ({{ mantenimientos|length }})</summary>
+                            <div class="overflow-x-auto mt-3">
+                                <table class="w-full text-left border-collapse text-sm">
+                                    <thead>
+                                        <tr class="border-b border-surface-variant text-on-surface-variant text-xs uppercase tracking-wider">
+                                            <th class="py-2 pr-3 font-semibold">ID</th>
+                                            <th class="py-2 pr-3 font-semibold">Tipo</th>
+                                            <th class="py-2 pr-3 font-semibold">Estado</th>
+                                            <th class="py-2 pr-3 font-semibold">Programada</th>
+                                            <th class="py-2 pr-3 font-semibold">Ejecución</th>
+                                            <th class="py-2 pr-3 font-semibold">Responsable</th>
+                                            <th class="py-2 font-semibold">Resultado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-surface-variant">
+                                        {% for mn in mantenimientos %}
+                                        <tr>
+                                            <td class="py-2 pr-3">{{ mn.id_mantenimiento }}</td>
+                                            <td class="py-2 pr-3 font-medium capitalize">{{ mn.tipo }}</td>
+                                            <td class="py-2 pr-3 capitalize">{{ mn.estado }}</td>
+                                            <td class="py-2 pr-3">{{ mn.fecha_programada or '—' }}</td>
+                                            <td class="py-2 pr-3">{{ mn.fecha_ejecucion or '—' }}</td>
+                                            <td class="py-2 pr-3">{{ mn.responsable_nombre }} {{ mn.responsable_apellido }}</td>
+                                            <td class="py-2">{{ mn.resultado or '—' }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td class="py-3 text-on-surface-variant" colspan="7">Sin mantenimientos registrados para este dispositivo.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </details>
+                    </section>
                 </div>
 
                 <section class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-6">
                     <div class="flex flex-wrap gap-3 justify-between items-center mb-4">
-                        <h2 id="devChartTitle" class="text-xl font-semibold text-primary">Niveles de gas (ADC)</h2>
+                        <h2 id="devChartTitle" class="text-xl font-semibold text-primary">Niveles de gas (ppm)</h2>
                         <div id="devTabs" class="flex bg-surface-container-low rounded-lg p-1" role="tablist" aria-label="Seleccionar magnitud del dispositivo">
                             <button type="button" data-tipo="gas" role="tab" aria-pressed="true" class="px-4 py-1.5 text-xs font-semibold rounded-md bg-white shadow-sm text-primary">Gas</button>
                             <button type="button" data-tipo="temp" role="tab" aria-pressed="false" class="px-4 py-1.5 text-xs font-semibold rounded-md">Temp</button>
@@ -129,6 +214,255 @@ tailwind.config = {
                         </div>
                     </div>
                 </section>
+
+                <!-- NUEVA SECCIÓN: Alertas generadas por las reglas de la zona -->
+                <section id="alertas" class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-6 scroll-mt-24">
+                    <h2 class="text-xl font-semibold text-primary mb-1">Alertas del dispositivo</h2>
+                    <p class="text-sm text-on-surface-variant mb-4">Generadas al recalcular el estado con las lecturas frente a las reglas de la zona.</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="border-b border-surface-variant text-on-surface-variant text-xs uppercase tracking-wider">
+                                    <th class="py-2 pr-3 font-semibold">ID</th>
+                                    <th class="py-2 pr-3 font-semibold">Tipo</th>
+                                    <th class="py-2 pr-3 font-semibold">Severidad</th>
+                                    <th class="py-2 pr-3 font-semibold">Mensaje</th>
+                                    <th class="py-2 pr-3 font-semibold">Estado</th>
+                                    <th class="py-2 pr-3 font-semibold">Inicio</th>
+                                    <th class="py-2 font-semibold">Reconocida</th>
+                                    <th class="py-2 font-semibold">Resuelta</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-surface-variant">
+                                {% for a in alertas %}
+                                <tr>
+                                    <td class="py-2 pr-3">{{ a.id_alerta }}</td>
+                                    <td class="py-2 pr-3">{{ a.tipo }}</td>
+                                    <td class="py-2 pr-3 font-medium capitalize">{{ a.severidad }}</td>
+                                    <td class="py-2 pr-3">{{ a.mensaje_corto }}</td>
+                                    <td class="py-2 pr-3">{{ a.estado }}</td>
+                                    <td class="py-2 pr-3">{{ a.fecha_inicio }}</td>
+                                    <td class="py-2 pr-3">{{ a.fecha_reconocimiento or '—' }}</td>
+                                    <td class="py-2">{{ a.fecha_resolucion or '—' }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td class="py-3 text-on-surface-variant" colspan="8">Sin alertas registradas para este dispositivo.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                {% if is_admin %}
+                <!-- NUEVA SECCIÓN: Editar dispositivo (HU-015), solo administración -->
+                <section id="editar-dispositivo" class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-6 scroll-mt-24">
+                    <h2 class="text-xl font-semibold text-primary mb-1">Editar dispositivo</h2>
+                    <p class="text-sm text-on-surface-variant mb-4">Actualiza nombre, notas y frecuencia de muestreo. Cada cambio queda registrado en auditoría.</p>
+                    <details>
+                        <summary class="cursor-pointer inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:underline">Abrir formulario de edici&oacute;n</summary>
+                        <form method="POST" action="/admin/devices/{{ dev.id_dispositivo }}/update" class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-surface-container-low rounded-lg p-4 border border-surface-variant">
+                            <input type="hidden" name="origen" value="ficha"/>
+                            <input type="hidden" name="codigo_serial" value="{{ dev.codigo_serial }}"/>
+                            <input type="hidden" name="identificador_unico" value="{{ dev.identificador_unico or '' }}"/>
+                            <input type="hidden" name="firmware_version" value="{{ dev.firmware_version or '' }}"/>
+                            <input type="hidden" name="fecha_instalacion" value="{{ dev.fecha_instalacion.strftime('%Y-%m-%d') if dev.fecha_instalacion else '' }}"/>
+                            <input type="hidden" name="id_zona" value="{{ dev.id_zona }}"/>
+                            {% if dev.activo %}<input type="hidden" name="activo" value="on"/>{% endif %}
+                            {% if dev_tiene_lecturas %}
+                            <input type="hidden" name="id_modelo" value="{{ dev.id_modelo }}"/>
+                            <div>
+                                <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="e_modelo">Modelo</label>
+                                <select id="e_modelo" class="w-full border border-outline-variant rounded-lg px-2 py-1.5 bg-surface-container-low text-on-surface-variant" disabled>
+                                    <option>{{ dev.nombre_modelo }}</option>
+                                </select>
+                                <p class="text-[11px] text-on-surface-variant mt-1">Tiene historial de lecturas: no puede cambiar de modelo; registre un equipo nuevo.</p>
+                            </div>
+                            {% else %}
+                            <div>
+                                <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="e_modelo">Modelo</label>
+                                <select id="e_modelo" name="id_modelo" class="w-full border border-outline-variant rounded-lg px-2 py-1.5" required>
+                                    {% for m in modelos_form %}
+                                    <option value="{{ m.id_modelo }}" {% if m.id_modelo == dev.id_modelo %}selected{% endif %}>{{ m.nombre_modelo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="e_nombre">Nombre</label>
+                                <input id="e_nombre" name="nombre" maxlength="100" required type="text" value="{{ dev.nombre }}" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="e_notas">Notas</label>
+                                <textarea id="e_notas" name="notas" rows="3" class="w-full border border-outline-variant rounded-lg px-2 py-1.5">{{ dev.notas or '' }}</textarea>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <p class="text-[11px] uppercase tracking-wider text-on-surface-variant mb-1 font-semibold">Frecuencia de muestreo (segundos) por sensor</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {% for s in sensores_form %}
+                                    <div class="flex items-center gap-3 bg-surface-container-lowest border border-surface-variant rounded-lg px-3 py-2">
+                                        <span class="text-sm text-on-surface-variant flex-1 min-w-0 truncate">Sensor {{ s.id_sensor }} &middot; {{ s.magnitudes or 'sin magnitud' }}</span>
+                                        <input class="w-24 border border-outline-variant rounded-lg px-2 py-1.5" type="number" min="1" step="1" required name="frec_{{ s.id_sensor }}" value="{{ s.frecuencia_muestreo }}"/>
+                                    </div>
+                                    {% else %}
+                                    <p class="text-sm text-on-surface-variant">Este dispositivo no tiene sensores registrados.</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="sm:col-span-2 flex gap-2">
+                                <button type="submit" class="bg-secondary text-on-secondary px-4 py-2 rounded-lg font-label-md text-label-md">Guardar cambios</button>
+                            </div>
+                        </form>
+                    </details>
+                </section>
+                {% endif %}
+                {% if is_admin %}
+                <!-- NUEVA SECCIÓN: Configurar reglas (HU-013), solo administración -->
+                <section id="reglas" class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-6 scroll-mt-24">
+                    <h2 class="text-xl font-semibold text-primary mb-1">Configurar reglas</h2>
+                    <p class="text-sm text-on-surface-variant mb-5">Reglas vigentes de la zona {{ dev.zona }}. Al guardar se recalcula el estado del dispositivo con las nuevas lecturas.</p>
+                    {% set color_sev = {'baja': 'bg-blue-100 text-blue-800 border-blue-300',
+                                        'media': 'bg-amber-100 text-amber-800 border-amber-300',
+                                        'alta': 'bg-orange-100 text-orange-800 border-orange-300',
+                                        'critica': 'bg-red-100 text-red-800 border-red-300'} %}
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-5">
+                        {% for r in reglas %}
+                        <article class="bg-surface-container-low border border-surface-variant rounded-lg p-4 flex flex-col gap-3 min-w-0">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-primary truncate">{{ r.magnitud }}</p>
+                                    <p class="text-sm text-on-surface-variant">Regla {{ r.id_regla }} &middot; {{ r.operador }} {{ r.valor_umbral }}{% if r.unidad %} {{ r.unidad }}{% endif %}</p>
+                                </div>
+                                <span class="shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold capitalize {{ color_sev.get((r.severidad or '')|lower, 'bg-surface-container text-on-surface-variant border-outline-variant') }}">{{ r.severidad }}</span>
+                            </div>
+                            <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                <div>
+                                    <dt class="text-[11px] uppercase tracking-wider text-on-surface-variant">Duraci&oacute;n m&iacute;nima</dt>
+                                    <dd class="font-medium">{{ r.duracion_minima_seg }} s</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-[11px] uppercase tracking-wider text-on-surface-variant">Vigencia</dt>
+                                    <dd class="font-medium">
+                                        {% if r.vigencia_desde %}desde {{ r.vigencia_desde }}{% endif %}
+                                        {% if r.vigencia_hasta %}{{ ' &middot; ' if r.vigencia_desde }}hasta {{ r.vigencia_hasta }}{% endif %}
+                                        {% if not r.vigencia_desde and not r.vigencia_hasta %}sin l&iacute;mite{% endif %}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt class="text-[11px] uppercase tracking-wider text-on-surface-variant">Estado</dt>
+                                    <dd class="font-medium">{% if r.activa %}<span class="text-green-700">Activa</span>{% else %}Inactiva{% endif %}</dd>
+                                </div>
+                            </dl>
+                            <div class="pt-3 border-t border-surface-variant flex items-start justify-between gap-3">
+                                <details class="flex-1 min-w-0">
+                                    <summary class="cursor-pointer text-sm font-semibold text-secondary hover:underline">Editar</summary>
+                                    <form method="POST" action="/admin/devices/{{ dev.id_dispositivo }}/rules/{{ r.id_regla }}/update" class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-surface-container-lowest rounded-lg p-3 border border-surface-variant">
+                                        <div>
+                                            <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="u{{ r.id_regla }}_mag">Magnitud</label>
+                                            <select id="u{{ r.id_regla }}_mag" name="id_magnitud" class="w-full border border-outline-variant rounded-lg px-2 py-1.5">
+                                                {% for m in magnitudes %}
+                                                <option value="{{ m.id_magnitud }}" {% if m.id_magnitud == r.id_magnitud %}selected{% endif %}>{{ m.nombre }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="u{{ r.id_regla }}_op">Operador</label>
+                                            <select id="u{{ r.id_regla }}_op" name="operador" class="w-full border border-outline-variant rounded-lg px-2 py-1.5">
+                                                {% for op in ['>', '>=', '<', '<=', '=', '!='] %}
+                                                <option value="{{ op }}" {% if op == r.operador %}selected{% endif %}>{{ op }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="u{{ r.id_regla }}_um">Valor umbral</label>
+                                            <input id="u{{ r.id_regla }}_um" name="valor_umbral" type="number" step="any" min="0" value="{{ r.valor_umbral }}" class="w-full border border-outline-variant rounded-lg px-2 py-1.5" required/>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="u{{ r.id_regla }}_sev">Severidad</label>
+                                            <select id="u{{ r.id_regla }}_sev" name="severidad" class="w-full border border-outline-variant rounded-lg px-2 py-1.5">
+                                                {% for s in ['baja', 'media', 'alta', 'critica'] %}
+                                                <option value="{{ s }}" {% if s == r.severidad %}selected{% endif %}>{{ s }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="u{{ r.id_regla }}_dur">Duraci&oacute;n m&iacute;nima (segundos)</label>
+                                            <input id="u{{ r.id_regla }}_dur" name="duracion_minima_seg" type="number" step="1" min="0" value="{{ r.duracion_minima_seg }}" class="w-full border border-outline-variant rounded-lg px-2 py-1.5" required/>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="u{{ r.id_regla }}_vd">Vigencia desde</label>
+                                            <input id="u{{ r.id_regla }}_vd" name="vigencia_desde" type="datetime-local" value="{% if r.vigencia_desde %}{{ r.vigencia_desde.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="u{{ r.id_regla }}_vh">Vigencia hasta</label>
+                                            <input id="u{{ r.id_regla }}_vh" name="vigencia_hasta" type="datetime-local" value="{% if r.vigencia_hasta %}{{ r.vigencia_hasta.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
+                                        </div>
+                                        <div class="sm:col-span-2 flex items-center justify-between gap-3">
+                                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="activa" value="1" {% if r.activa %}checked{% endif %}/> Activa</label>
+                                            <button type="submit" class="bg-secondary text-on-secondary px-3 py-1.5 rounded-lg text-xs font-semibold">Guardar</button>
+                                        </div>
+                                    </form>
+                                </details>
+                                <form method="POST" action="/admin/devices/{{ dev.id_dispositivo }}/rules/{{ r.id_regla }}/delete" onsubmit="return confirm('¿Eliminar la regla {{ r.id_regla }} de {{ r.magnitud }}?');">
+                                    <button type="submit" class="text-error hover:underline text-sm font-medium">Borrar</button>
+                                </form>
+                            </div>
+                        </article>
+                        {% else %}
+                        <p class="text-sm text-on-surface-variant">Sin reglas vigentes para esta zona.</p>
+                        {% endfor %}
+                    </div>
+                    <details>
+                        <summary class="cursor-pointer inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:underline">+ Agregar regla a la zona</summary>
+                        <form method="POST" action="/admin/devices/{{ dev.id_dispositivo }}/rules" class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-surface-container-low rounded-lg p-4 border border-surface-variant">
+                            <div>
+                                <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="n_mag">Magnitud</label>
+                                <select id="n_mag" name="id_magnitud" class="w-full border border-outline-variant rounded-lg px-2 py-1.5" required>
+                                    {% for m in magnitudes %}
+                                    <option value="{{ m.id_magnitud }}">{{ m.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="n_op">Operador</label>
+                                <select id="n_op" name="operador" class="w-full border border-outline-variant rounded-lg px-2 py-1.5" required>
+                                    {% for op in ['>', '>=', '<', '<=', '=', '!='] %}
+                                    <option value="{{ op }}">{{ op }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="n_um">Valor umbral</label>
+                                <input id="n_um" name="valor_umbral" type="number" step="any" min="0" class="w-full border border-outline-variant rounded-lg px-2 py-1.5" required/>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="n_sev">Severidad</label>
+                                <select id="n_sev" name="severidad" class="w-full border border-outline-variant rounded-lg px-2 py-1.5" required>
+                                    <option value="baja">baja</option>
+                                    <option value="media">media</option>
+                                    <option value="alta">alta</option>
+                                    <option value="critica">critica</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="n_dur">Duraci&oacute;n m&iacute;nima (segundos)</label>
+                                <input id="n_dur" name="duracion_minima_seg" type="number" step="1" min="0" value="0" class="w-full border border-outline-variant rounded-lg px-2 py-1.5" required/>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="n_vd">Vigencia desde</label>
+                                <input id="n_vd" name="vigencia_desde" type="datetime-local" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="n_vh">Vigencia hasta</label>
+                                <input id="n_vh" name="vigencia_hasta" type="datetime-local" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
+                            </div>
+                            <div class="flex items-end gap-3">
+                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="activa" value="1" checked/> Activa</label>
+                                <button type="submit" class="bg-secondary text-on-secondary px-3 py-1.5 rounded-lg text-xs font-semibold">Guardar regla</button>
+                            </div>
+                        </form>
+                    </details>
+                </section>
+                {% endif %}
             </div>
         </main>
         </div>

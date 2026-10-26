@@ -1,4 +1,4 @@
-"""Device routes: dashboard device detail."""
+"""Rutas de dispositivos: ficha de dispositivo del panel de datos."""
 from fastapi import APIRouter
 
 import controllers.devicesController as devicesController

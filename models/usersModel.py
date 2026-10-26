@@ -1,4 +1,4 @@
-"""SQL for users, roles and states."""
+"""SQL de usuarios, roles y estados."""
 from config.dbConfig import getConnection
 
 

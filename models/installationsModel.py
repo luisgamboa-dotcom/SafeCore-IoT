@@ -1,5 +1,5 @@
-"""SQL for installations (their address is created/edited with them)."""
-# FK fk_zona_inst is CASCADE: deleting an installation with zones would silently remove them.
+"""SQL de instalaciones (su dirección se crea/edita junto con ellas)."""
+# La FK fk_zona_inst es CASCADE: borrar una instalación con zonas las eliminaría en silencio.
 from config.dbConfig import getConnection
 from utils.commonUtils import closeConnection
 

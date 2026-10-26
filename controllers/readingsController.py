@@ -1,4 +1,4 @@
-"""Readings ingest, live API and the data dashboard."""
+"""Ingesta de lecturas, API en vivo y panel de datos."""
 import json
 import os
 from uuid import UUID
@@ -22,8 +22,8 @@ from utils.flashUtils import popFormFlash
 
 templates = Jinja2Templates(directory="templates")
 
-# NO persistence by default: live only. Set SAVE_READINGS=1 in .env to persist.
-SAVE_TO_DB = os.getenv("SAVE_READINGS", "0") == "1"
+# Sin persistencia por defecto: solo en vivo. Configurar SAVE_READINGS=1 en .env para persistir.
+SAVE_TO_DB = os.getenv("SAVE_READINGS") == "1"
 
 # Editable: segundos que se acumulan las lecturas antes del envío del lote a la BD.
 AGGREGATE_INTERVAL_S = 60
@@ -90,8 +90,8 @@ def ingestReadings(request: Request, payload: IngestIn):
     try:
         dev = lec_model.matchDeviceBySerial(payload.device_serial, payload.device_id)
         if dev is not None and "conflicto" not in dev:
-            # Reporting device is alive: last communication NOW (+ estado back
-            # to online si estaba offline). No guarda lecturas, solo metadata.
+            # El dispositivo que reporta está vivo: última comunicación AHORA (+ estado de vuelta
+            # a online si estaba offline). No guarda lecturas, solo metadatos.
             lec_model.markDeviceAlive(dev["id_dispositivo"])
             # FW reportado por el nodo: persistir si difiere de la BD (PWA 3.0+)
             if payload.fw and payload.fw != dev.get("firmware_version"):

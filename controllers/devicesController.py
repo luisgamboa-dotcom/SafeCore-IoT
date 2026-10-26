@@ -1,4 +1,4 @@
-"""Device detail page + admin devices CRUD."""
+"""Ficha de dispositivo y CRUD de dispositivos del panel admin."""
 import time
 from typing import Optional
 from uuid import UUID
@@ -11,6 +11,7 @@ from config.sessionsConfig import SessionData, cookie as session_cookie, verific
 from models import devicesModel as dev_model
 from models import zonesModel as zone_model
 from models import usersModel as user_model
+from models import auditoriaModel as audit_model
 from utils import nodeIps
 from utils.commonUtils import adminContext, restrictedOrganization, userSessionContext
 from utils.flashUtils import flashForm, popFormFlash
@@ -28,16 +29,56 @@ def showDeviceDetail(request: Request,
     org = restrictedOrganization(sesion)
     if org is not None and dev.get("id_organizacion") != org:
         return RedirectResponse("/dashboard", status_code=303)
+    contexto = {"request": request, "dev": dev, **userSessionContext(sesion)}
+    if contexto["is_admin"]:
+        from models import rulesModel
+        try:
+            contexto["reglas"] = rulesModel.getZoneRules(dev["id_zona"])
+            contexto["magnitudes"] = rulesModel.getMagnitudes()
+        except Exception:
+            contexto["reglas"] = []
+            contexto["magnitudes"] = []
+        try:
+            contexto["sensores_form"] = dev_model.getSensoresOfDevice(id_device)
+            contexto["dev_tiene_lecturas"] = dev_model.tieneLecturas(id_device)
+            contexto["modelos_form"] = dev_model.getAllModels()
+        except Exception:
+            contexto["sensores_form"] = []
+            contexto["dev_tiene_lecturas"] = False
+            contexto["modelos_form"] = []
+    try:
+        from models import alertsModel
+        contexto["alertas"] = alertsModel.getDeviceAlertas(id_device)
+    except Exception:
+        contexto["alertas"] = []
+    try:
+        from models import mantenimientosModel as mant_model
+        contexto["mantenimientos"] = mant_model.getMantenimientosByDevice(id_device)
+        contexto["ultimo_mant"] = mant_model.getUltimoMantenimiento(id_device)
+    except Exception:
+        contexto["mantenimientos"] = []
+        contexto["ultimo_mant"] = None
+    contexto["flash_msg"], _, contexto["flash_ok"] = popFormFlash(request)
     return templates.TemplateResponse(
-        request, "datos/device.html",
-        {"request": request, "dev": dev, **userSessionContext(sesion)})
+        request, "datos/device.html", contexto)
 
 
 def _formContext(sesion, dev=None):
-    return {"dev": dev,
-            "zonas": zone_model.getAllZones(),
-            "modelos": dev_model.getAllModels(),
-            "estados": dev_model.getAllDeviceStates()}
+    ctx = {"dev": dev,
+           "zonas": zone_model.getAllZones(),
+           "modelos": dev_model.getAllModels()}
+    if dev is not None:
+        try:
+            ctx["sensores"] = dev_model.getSensoresOfDevice(dev["id_dispositivo"])
+            ctx["dev_tiene_lecturas"] = dev_model.tieneLecturas(dev["id_dispositivo"])
+        except Exception:
+            ctx["sensores"] = []
+            ctx["dev_tiene_lecturas"] = False
+    return ctx
+
+
+MSG_MODELO_BLOQUEADO = ("El modelo no puede cambiar si existe historial; "
+                        "registre un equipo nuevo")
 
 
 def _haceCuanto(ts: float):
@@ -91,14 +132,12 @@ def storeDevice(request: Request,
                 firmware_version: str = Form(""),
                 fecha_instalacion: str = Form(""),
                 id_modelo: str = Form(...),
-                id_estado_dispositivo: str = Form(...),
                 id_zona: str = Form(...)):
     try:
         nuevo = dev_model.createDevice(
             codigo_serial.strip(), identificador_unico.strip() or None,
             nombre.strip(), firmware_version.strip() or None,
-            fecha_instalacion or None, int(id_modelo),
-            int(id_estado_dispositivo), int(id_zona))
+            fecha_instalacion or None, int(id_modelo), int(id_zona))
     except mysql.connector.Error as e:
         if e.errno == 1062:
             campo = "código serial" if "codigo_serial" in (e.msg or "") else "identificador único"
@@ -124,34 +163,110 @@ def showEditDeviceForm(request: Request,
          **_formContext(sesion, dev)})
 
 
-def updateDeviceFromAdmin(request: Request,
-                          id_device: int,
-                          id_sesion: UUID = Depends(session_cookie),
-                          sesion: SessionData = Depends(requireAdminUser),
-                          codigo_serial: str = Form(...),
-                          identificador_unico: str = Form(""),
-                          nombre: str = Form(...),
-                          firmware_version: str = Form(""),
-                          fecha_instalacion: str = Form(""),
-                          id_modelo: str = Form(...),
-                          id_estado_dispositivo: str = Form(...),
-                          id_zona: str = Form(...),
-                          activo: str = Form("")):
+async def updateDeviceFromAdmin(request: Request,
+                                id_device: int,
+                                id_sesion: UUID = Depends(session_cookie),
+                                sesion: SessionData = Depends(requireAdminUser),
+                                codigo_serial: str = Form(...),
+                                identificador_unico: str = Form(""),
+                                nombre: str = Form(...),
+                                firmware_version: str = Form(""),
+                                notas: str = Form(""),
+                                fecha_instalacion: str = Form(""),
+                                id_modelo: str = Form(...),
+                                id_zona: str = Form(...),
+                                activo: str = Form("")):
+    dev = dev_model.getDeviceDetail(id_device)
+    if dev is None:
+        flashForm(request, "El dispositivo no existe.")
+        return RedirectResponse("/admin/devices", status_code=303)
+    form = await request.form()
+    destino = form.get("origen", "admin")
+    volver_ficha = f"/dashboard/devices/{id_device}"
+    volver_admin = f"/admin/devices/{id_device}/edit"
+
+    def volver():
+        return RedirectResponse(volver_ficha if destino == "ficha" else volver_admin,
+                                status_code=303)
+
+    # HU-015: el modelo no puede cambiar si el dispositivo tiene historial de lecturas.
+    if int(id_modelo) != dev["id_modelo"] and dev_model.tieneLecturas(id_device):
+        flashForm(request, MSG_MODELO_BLOQUEADO)
+        return volver()
+
+    # Las frecuencias llegan dinámicamente como campos frec_<id_sensor> del formulario.
+    frecuencias = []
+    for clave, valor in form.items():
+        if not clave.startswith("frec_"):
+            continue
+        id_sensor = clave[5:]
+        if not id_sensor.isdigit() or not str(valor).strip().isdigit() \
+                or int(valor) < 1:
+            flashForm(request, "Valores inválidos: frecuencia de muestreo no"
+                               " válida (entero positivo).")
+            return volver()
+        frecuencias.append((int(id_sensor), int(valor)))
+
+    cambio_audit = [('codigo_serial', dev["codigo_serial"], codigo_serial.strip()),
+                    ('identificador_unico', dev["identificador_unico"],
+                     identificador_unico.strip() or None),
+                    ('nombre', dev["nombre"], nombre.strip()),
+                    ('firmware_version', dev["firmware_version"],
+                     firmware_version.strip() or None),
+                    ('notas', dev.get("notas"), (notas or "").strip() or None),
+                    ('fecha_instalacion', dev["fecha_instalacion"],
+                     fecha_instalacion or None),
+                    ('id_modelo', dev["id_modelo"], int(id_modelo)),
+                    ('id_zona', dev["id_zona"], int(id_zona)),
+                    ('activo', 1 if dev["activo"] else 0, 1 if activo == "on" else 0)]
+
     try:
         dev_model.updateDevice(
             id_device, codigo_serial.strip(), identificador_unico.strip() or None,
             nombre.strip(), firmware_version.strip() or None,
+            (notas or "").strip() or None,
             fecha_instalacion or None, int(id_modelo),
-            int(id_estado_dispositivo), int(id_zona), 1 if activo == "on" else 0)
+            dev["id_estado_dispositivo"], int(id_zona),
+            1 if activo == "on" else 0)
     except mysql.connector.Error as e:
         if e.errno == 1062:
             campo = "código serial" if "codigo_serial" in (e.msg or "") else "identificador único"
             flashForm(request, f"Ya existe otro dispositivo con ese {campo}.")
         else:
             flashForm(request, f"Error al guardar: {e.msg}")
-        return RedirectResponse(f"/admin/devices/{id_device}/edit", status_code=303)
+        return volver()
+
+    # Auditar cada cambio de frecuencia (el valor anterior se lee antes de actualizar).
+    try:
+        anteriores = {s["id_sensor"]: s["frecuencia_muestreo"]
+                      for s in dev_model.getSensoresOfDevice(id_device)}
+        for id_sensor, frecuencia in frecuencias:
+            dev_model.updateSensorFrecuencia(id_sensor, frecuencia)
+            if anteriores.get(id_sensor) != frecuencia:
+                audit_model.registrarAuditoria(
+                    sesion.id_usuario, "dispositivo", id_device, "frecuencia",
+                    f"sensor {id_sensor}: {anteriores.get(id_sensor)}",
+                    f"sensor {id_sensor}: {frecuencia}")
+    except mysql.connector.Error as e:
+        flashForm(request, f"Error al actualizar frecuencias: {e.msg}")
+        return volver()
+
+    # Criterio 1 de HU-015: auditar cada campo modificado con su valor anterior y nuevo.
+    for campo, anterior, nuevo in cambio_audit:
+        if campo == "fecha_instalacion":
+            # Form sends YYYY-MM-DD; DB keeps full timestamp. Compare by date.
+            a = anterior.strftime("%Y-%m-%d") if anterior else ""
+            n = (str(nuevo or "").strip())[:10]
+            if a == n:
+                continue
+        elif (anterior if anterior is not None else "") == (nuevo if nuevo is not None else ""):
+            continue
+        audit_model.registrarAuditoria(sesion.id_usuario, "dispositivo",
+                                       id_device, "update",
+                                       f"{campo}: {anterior}",
+                                       f"{campo}: {nuevo}")
     flashForm(request, "Dispositivo actualizado correctamente.", ok=True)
-    return RedirectResponse("/admin/devices", status_code=303)
+    return volver()
 
 
 def deleteDeviceFromAdmin(request: Request,

@@ -1,4 +1,4 @@
-"""My organization routes (/mi-organizacion)."""
+"""Rutas de Mi organización (/mi-organizacion)."""
 from fastapi import APIRouter
 
 import controllers.myOrganizationController as myOrganizationController

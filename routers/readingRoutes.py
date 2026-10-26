@@ -1,4 +1,4 @@
-"""Readings routes: device ingest and live/data dashboard."""
+"""Rutas de lecturas: ingesta de dispositivos y panel de datos en vivo."""
 from fastapi import APIRouter
 
 import controllers.readingsController as readingsController

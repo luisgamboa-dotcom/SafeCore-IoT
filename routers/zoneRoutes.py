@@ -1,4 +1,4 @@
-"""Admin zones routes (/admin/installations/{id}/zones...)."""
+"""Rutas de zonas del panel admin (/admin/installations/{id}/zones...)."""
 from fastapi import APIRouter
 
 import controllers.zonesController as zonesController

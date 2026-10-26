@@ -1,4 +1,4 @@
-"""Landing page and home redirects."""
+"""Página de inicio y redirecciones raíz."""
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates

@@ -1,7 +1,7 @@
 "use strict";
 /* Página temporal /datos/live: pinta el lote en curso y el historial de envíos contra /api/buffer. */
 
-const magNombre = { gas: "Gas (ADC)", temp: "Temperatura (°C)", hum: "Humedad (%)" };
+const magNombre = { gas: "Gas (ppm)", temp: "Temperatura (°C)", hum: "Humedad (%)" };
 let segundosRestantes = null;
 let intervalo = 60;
 

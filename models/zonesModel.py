@@ -1,4 +1,4 @@
-"""SQL for the zonas (zones) tables."""
+"""SQL de las tablas de zonas."""
 from config.dbConfig import getConnection
 from utils.commonUtils import closeConnection
 
