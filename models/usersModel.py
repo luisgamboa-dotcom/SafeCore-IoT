@@ -151,6 +151,21 @@ def getAllUsersWithDetails(q=None, sort_by=None, sort_dir=None,
         _cerrar(conn, cur)
 
 
+def updatePerfil(id_usuario, nombre, apellido, telefono):
+    """Datos personales editables del propio usuario desde su perfil
+    (email, estado y organizacion quedan fuera del perfil)."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE usuarios SET nombre=%s, apellido=%s, telefono=%s WHERE id_usuario=%s",
+            (nombre, apellido, telefono, id_usuario))
+        conn.commit()
+    finally:
+        _cerrar(conn, cur)
+
+
 def updateUser(id_usuario, nombre, apellido, email, id_organizacion, id_estado):
     conn = getConnection()
     cur = None

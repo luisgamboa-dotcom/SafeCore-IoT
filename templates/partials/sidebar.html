@@ -12,15 +12,15 @@
       <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">dashboard</span>
       <span class="text-sm">Dashboard</span>
     </a>
-    <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="/dashboard#alertas">
+    <a class="flex items-center gap-3 px-4 py-3 rounded-lg {% if active_page == 'alertas' %}text-white font-semibold bg-primary-container shadow-sm{% else %}text-on-surface-variant hover:bg-surface-container-low transition-colors{% endif %}" href="/dashboard/alertas">
       <span class="material-symbols-outlined">notifications_active</span>
       <span class="text-sm">Alertas</span>
     </a>
-    <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="/dashboard#dispositivos">
+    <a class="flex items-center gap-3 px-4 py-3 rounded-lg {% if active_page == 'sensores' %}text-white font-semibold bg-primary-container shadow-sm{% else %}text-on-surface-variant hover:bg-surface-container-low transition-colors{% endif %}" href="/dashboard/sensores">
       <span class="material-symbols-outlined">sensors</span>
       <span class="text-sm">Sensores</span>
     </a>
-    <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="/dashboard#historial">
+    <a class="flex items-center gap-3 px-4 py-3 rounded-lg {% if active_page == 'historial' %}text-white font-semibold bg-primary-container shadow-sm{% else %}text-on-surface-variant hover:bg-surface-container-low transition-colors{% endif %}" href="/dashboard/historial">
       <span class="material-symbols-outlined">history</span>
       <span class="text-sm">Historial</span>
     </a>

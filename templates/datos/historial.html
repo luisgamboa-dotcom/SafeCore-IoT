@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>SafeCore IoT - Historial</title>
+<link rel="icon" type="image/png" href="/public/images/logo-icon.png">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#2E1B5A",
+        "primary-container": "#8751F8",
+        "secondary": "#6D3DF5",
+        "secondary-container": "#A37FFF",
+        "tertiary": "#3D2A63",
+        "tertiary-container": "#5B4A8A",
+        "primary-fixed": "#E9DEFF",
+        "primary-fixed-dim": "#C9B0FF",
+        "secondary-fixed": "#EDE6FF",
+        "secondary-fixed-dim": "#D5C2FF",
+        "tertiary-fixed": "#E5DBFF",
+        "tertiary-fixed-dim": "#C4AFFF",
+        "surface": "#F6F1FF",
+        "surface-bright": "#F6F1FF",
+        "surface-container-lowest": "#ffffff",
+        "surface-container-low": "#EFE7FF",
+        "surface-container": "#E9DEFF",
+        "surface-container-high": "#E2D5FF",
+        "surface-variant": "#D9C9FF",
+        "surface-tint": "#7A5CA8",
+        "background": "#F6F1FF",
+        "on-surface": "#191c1f",
+        "on-surface-variant": "#43474e",
+        "on-primary": "#ffffff",
+        "on-primary-container": "#D9C8FF",
+        "on-secondary": "#ffffff",
+        "on-tertiary": "#ffffff",
+        "on-tertiary-container": "#A37FFF",
+        "outline": "#74777f",
+        "outline-variant": "#c4c6cf",
+        "error": "#ba1a1a",
+        "error-container": "#ffdad6"
+      },
+      borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+      boxShadow: {
+        'ambient': '0 10px 30px rgba(135, 81, 248, 0.08)',
+        'ambient-hover': '0 15px 35px rgba(135, 81, 248, 0.14)'
+      }
+    }
+  }
+}
+</script>
+<link rel="stylesheet" href="/public/styles/dashboardStyles.css">
+</head>
+<body class="font-body text-on-surface antialiased flex h-screen overflow-hidden bg-background" style="font-family:Inter,system-ui,sans-serif">
+
+<div id="edgeZone" title="Acercar para mostrar menú"></div>
+<div id="backdrop"></div>
+
+{% set active_page = "historial" %}
+{% include "partials/sidebar.html" %}
+
+<!-- Contenido principal -->
+<div id="mainWrap" class="flex-1 flex flex-col h-screen min-w-0 w-full">
+  {% set page_title = "Historial" %}
+  {% include "partials/topbar.html" %}
+
+  <main class="flex-1 overflow-y-auto">
+    <div class="max-w-[1280px] mx-auto p-4 md:p-8 pb-12">
+
+      <div class="mb-6">
+        <h2 class="font-headline-md text-headline-md text-primary">Historial</h2>
+        <p class="font-body-md text-body-md text-on-surface-variant mt-1">Evolución de las magnitudes con datos históricos y en vivo.</p>
+      </div>
+
+      <div class="mt-6">
+        <div class="bg-white rounded-xl border border-outline-variant card-shadow flex flex-col">
+          <div class="p-6 border-b border-outline-variant flex flex-wrap gap-3 justify-between items-center">
+            <h2 id="chartTitle" class="text-xl font-semibold text-primary">Niveles de gas (ppm)</h2>
+            <div id="sensorTabs" class="flex bg-surface-container-low rounded-lg p-1" role="tablist" aria-label="Seleccionar sensor">
+              <button type="button" data-tipo="gas" role="tab" aria-pressed="true" class="sensor-tab px-4 py-1.5 text-xs font-semibold rounded-md bg-white shadow-sm text-primary">Gas</button>
+              <button type="button" data-tipo="temp" role="tab" aria-pressed="false" class="sensor-tab px-4 py-1.5 text-xs font-semibold rounded-md">Temp</button>
+              <button type="button" data-tipo="hum" role="tab" aria-pressed="false" class="sensor-tab px-4 py-1.5 text-xs font-semibold rounded-md">Hum</button>
+            </div>
+          </div>
+          <div class="p-6">
+            <div class="relative h-[280px]">
+              <canvas id="sensorChart" class="w-full rounded-xl border border-outline-variant" aria-label="Historial del sensor en vivo"></canvas>
+            </div>
+            <div class="grid grid-cols-3 gap-3 mt-4">
+              <div class="rounded-lg bg-surface-container-low px-3 py-2 text-center">
+                <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Máximo</p>
+                <p id="chartStatsMax" class="text-lg font-bold text-primary">—</p>
+              </div>
+              <div class="rounded-lg bg-surface-container-low px-3 py-2 text-center">
+                <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Mínimo</p>
+                <p id="chartStatsMin" class="text-lg font-bold text-primary">—</p>
+              </div>
+              <div class="rounded-lg bg-surface-container-low px-3 py-2 text-center">
+                <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Promedio</p>
+                <p id="chartStatsProm" class="text-lg font-bold text-primary">—</p>
+              </div>
+            </div>
+            <div id="chartEmpty" class="chart-empty rounded-xl min-h-[60px] flex flex-col items-center justify-center text-center gap-1 p-4 mt-3">
+              <p class="font-semibold text-primary text-sm">En espera de lecturas…</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="/public/scripts/sidebarToggle.js"></script>
+<script src="/public/scripts/dashboardScripts.js?v=7"></script>
+</body>
+</html>

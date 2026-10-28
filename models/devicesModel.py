@@ -175,6 +175,21 @@ def updateDevice(id_dispositivo, codigo_serial, identificador_unico, nombre,
         closeConnection(conn, cur)
 
 
+def setDeviceActivo(id_dispositivo, activo):
+    """HU-014: activa o da de baja el dispositivo (bandera activo) preservando
+    lecturas, alertas y demas informacion asociada."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute("UPDATE dispositivos SET activo = %s WHERE id_dispositivo = %s",
+                    (1 if activo else 0, id_dispositivo))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        closeConnection(conn, cur)
+
+
 def getSensoresOfDevice(id_dispositivo):
     """Sensores del dispositivo con frecuencia de muestreo, estado y magnitudes."""
     conn = getConnection()

@@ -31,7 +31,7 @@ def add(device_serial: str, fw: str | None, seq: int,
     with _lock:
         for r in readings:
             _pending.append({"codigo_serial": device_serial, "fw": fw, "seq": seq,
-                             "magnitud": r["tipo"], "valor": r["valor_crudo"],
+                             "magnitud": r["tipo"], "valor": r["valor"],
                              "calidad": r["calidad"], "_ts": ts})
         return len(_pending)
 
@@ -73,6 +73,11 @@ def _enviar(lote: List[Dict[str, Any]]):
             dev = lec_model.getDeviceBySerial(serial)
             if dev is None:
                 errores.append(f"{serial}: dispositivo no existe en la BD")
+                continue
+            if not dev["activo"]:
+                # HU-014: dispositivos dados de baja no acumulan lecturas
+                # (el lote se descarta, no se re-encola).
+                errores.append(f"{serial}: dispositivo no activo")
                 continue
             lec_model.markDeviceAlive(dev["id_dispositivo"])
             enviadas: List[str] = []

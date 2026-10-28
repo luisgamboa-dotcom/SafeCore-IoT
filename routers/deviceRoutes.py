@@ -15,3 +15,5 @@ devices_router.post("/admin/devices")(devicesController.storeDevice)
 devices_router.get("/admin/devices/{id_device}/edit")(devicesController.showEditDeviceForm)
 devices_router.post("/admin/devices/{id_device}/update")(devicesController.updateDeviceFromAdmin)
 devices_router.post("/admin/devices/{id_device}/delete")(devicesController.deleteDeviceFromAdmin)
+# HU-014: desactivar/reactivar un dispositivo conservando su informacion.
+devices_router.post("/admin/devices/{id_device}/toggle-active")(devicesController.toggleDeviceActive)

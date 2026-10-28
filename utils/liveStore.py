@@ -20,7 +20,7 @@ def push(device_serial: str, fw: str | None, seq: int,
                 "codigo_serial": device_serial,
                 "dispositivo": device_serial,
                 "magnitud": r["tipo"],
-                "valor": r["valor_crudo"],
+                "valor": r["valor"],
                 "calidad": r["calidad"],
                 "fecha_hora": time.strftime(
                     "%Y-%m-%d %H:%M:%S", time.localtime(ts)),

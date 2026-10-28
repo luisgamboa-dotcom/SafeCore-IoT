@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Mi perfil - SafeCore IoT</title>
+<link rel="icon" type="image/png" href="/public/images/logo-icon.png">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#2E1B5A",
+        "primary-container": "#8751F8",
+        "secondary": "#6D3DF5",
+        "secondary-container": "#A37FFF",
+        "tertiary": "#3D2A63",
+        "tertiary-container": "#5B4A8A",
+        "primary-fixed": "#E9DEFF",
+        "primary-fixed-dim": "#C9B0FF",
+        "secondary-fixed": "#EDE6FF",
+        "secondary-fixed-dim": "#D5C2FF",
+        "tertiary-fixed": "#E5DBFF",
+        "tertiary-fixed-dim": "#C4AFFF",
+        "surface": "#F6F1FF",
+        "surface-bright": "#F6F1FF",
+        "surface-container-lowest": "#ffffff",
+        "surface-container-low": "#EFE7FF",
+        "surface-container": "#E9DEFF",
+        "surface-container-high": "#E2D5FF",
+        "surface-variant": "#D9C9FF",
+        "surface-tint": "#7A5CA8",
+        "background": "#F6F1FF",
+        "on-surface": "#191c1f",
+        "on-surface-variant": "#43474e",
+        "on-primary": "#ffffff",
+        "on-primary-container": "#D9C8FF",
+        "on-secondary": "#ffffff",
+        "on-tertiary": "#ffffff",
+        "on-tertiary-container": "#A37FFF",
+        "outline": "#74777f",
+        "outline-variant": "#c4c6cf",
+        "error": "#ba1a1a",
+        "error-container": "#ffdad6"
+      },
+      borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+      boxShadow: {
+        'ambient': '0 10px 30px rgba(135, 81, 248, 0.08)',
+        'ambient-hover': '0 15px 35px rgba(135, 81, 248, 0.14)'
+      }
+    }
+  }
+}
+</script>
+<link rel="stylesheet" href="/public/styles/dashboardStyles.css">
+</head>
+<body class="font-body text-on-surface antialiased flex h-screen overflow-hidden bg-background" style="font-family:Inter,system-ui,sans-serif">
+
+<div id="edgeZone" title="Acercar para mostrar menú"></div>
+<div id="backdrop"></div>
+
+{% set active_page = "perfil" %}
+{% include "partials/sidebar.html" %}
+
+<!-- Contenido principal -->
+<div id="mainWrap" class="flex-1 flex flex-col h-screen min-w-0 w-full">
+  {% set page_title = "Mi perfil" %}
+  {% include "partials/topbar.html" %}
+  {% include "partials/toast.html" %}
+
+  <main class="flex-1 overflow-y-auto">
+    <div class="max-w-[1280px] mx-auto p-4 md:p-8 pb-12">
+
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div>
+          <h2 class="font-headline-md text-headline-md text-primary">Mi perfil</h2>
+          <p class="font-body-md text-body-md text-on-surface-variant mt-1">Los datos de tu cuenta en SafeCore IoT.</p>
+        </div>
+        <div class="w-16 h-16 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-2xl font-bold" aria-label="Avatar">{{ iniciales }}</div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Recuadro 1: datos del usuario (solo lectura) -->
+        <section class="bg-surface-container-lowest rounded-xl shadow border border-outline-variant p-6">
+          <h3 class="font-title-md text-title-md text-primary mb-5">Datos del usuario</h3>
+          <div class="flex flex-col gap-4 text-sm">
+            <div><p class="text-[11px] text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">Nombre</p>
+                 <p class="font-semibold">{{ usuario.nombre }}</p></div>
+            <div><p class="text-[11px] text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">Apellido</p>
+                 <p class="font-semibold">{{ usuario.apellido or '—' }}</p></div>
+            <div><p class="text-[11px] text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">Teléfono</p>
+                 <p class="font-semibold font-mono">{{ usuario.telefono or '—' }}</p></div>
+            <div><p class="text-[11px] text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">Email</p>
+                 <p class="font-semibold">{{ usuario.email }}</p></div>
+            <div><p class="text-[11px] text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">Fecha de registro</p>
+                 <p class="font-semibold">{{ usuario.fecha_registro }}</p></div>
+          </div>
+        </section>
+
+        <!-- Recuadro 2: editar datos -->
+        <section class="bg-surface-container-lowest rounded-xl shadow border border-outline-variant p-6">
+          <h3 class="font-title-md text-title-md text-primary mb-5">Editar datos</h3>
+          <form action="/users/perfil" method="POST" class="flex flex-col gap-4">
+            <div>
+              <label class="block font-label-md text-label-md text-on-surface mb-1" for="nombre">Nombre</label>
+              <input class="block w-full py-2 px-3 border border-outline-variant rounded-lg bg-surface-bright text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-200"
+                     id="nombre" name="nombre" required maxlength="50" value="{{ old.nombre or '' }}" />
+            </div>
+            <div>
+              <label class="block font-label-md text-label-md text-on-surface mb-1" for="apellido">Apellido</label>
+              <input class="block w-full py-2 px-3 border border-outline-variant rounded-lg bg-surface-bright text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-200"
+                     id="apellido" name="apellido" required maxlength="50" value="{{ old.apellido or '' }}" />
+            </div>
+            <div>
+              <label class="block font-label-md text-label-md text-on-surface mb-1" for="telefono">Teléfono <span class="text-on-surface-variant">(opcional)</span></label>
+              <input class="block w-full py-2 px-3 border border-outline-variant rounded-lg bg-surface-bright text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-200"
+                     id="telefono" name="telefono" maxlength="20" placeholder="+56 9 1234 5678" value="{{ old.telefono or '' }}" />
+            </div>
+            <div class="pt-1">
+              <button type="submit" class="px-6 py-2.5 rounded-lg bg-secondary text-on-secondary font-label-md text-label-md hover:bg-opacity-90 transition-all duration-200 shadow-sm">Guardar cambios</button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <!-- Cerrar sesion -->
+      <div class="mt-8 flex justify-end">
+        <form action="/users/logout" method="POST">
+          <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg border border-outline-variant text-on-surface-variant hover:text-error hover:border-error font-label-md text-label-md transition-colors">
+            <span class="material-symbols-outlined text-base">logout</span> Cerrar sesión
+          </button>
+        </form>
+      </div>
+
+      <footer class="mt-auto py-4 border-t border-outline-variant text-center text-label-sm font-label-sm text-on-surface-variant">
+        © 2026 SafeCore IoT. Monitoreo de seguridad industrial.
+      </footer>
+    </div>
+  </main>
+</div>
+<script src="/public/scripts/sidebarToggle.js"></script>
+</body>
+</html>

@@ -123,10 +123,7 @@
                 </nav>
                 <div class="hidden md:flex items-center gap-4">
                     {% if logged %}
-                    <a href="/dashboard" class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold" aria-label="Mi perfil">{{ iniciales }}</a>
-                    <form action="/users/logout" method="POST">
-                        <button type="submit" class="font-label-md text-label-md bg-secondary text-on-secondary px-6 py-2.5 rounded-lg hover:bg-opacity-90 hover:scale-105 transition-all duration-200 shadow-sm">Cerrar sesión</button>
-                    </form>
+                    <a href="/users/perfil" class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold" aria-label="Mi perfil">{{ iniciales }}</a>
                     {% else %}
                     <a href="/users/login" class="font-label-md text-label-md text-primary hover:text-secondary transition-colors px-4 py-2">Iniciar sesión</a>
                     <a href="/users/register" class="font-label-md text-label-md bg-secondary text-on-secondary px-6 py-2.5 rounded-lg hover:bg-opacity-90 hover:scale-105 transition-all duration-200 shadow-sm">Registrarse</a>

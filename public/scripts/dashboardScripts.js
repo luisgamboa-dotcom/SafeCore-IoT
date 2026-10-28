@@ -1,13 +1,7 @@
 (function () {
-  var elHora = document.getElementById('ultimaActualizacion');
-  var elDetalle = document.getElementById('ultimaDetalle');
   var elEstado = document.getElementById('estadoGeneral');
-  var elKpiDisp = document.getElementById('kpiDispositivos');
-  var elKpiAlert = document.getElementById('kpiAlertas');
-  var elAlertas = document.getElementById('alertasLive');
   var elDevices = document.getElementById('devicesLive');
   var elChart = document.getElementById('sensorChart');
-  var elHist = document.getElementById('sensorHistory');
   var elEmpty = document.getElementById('chartEmpty');
   var elTitle = document.getElementById('chartTitle');
   var elTabs = document.getElementById('sensorTabs');
@@ -21,11 +15,13 @@
       aviso.style.display = '';
       aviso.querySelector('p').textContent = 'Recarga la página (Ctrl+Shift+R): hay una versión nueva del panel.';
     }
-    if (!elAlertas && !elDevices) return;
+    // La pagina resumen (/dashboard) ya no tiene grafico ni tarjetas: sigue
+    // solo para actualizar el KPI de estado con lo fresco del buffer.
+    if (!elDevices && !elEstado) return;
   }
 
   var TIPOS = {
-    gas: {titulo: 'Niveles de gas (ppm)', unidad: 'ppm', color: '#8751F8', umbral: 200},
+    gas: {titulo: 'Niveles de gas (ppm)', unidad: 'ppm', color: '#8751F8', umbral: 1139},
     temp: {titulo: 'Temperatura (°C)', unidad: '°C', color: '#E8590C', umbral: null},
     hum: {titulo: 'Humedad (%)', unidad: '%', color: '#1971C2', umbral: null}
   };
@@ -100,7 +96,7 @@
       if (!serie.length) {
         elEmpty.style.display = '';
         elEmpty.querySelector('p').textContent = tipoActivo === 'gas'
-          ? 'Esperando al nodo…'
+          ? 'En espera de lecturas…'
           : 'Sin datos de ' + (tipoActivo === 'temp' ? 'temperatura' : 'humedad') + ' todavía…';
       } else {
         elEmpty.style.display = 'none';
@@ -270,74 +266,29 @@
       if (items.length) {
         // Sin servidor pero con datos previos: se muestra lo ultimo.
       } else {
-        if (elEstado) elEstado.textContent = 'Sin servidor (¿uvicorn con --host 0.0.0.0?)';
+        if (elEstado) elEstado.textContent = 'Sin conexión al servidor';
         return;
       }
     }
     var dud = items.filter(function (x) { return x.calidad === 'dudosa'; });
-    // Dispositivos activos: seriales distintos con lectura reciente (<= 5 min).
-    var devs = {};
-    items.forEach(function (x) {
-      var edad = ageSecs(x.fecha_hora);
-      if (edad >= 0 && edad <= APAGADO_SEG) devs[x.codigo_serial || ''] = true;
-    });
-    var nDevs = Object.keys(devs).length;
 
-    if (elHora) elHora.textContent = items.length && items[0].fecha_hora
-      ? items[0].fecha_hora : 'Sin datos';
-    if (elDetalle) {
-      if (!items.length) {
-        elDetalle.textContent = 'En espera del nodo…';
-      } else {
-        var s = ageSecs(items[0].fecha_hora);
-        elDetalle.textContent = 'en vivo · seq ' + (items[0].seq != null ? items[0].seq : '—')
-          + (s >= 0 ? ' · hace ' + ageFmt(s) : '');
-      }
-    }
     if (elEstado) {
       var ageS = items.length ? ageSecs(items[0].fecha_hora) : -1;
       if (!items.length) { elEstado.textContent = 'En espera'; }
       else if (ageS >= 90) {
-        elEstado.textContent = 'Nodo sin reportar hace ' + ageFmt(ageS) + ' — revisa WiFi/IP/flasheo';
+        elEstado.textContent = 'Sin lecturas hace ' + ageFmt(ageS) + ' — revisa conexión de los nodos';
       }
       else elEstado.textContent = dud.length ? 'Revisar (' + dud.length + ' dudosa)' : 'En vivo';
-    }
-    if (elKpiDisp) elKpiDisp.textContent = items.length ? String(nDevs) : '—';
-    if (elKpiAlert) elKpiAlert.textContent = String(dud.length);
-
-    // Alertas: dudosas primero, luego las 5 mas recientes.
-    if (elAlertas) {
-      if (!items.length) {
-        elAlertas.innerHTML = '<div class="chart-empty rounded-xl p-6 text-center">'
-          + '<p class="font-semibold text-primary">Sin datos todavía</p>'
-          + '<p class="mt-1">El nodo aún no reporta. Revisa WiFi, IP del servidor y que uvicorn use <code>--host 0.0.0.0</code>.</p></div>';
-      } else {
-        var top = dud.concat(items.filter(function (x) { return x.calidad !== 'dudosa'; })).slice(0, 5);
-        elAlertas.innerHTML = '<ul class="space-y-3">' + top.map(function (l) {
-          var dot = l.calidad === 'dudosa' ? 'bg-yellow-500' : 'bg-green-500';
-          return '<li class="flex gap-3 p-3 rounded-lg bg-surface-container-low">'
-            + '<span class="w-2 h-2 rounded-full mt-2 flex-shrink-0 ' + dot + '"></span>'
-            + '<div><p class="font-semibold text-on-surface">' + esc(l.dispositivo || l.codigo_serial)
-            + ' · ' + esc(l.magnitud) + ': ' + esc(l.valor) + '</p>'
-            + '<p class="text-xs mt-1">' + esc(l.fecha_hora) + ' · ' + esc(l.calidad) + '</p></div></li>';
-        }).join('') + '</ul>';
-      }
     }
 
     // Tarjetas por dispositivo: identidad la sirve el servidor y los valores
     // vivos se inyectan aqui desde el buffer (dashboard en modo test, sin DB).
     actualizarTarjetas(items);
 
-    // Grafico + historial del tipo activo: semilla de BD + puntos en vivo.
+    // Grafico del tipo activo: semilla de BD + puntos en vivo.
     var serie = serieDelGrafico(items);
     renderChart(serie);
     pintarStats(serie);
-    if (elHist) {
-      var cfg = TIPOS[tipoActivo];
-      elHist.innerHTML = serie.slice(-10).map(function (x) {
-        return '<li class="px-2 py-1 rounded bg-surface-container-low">' + esc(x.valor) + ' ' + esc(cfg.unidad) + ' <span class="opacity-70">· ' + esc((x.fecha_hora || '').slice(11)) + '</span></li>';
-      }).join('');
-    }
   }
   tick();
   setInterval(tick, 5000);

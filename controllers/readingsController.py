@@ -16,8 +16,11 @@ from models import readingsModel as lec_model
 from models import devicesModel as dev_model
 from models import zonesModel as zone_model
 from models import installationsModel as inst_model
+from models import alertsModel as alerts_model
 from utils import batchStore, liveStore, nodeIps
-from utils.commonUtils import userSessionContext, restrictedOrganization, organizationSerials
+from utils import gasConversion
+from utils.commonUtils import userSessionContext, restrictedOrganization, \
+    dashboardOrganization, organizationSerials
 from utils.flashUtils import popFormFlash
 
 templates = Jinja2Templates(directory="templates")
@@ -28,6 +31,8 @@ SAVE_TO_DB = os.getenv("SAVE_READINGS") == "1"
 # Editable: segundos que se acumulan las lecturas antes del envío del lote a la BD.
 AGGREGATE_INTERVAL_S = 60
 
+# Rangos de calidad sobre el VALOR CRUDO que llega del nodo (el gas llega en
+# cuentas ADC 0-1023; la conversion a ppm se hace en la ingesta, ver abajo).
 RANGOS = {"gas": (0, 1023), "temp": (-40.0, 80.0), "hum": (0.0, 100.0)}
 
 batchStore.start(AGGREGATE_INTERVAL_S, lambda: SAVE_TO_DB)
@@ -77,8 +82,13 @@ def ingestReadings(request: Request, payload: IngestIn):
         calidad = "valida" if (lo <= float(r.valor_crudo) <= hi) else "dudosa"
         if calidad == "dudosa":
             dudosas += 1
+        # Gas: se guarda y muestra en ppm (estimado via curva del datasheet);
+        # el crudo ADC solo queda en el log de diagnostico.
+        valor = (gasConversion.adc_a_ppm(r.valor_crudo) if r.tipo == "gas"
+                 else float(r.valor_crudo))
         calificadas.append({"tipo": r.tipo,
                             "valor_crudo": float(r.valor_crudo),
+                            "valor": valor,
                             "calidad": calidad})
     liveStore.push(payload.device_serial, payload.fw, payload.seq, calificadas)
     pendientes = batchStore.add(payload.device_serial, payload.fw, payload.seq, calificadas)
@@ -89,7 +99,8 @@ def ingestReadings(request: Request, payload: IngestIn):
     bd_error = None
     try:
         dev = lec_model.matchDeviceBySerial(payload.device_serial, payload.device_id)
-        if dev is not None and "conflicto" not in dev:
+        # HU-014: un dispositivo dado de baja no refresca su estado ni firmware.
+        if dev is not None and "conflicto" not in dev and "no_activo" not in dev:
             # El dispositivo que reporta está vivo: última comunicación AHORA (+ estado de vuelta
             # a online si estaba offline). No guarda lecturas, solo metadatos.
             lec_model.markDeviceAlive(dev["id_dispositivo"])
@@ -106,15 +117,23 @@ def ingestReadings(request: Request, payload: IngestIn):
         bd_estado = "no-registrado"
     elif "conflicto" in dev:
         bd_estado = "conflicto"
+    elif "no_activo" in dev:
+        bd_estado = "no_activo"
     else:
         bd_estado = "sincronizado"
 
+    # HU-014: la ingesta de un dispositivo desactivado se rechaza sin guardar
+    # lecturas ni actualizar nada (tambien en modo en-vivo).
+    if dev is not None and "no_activo" in dev:
+        return JSONResponse(
+            status_code=409,
+            content={"ok": False, "error": "Dispositivo no activo"},
+        )
     if not SAVE_TO_DB:
         return {"ok": True, "insertadas": 0, "persistidas": 0,
                 "recibidas": len(calificadas), "dudosas": dudosas,
                 "pendientes": pendientes, "errores": ([bd_error] if bd_error else []),
                 "bd": bd_estado, "modo": "en-vivo-sin-guardar"}
-
     if dev is None:
         return JSONResponse(
             status_code=404,
@@ -141,7 +160,8 @@ def getLiveReadings(request: Request,
                     limit: int = 50,
                     id_sesion: UUID = Depends(session_cookie),
                     sesion: SessionData = Depends(verificador)):
-    org = restrictedOrganization(sesion)
+    # Mismo alcance que el dashboard: cada usuario ve solo su organización.
+    org = dashboardOrganization(sesion)
     lecturas = liveStore.get_latest(limit)
     if org is not None:
         seriales = organizationSerials(org)
@@ -159,7 +179,7 @@ def getBatchView(request: Request,
 def showLiveView(request: Request,
                  id_sesion: UUID = Depends(session_cookie),
                  sesion: SessionData = Depends(verificador)):
-    org = restrictedOrganization(sesion)
+    org = dashboardOrganization(sesion)
     lecturas = liveStore.get_latest(50)
     if org is not None:
         seriales = organizationSerials(org)
@@ -177,7 +197,7 @@ def getLatestReadings(request: Request,
                       limit: int = 50,
                       id_sesion: UUID = Depends(session_cookie),
                       sesion: SessionData = Depends(verificador)):
-    org = restrictedOrganization(sesion)
+    org = dashboardOrganization(sesion)
     if SAVE_TO_DB:
         try:
             return {"ok": True, "lecturas": lec_model.getLatest(limit, org)}
@@ -190,7 +210,7 @@ def getHistoricoReadings(request: Request,
                          limit: int = 150,
                          id_sesion: UUID = Depends(session_cookie),
                          sesion: SessionData = Depends(verificador)):
-    org = restrictedOrganization(sesion)
+    org = dashboardOrganization(sesion)
     try:
         return {"ok": True, "modo": "bd",
                 "lecturas": lec_model.getHistoricoPorMagnitud(limit, org)}
@@ -204,7 +224,7 @@ def getZonaSeries(request: Request,
                   limite: int = 300,
                   id_sesion: UUID = Depends(session_cookie),
                   sesion: SessionData = Depends(verificador)):
-    org = restrictedOrganization(sesion)
+    org = dashboardOrganization(sesion)
     if org is not None:
         zona = zone_model.getZoneById(id_zona)
         inst = inst_model.getInstallationById(zona["id_instalacion"]) if zona else None
@@ -223,20 +243,82 @@ def getZonaSeries(request: Request,
 def showDataPage(request: Request,
                  id_sesion: UUID = Depends(session_cookie),
                  sesion: SessionData = Depends(verificador)):
-    org = restrictedOrganization(sesion)
-    lecturas = liveStore.get_latest(50)
-    if org is not None:
-        seriales = organizationSerials(org)
-        lecturas = [l for l in lecturas if l["codigo_serial"] in seriales]
-    flash_msg, _, flash_ok = popFormFlash(request)
+    # Dashboard principal: cada usuario ve solo los dispositivos de su
+    # organización (None = usuario sin organización -> panel global).
+    org = dashboardOrganization(sesion)
     try:
         dispositivos = dev_model.getActiveDevices(org)
     except Exception:
         dispositivos = []
+    try:
+        alertas = alerts_model.getRecentAlerts(org, limite=8)
+        alertas_abiertas = alerts_model.countActiveAlerts(org)
+    except Exception:
+        alertas = []
+        alertas_abiertas = 0
+    flash_msg, _, flash_ok = popFormFlash(request)
     return templates.TemplateResponse(
         request, "datos/index.html",
-        {"request": request, "lecturas": lecturas, "dispositivos": dispositivos,
-         "flash_msg": flash_msg, "flash_ok": flash_ok, **userSessionContext(sesion)})
+        {"request": request, "dispositivos": dispositivos,
+         "alertas": alertas, "alertas_abiertas": alertas_abiertas,
+         "org_alcance": org,
+         "flash_msg": flash_msg, "flash_ok": flash_ok,
+         **userSessionContext(sesion)})
+
+
+def showAlertasPage(request: Request,
+                    id_sesion: UUID = Depends(session_cookie),
+                    sesion: SessionData = Depends(verificador)):
+    """Pagina de alertas: tarjetas con todas las alertas de la organizacion
+    del usuario (None = global), expandibles con todo su detalle."""
+    org = dashboardOrganization(sesion)
+    try:
+        alertas = alerts_model.getAlertasCompletas(org, limite=50)
+    except Exception:
+        alertas = []
+    conteo = {}
+    for a in alertas:
+        conteo[a["severidad"]] = conteo.get(a["severidad"], 0) + 1
+    flash_msg, _, flash_ok = popFormFlash(request)
+    return templates.TemplateResponse(
+        request, "datos/alertas.html",
+        {"request": request, "alertas": alertas,
+         "conteo_severidad": conteo, "org_alcance": org,
+         "flash_msg": flash_msg, "flash_ok": flash_ok,
+         **userSessionContext(sesion)})
+
+
+def showSensoresPage(request: Request,
+                     id_sesion: UUID = Depends(session_cookie),
+                     sesion: SessionData = Depends(verificador)):
+    """Pagina de sensores: estado de los dispositivos activos de la
+    organizacion del usuario (None = global)."""
+    org = dashboardOrganization(sesion)
+    try:
+        dispositivos = dev_model.getActiveDevices(org)
+    except Exception:
+        dispositivos = []
+    flash_msg, _, flash_ok = popFormFlash(request)
+    return templates.TemplateResponse(
+        request, "datos/sensores.html",
+        {"request": request, "dispositivos": dispositivos,
+         "org_alcance": org,
+         "flash_msg": flash_msg, "flash_ok": flash_ok,
+         **userSessionContext(sesion)})
+
+
+def showHistorialPage(request: Request,
+                      id_sesion: UUID = Depends(session_cookie),
+                      sesion: SessionData = Depends(verificador)):
+    """Pagina de historial: grafico en vivo con semilla historica de la
+    organizacion del usuario, con pestañas por magnitud y estadisticas."""
+    flash_msg, _, flash_ok = popFormFlash(request)
+    org = dashboardOrganization(sesion)
+    return templates.TemplateResponse(
+        request, "datos/historial.html",
+        {"request": request, "org_alcance": org,
+         "flash_msg": flash_msg, "flash_ok": flash_ok,
+         **userSessionContext(sesion)})
 
 
 def nodeConfig(serial: str):

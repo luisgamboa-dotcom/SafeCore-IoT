@@ -39,6 +39,14 @@ def restrictedOrganization(sesion: SessionData):
     return user["id_organizacion"]
 
 
+def dashboardOrganization(sesion: SessionData):
+    """Organizacion que recorta el dashboard principal: siempre la del usuario
+    cuando tenga una (ve solo los dispositivos de su organizacion); None solo
+    para usuarios sin organizacion asignada (panel global)."""
+    user = user_model.getUserById(sesion.id_usuario)
+    return user["id_organizacion"] if user else None
+
+
 def organizationSerials(id_organizacion):
     from models import devicesModel as dev_model
     return {d["codigo_serial"] for d in dev_model.getDevicesByOrganization(id_organizacion)}

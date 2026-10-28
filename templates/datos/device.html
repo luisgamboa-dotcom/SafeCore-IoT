@@ -81,6 +81,39 @@ tailwind.config = {
                         <p class="font-body-md text-body-md text-on-surface-variant mt-1">{{ dev.codigo_serial }} · {{ dev.zona }}{% if dev.instalacion %} · {{ dev.instalacion }}{% endif %}</p>
                     </div>
                     <div class="flex gap-2">
+                        {% if is_admin %}
+                        {% if dev.activo %}
+                        <details class="confirmar-desc relative inline-block text-left">
+                            <summary class="list-none cursor-pointer px-4 py-2 rounded-lg border border-error font-label-md text-label-md text-error hover:bg-surface-container-low">Desactivar</summary>
+                            <div class="absolute right-0 z-20 mt-2 w-80 bg-surface-container-lowest rounded-lg shadow border border-surface-variant p-4 text-left">
+                                <form method="POST" action="/admin/devices/{{ dev.id_dispositivo }}/toggle-active">
+                                    <input type="hidden" name="origen" value="ficha"/>
+                                    <input type="hidden" name="motivo" value=""/>
+                                    <p class="text-label-md font-label-md">¿Estás seguro de desactivar el dispositivo {{ dev.nombre }}/{{ dev.codigo_serial }}? Se conservará el historial y se cancelarán sus alertas activas</p>
+                                    <div class="flex justify-end gap-2 mt-3">
+                                        <button type="button" data-cerrar="1" class="px-3 py-1.5 rounded-lg border border-outline-variant font-label-sm text-label-sm hover:bg-surface-container-low">No</button>
+                                        <button type="submit" class="px-3 py-1.5 rounded-lg font-label-sm text-label-sm text-white bg-error">Sí</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </details>
+                        {% else %}
+                        <details class="confirmar-desc relative inline-block text-left">
+                            <summary class="list-none cursor-pointer px-4 py-2 rounded-lg border border-outline-variant font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-low">Activar</summary>
+                            <div class="absolute right-0 z-20 mt-2 w-80 bg-surface-container-lowest rounded-lg shadow border border-surface-variant p-4 text-left">
+                                <form method="POST" action="/admin/devices/{{ dev.id_dispositivo }}/toggle-active">
+                                    <input type="hidden" name="origen" value="ficha"/>
+                                    <input type="hidden" name="motivo" value=""/>
+                                    <p class="text-label-md font-label-md">¿Estás seguro de activar el dispositivo {{ dev.nombre }}/{{ dev.codigo_serial }}?</p>
+                                    <div class="flex justify-end gap-2 mt-3">
+                                        <button type="button" data-cerrar="1" class="px-3 py-1.5 rounded-lg border border-outline-variant font-label-sm text-label-sm hover:bg-surface-container-low">No</button>
+                                        <button type="submit" class="px-3 py-1.5 rounded-lg font-label-sm text-label-sm text-white bg-secondary">Sí</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </details>
+                        {% endif %}
+                        {% endif %}
                         <a class="px-4 py-2 rounded-lg border border-outline-variant font-label-md text-label-md" href="/dashboard">← Volver</a>
                     </div>
                 </div>
@@ -467,6 +500,21 @@ tailwind.config = {
         </main>
         </div>
         <script src="/public/scripts/sidebarToggle.js"></script>
+        <script>
+// HU-014: confirmacion sobre <details>. "No" cierra la tarjeta sin accion y
+// un clic afuera tamb la cierra (sin confirm() de JS).
+document.addEventListener('click', function (ev) {
+    var boton = ev.target.closest('[data-cerrar]');
+    if (boton) {
+        var tarjeta = boton.closest('details');
+        if (tarjeta) tarjeta.removeAttribute('open');
+        return;
+    }
+    document.querySelectorAll('details.confirmar-desc[open]').forEach(function (tarjeta) {
+        if (!tarjeta.contains(ev.target)) tarjeta.removeAttribute('open');
+    });
+});
+        </script>
         <script src="/public/scripts/devLive.js"></script>
         <script src="/public/scripts/deviceChart.js?v=3"></script>
     </body>

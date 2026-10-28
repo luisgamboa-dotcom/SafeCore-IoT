@@ -36,7 +36,8 @@ def getDeviceBySerial(codigo_serial):
     try:
         cur = conn.cursor(dictionary=True)
         cur.execute(
-            "SELECT id_dispositivo, codigo_serial FROM dispositivos WHERE codigo_serial = %s",
+            "SELECT id_dispositivo, codigo_serial, activo FROM dispositivos"
+            " WHERE codigo_serial = %s",
             (codigo_serial,),
         )
         return cur.fetchone()
@@ -45,22 +46,24 @@ def getDeviceBySerial(codigo_serial):
 
 
 def matchDeviceBySerial(device_serial, device_id):
-    """Resuelve el dispositivo por serial y valida/anota su identificador unico."""
+    """Resuelve el dispositivo por serial y valida/anota su identificador unico.
+    Un dispositivo dado de baja (activo=0) se retorna marcado con no_activo y
+    sin modificar el registro (HU-014)."""
     conn = getConnection()
     cur = None
     try:
         cur = conn.cursor(dictionary=True)
         cur.execute(
-            "SELECT id_dispositivo, codigo_serial, identificador_unico"
+            "SELECT id_dispositivo, codigo_serial, activo, identificador_unico"
             " FROM dispositivos WHERE codigo_serial = %s",
             (device_serial,),
         )
         dev = cur.fetchone()
         if dev is None:
             return None
-        if device_id is None:
-            return dev
-        if dev["identificador_unico"] is None:
+        inactivo = dev["activo"] == 0
+        # Solo nodos activos pueden anotar su identificador unico.
+        if device_id is not None and not inactivo and dev["identificador_unico"] is None:
             cur2 = conn.cursor()
             cur2.execute(
                 "UPDATE dispositivos SET identificador_unico = %s"
@@ -71,8 +74,10 @@ def matchDeviceBySerial(device_serial, device_id):
             cur2.close()
             dev["identificador_unico"] = device_id
             return dev
-        if dev["identificador_unico"] != device_id:
+        if not inactivo and device_id is not None and dev["identificador_unico"] != device_id:
             return {"conflicto": device_id, **dev}
+        if inactivo:
+            dev = {"no_activo": True, **dev}
         return dev
     finally:
         closeConnection(conn, cur)

@@ -6,7 +6,6 @@
 <title>SafeCore IoT - Dashboard</title>
 <link rel="icon" type="image/png" href="/public/images/logo-icon.png">
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <script id="tailwind-config">
@@ -76,35 +75,25 @@ tailwind.config = {
     <div class="max-w-[1280px] mx-auto p-4 md:p-8 pb-12">
 
       <!-- Indicadores -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-5 flex items-center justify-between">
           <div>
             <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Dispositivos activos</p>
-            <h3 id="kpiDispositivos" class="text-3xl font-bold text-primary">{{ lecturas|length if lecturas else "—" }}</h3>
+            <h3 id="kpiDispositivos" class="text-3xl font-bold text-primary">{{ dispositivos|length }}</h3>
           </div>
           <div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary-container">
             <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">signal_cellular_alt</span>
           </div>
         </div>
-        <div class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-5 flex items-center justify-between">
+        <a href="/dashboard/alertas" class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-5 flex items-center justify-between">
           <div>
             <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Alertas activas</p>
-            <h3 id="kpiAlertas" class="text-3xl font-bold text-error">—</h3>
+            <h3 id="kpiAlertas" class="text-3xl font-bold {% if alertas_abiertas %}text-error{% else %}text-on-surface-variant{% endif %}">{{ alertas_abiertas }}</h3>
           </div>
           <div class="w-12 h-12 rounded-full bg-error-container flex items-center justify-center text-error">
             <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">warning</span>
           </div>
-        </div>
-        <div class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-5 flex items-center justify-between min-h-[104px]">
-          <div class="min-w-0">
-            <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Última actualización</p>
-            <p class="text-sm font-semibold text-on-surface leading-snug" id="ultimaActualizacion">{% if lecturas and lecturas[0].fecha_hora %}{{ lecturas[0].fecha_hora }}{% else %}Sin datos{% endif %}</p>
-            <p class="mt-1"><span id="ultimaDetalle" class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-low text-[11px] font-medium text-on-surface-variant">En espera del nodo…</span></p>
-          </div>
-          <div class="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center text-primary-container">
-            <span class="material-symbols-outlined">sync</span>
-          </div>
-        </div>
+        </a>
         <div class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-5 flex items-center justify-between">
           <div>
             <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Estado</p>
@@ -116,110 +105,38 @@ tailwind.config = {
         </div>
       </div>
 
-      <!-- Gráficos vacíos + alertas -->
-      <div id="historial" class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        <div class="lg:col-span-8 bg-white rounded-xl border border-outline-variant card-shadow flex flex-col">
-          <div class="p-6 border-b border-outline-variant flex flex-wrap gap-3 justify-between items-center">
-            <h2 id="chartTitle" class="text-xl font-semibold text-primary">Niveles de gas (ppm)</h2>
-            <div id="sensorTabs" class="flex bg-surface-container-low rounded-lg p-1" role="tablist" aria-label="Seleccionar sensor">
-              <button type="button" data-tipo="gas" role="tab" aria-pressed="true" class="sensor-tab px-4 py-1.5 text-xs font-semibold rounded-md bg-white shadow-sm text-primary">Gas</button>
-              <button type="button" data-tipo="temp" role="tab" aria-pressed="false" class="sensor-tab px-4 py-1.5 text-xs font-semibold rounded-md">Temp</button>
-              <button type="button" data-tipo="hum" role="tab" aria-pressed="false" class="sensor-tab px-4 py-1.5 text-xs font-semibold rounded-md">Hum</button>
-            </div>
+      <!-- Accesos a las secciones del panel -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+        <a href="/dashboard/alertas" class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-6 flex items-start gap-4 group">
+          <div class="w-11 h-11 rounded-full bg-error-container flex items-center justify-center text-error flex-shrink-0">
+            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">warning</span>
           </div>
-          <div class="p-6">
-            <div class="relative h-[280px]">
-              <canvas id="sensorChart" class="w-full rounded-xl border border-outline-variant" aria-label="Historial del sensor en vivo"></canvas>
-            </div>
-            <div class="grid grid-cols-3 gap-3 mt-4">
-              <div class="rounded-lg bg-surface-container-low px-3 py-2 text-center">
-                <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Máximo</p>
-                <p id="chartStatsMax" class="text-lg font-bold text-primary">—</p>
-              </div>
-              <div class="rounded-lg bg-surface-container-low px-3 py-2 text-center">
-                <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Mínimo</p>
-                <p id="chartStatsMin" class="text-lg font-bold text-primary">—</p>
-              </div>
-              <div class="rounded-lg bg-surface-container-low px-3 py-2 text-center">
-                <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Promedio</p>
-                <p id="chartStatsProm" class="text-lg font-bold text-primary">—</p>
-              </div>
-            </div>
-            <ul id="sensorHistory" class="mt-3 text-xs text-on-surface-variant grid grid-cols-2 sm:grid-cols-5 gap-2"></ul>
-            <div id="chartEmpty" class="chart-empty rounded-xl min-h-[60px] flex flex-col items-center justify-center text-center gap-1 p-4 mt-3">
-              <p class="font-semibold text-primary text-sm">Esperando al nodo…</p>
-              <p class="text-xs text-on-surface-variant max-w-md">En vivo vía <code>/api/live</code>, sin guardar en DB.</p>
-            </div>
+          <div>
+            <h3 class="font-semibold text-on-surface group-hover:text-primary transition-colors">Alertas</h3>
+            <p class="text-sm text-on-surface-variant mt-1">Todas las alertas registradas, con su detalle completo.</p>
+            <span class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-secondary">Ver alertas <span class="material-symbols-outlined text-sm">arrow_forward</span></span>
           </div>
-        </div>
-        <div id="alertas" class="lg:col-span-4 bg-white rounded-xl border border-outline-variant card-shadow flex flex-col">
-          <div class="p-6 border-b border-outline-variant">
-            <h2 class="text-xl font-semibold text-primary">Alertas recientes</h2>
+        </a>
+        <a href="/dashboard/sensores" class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-6 flex items-start gap-4 group">
+          <div class="w-11 h-11 rounded-full bg-primary-fixed flex items-center justify-center text-primary-container flex-shrink-0">
+            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">sensors</span>
           </div>
-          <div id="alertasLive" class="p-6 text-sm text-on-surface-variant">
-            {% if lecturas %}
-            <ul class="space-y-3">
-              {% for l in lecturas[:5] %}
-              <li class="flex gap-3 p-3 rounded-lg bg-surface-container-low">
-                <span class="w-2 h-2 rounded-full mt-2 flex-shrink-0 {% if l.calidad == 'dudosa' %}bg-yellow-500{% else %}bg-green-500{% endif %}"></span>
-                <div>
-                  <p class="font-semibold text-on-surface">{{ l.dispositivo or l.codigo_serial }} · {{ l.magnitud }}: {{ l.valor }}</p>
-                  <p class="text-xs mt-1">{{ l.fecha_hora }} · {{ l.calidad }}</p>
-                </div>
-              </li>
-              {% endfor %}
-            </ul>
-            {% else %}
-            <div class="chart-empty rounded-xl p-6 text-center">
-              <p class="font-semibold text-primary">Sin alertas por ahora</p>
-              <p class="mt-1">Cuando el dispositivo reporte valores fuera de rango aparecerán aquí.</p>
-            </div>
-            {% endif %}
+          <div>
+            <h3 class="font-semibold text-on-surface group-hover:text-primary transition-colors">Sensores</h3>
+            <p class="text-sm text-on-surface-variant mt-1">Estado y última lectura de cada dispositivo.</p>
+            <span class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-secondary">Ver sensores <span class="material-symbols-outlined text-sm">arrow_forward</span></span>
           </div>
-        </div>
-      </div>
-
-      <!-- Dispositivos -->
-      <div id="dispositivos" class="mt-8">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-semibold text-primary">Estado de dispositivos</h2>
-          <a href="/datos/live" class="text-sm text-secondary hover:underline">Ver JSON en vivo</a>
-        </div>
-        <div id="devicesLive" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {% if dispositivos %}
-            {% for d in dispositivos %}
-            <article class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-5 relative overflow-hidden" data-serial="{{ d.codigo_serial }}">
-              <div class="absolute top-0 right-0 w-16 h-16 bg-surface-container-low rounded-bl-3xl flex items-center justify-center">
-                <img src="/public/images/logo-icon.png" alt="" class="w-12 h-12 object-contain opacity-90">
-              </div>
-              <div class="flex justify-between items-start mb-4">
-                <div>
-                  <h3 class="font-semibold text-on-surface">{{ d.nombre }} · {{ d.codigo_serial }}</h3>
-                  <p class="text-xs text-on-surface-variant mt-1 flex items-center gap-1">
-                    <span class="material-symbols-outlined text-sm">location_on</span> {{ d.zona }}{% if d.instalacion %} · {{ d.instalacion }}{% endif %}
-                  </p>
-                </div>
-                <span class="js-dot w-3 h-3 rounded-full status-dot-off"></span>
-              </div>
-              <div class="flex justify-between items-end">
-                <div>
-                  <p class="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Estado</p>
-                  <span class="js-estado inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container-low text-xs font-semibold">—</span>
-                </div>
-                <div class="text-right">
-                  <p class="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Última lectura</p>
-                  <p class="js-lectura text-xl font-bold text-primary">—</p>
-                </div>
-              </div>
-              <p class="js-fecha text-xs text-on-surface-variant mt-3">—</p>
-              <a href="/dashboard/devices/{{ d.id_dispositivo }}" class="mt-4 inline-flex items-center justify-center w-full py-2 rounded-lg border border-outline-variant text-sm font-semibold text-secondary hover:bg-surface-container-low transition-colors">Detalles</a>
-            </article>
-            {% endfor %}
-          {% else %}
-            <p class="text-sm text-on-surface-variant">Sin dispositivos activos en el sistema.</p>
-          {% endif %}
-        </div>
-      </div>
+        </a>
+        <a href="/dashboard/historial" class="bg-white rounded-xl border border-outline-variant card-shadow card-hover p-6 flex items-start gap-4 group">
+          <div class="w-11 h-11 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary flex-shrink-0">
+            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">history</span>
+          </div>
+          <div>
+            <h3 class="font-semibold text-on-surface group-hover:text-primary transition-colors">Historial</h3>
+            <p class="text-sm text-on-surface-variant mt-1">Gráficos históricos por magnitud con máximos y promedios.</p>
+            <span class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-secondary">Ver historial <span class="material-symbols-outlined text-sm">arrow_forward</span></span>
+          </div>
+        </a>
       </div>
 
     </div>
@@ -230,6 +147,6 @@ tailwind.config = {
 {% include "partials/toast.html" %}
 
 <script src="/public/scripts/sidebarToggle.js"></script>
-<script src="/public/scripts/dashboardScripts.js?v=6"></script>
+<script src="/public/scripts/dashboardScripts.js?v=7"></script>
 </body>
 </html>

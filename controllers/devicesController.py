@@ -12,6 +12,7 @@ from models import devicesModel as dev_model
 from models import zonesModel as zone_model
 from models import usersModel as user_model
 from models import auditoriaModel as audit_model
+from models import alertsModel as alerts_model
 from utils import nodeIps
 from utils.commonUtils import adminContext, restrictedOrganization, userSessionContext
 from utils.flashUtils import flashForm, popFormFlash
@@ -280,3 +281,51 @@ def deleteDeviceFromAdmin(request: Request,
         return RedirectResponse(f"/admin/devices/{id_device}/edit", status_code=303)
     flashForm(request, "Dispositivo eliminado correctamente (incluyendo sus lecturas).", ok=True)
     return RedirectResponse("/admin/devices", status_code=303)
+
+
+async def toggleDeviceActive(request: Request,
+                             id_device: int,
+                             id_sesion: UUID = Depends(session_cookie),
+                             sesion: SessionData = Depends(requireAdminUser),
+                             motivo: str = Form("")):
+    """HU-014: da de baja (o reactiva) un dispositivo sin eliminar su informacion.
+    Al desactivar cancela sus alertas activas y audita quien, cuando y con que motivo."""
+    dev = dev_model.getDeviceDetail(id_device)
+    if dev is None:
+        flashForm(request, "El dispositivo no existe.")
+        return RedirectResponse("/admin/devices", status_code=303)
+
+    # Origen del envio (lista admin o ficha del dashboard) para volver al lugar.
+    form = await request.form()
+    destino = form.get("origen", "admin")
+    def volver():
+        return RedirectResponse(
+            f"/dashboard/devices/{id_device}" if destino == "ficha"
+            else "/admin/devices", status_code=303)
+
+    try:
+        if dev["activo"]:
+            dev_model.setDeviceActivo(id_device, False)
+            canceladas = alerts_model.cancelarAlertasDeDispositivo(id_device)
+            # Auditoria: cambio de bandera + motivo opcional del administrador.
+            audit_model.registrarAuditoria(sesion.id_usuario, "dispositivo",
+                                           id_device, "desactivar",
+                                           "activo: 1", "activo: 0")
+            motivo_limpio = (motivo or "").strip()
+            if motivo_limpio:
+                audit_model.registrarAuditoria(sesion.id_usuario, "dispositivo",
+                                               id_device, "desactivar",
+                                               "motivo: -", f"motivo: {motivo_limpio}")
+            flashForm(request,
+                      f"Dispositivo desactivado: se conservó su historial y se "
+                      f"cancelaron {canceladas} alerta(s) activa(s).", ok=True)
+        else:
+            dev_model.setDeviceActivo(id_device, True)
+            audit_model.registrarAuditoria(sesion.id_usuario, "dispositivo",
+                                           id_device, "activar",
+                                           "activo: 0", "activo: 1")
+            flashForm(request, "Dispositivo activado correctamente.", ok=True)
+    except mysql.connector.Error as e:
+        flashForm(request, f"Error al guardar el estado del dispositivo: {e.msg}")
+        return volver()
+    return volver()

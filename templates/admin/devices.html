@@ -129,7 +129,28 @@ tailwind.config = {
                                         {% else %}<span class="text-on-surface-variant">—</span>{% endif %}
                                     </td>
                                     <td class="p-4 text-right">
-                                        <a class="px-3 py-1.5 rounded-lg border border-outline-variant font-label-sm text-label-sm hover:bg-surface-container-low" href="/admin/devices/{{ d.id_dispositivo }}/edit">Editar</a>
+                                        <span class="inline-flex items-center gap-2">
+                                            <details class="confirmar-desc relative inline-block text-left">
+                                                <summary class="list-none cursor-pointer px-3 py-1.5 rounded-lg border font-label-sm text-label-sm {% if d.activo %}border-error text-error hover:bg-surface-container-low{% else %}border-outline-variant text-on-surface-variant hover:bg-surface-container-low{% endif %}">{{ 'Desactivar' if d.activo else 'Activar' }}</summary>
+                                                <div class="absolute right-0 z-20 mt-2 w-80 bg-surface-container-lowest rounded-lg shadow border border-surface-variant p-4 text-left">
+                                                    <form method="POST" action="/admin/devices/{{ d.id_dispositivo }}/toggle-active">
+                                                        <input type="hidden" name="origen" value="admin"/>
+                                                        {% if d.activo %}
+                                                        <p class="text-label-md font-label-md">¿Estás seguro de desactivar el dispositivo {{ d.nombre }}/{{ d.codigo_serial }}? Se conservará el historial y se cancelarán sus alertas activas</p>
+                                                        <label class="block mt-3 font-label-sm text-label-sm text-on-surface-variant" for="motivo-{{ d.id_dispositivo }}">Motivo (opcional)</label>
+                                                        <textarea id="motivo-{{ d.id_dispositivo }}" name="motivo" rows="2" class="w-full mt-1 rounded-lg border border-outline-variant px-3 py-2 font-label-md text-label-md" placeholder="Razón de la baja"></textarea>
+                                                        {% else %}
+                                                        <p class="text-label-md font-label-md">¿Estás seguro de activar el dispositivo {{ d.nombre }}/{{ d.codigo_serial }}?</p>
+                                                        {% endif %}
+                                                        <div class="flex justify-end gap-2 mt-3">
+                                                            <button type="button" data-cerrar="1" class="px-3 py-1.5 rounded-lg border border-outline-variant font-label-sm text-label-sm hover:bg-surface-container-low">No</button>
+                                                            <button type="submit" class="px-3 py-1.5 rounded-lg font-label-sm text-label-sm text-white {% if d.activo %}bg-error{% else %}bg-secondary{% endif %}">Sí</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </details>
+                                            <a class="px-3 py-1.5 rounded-lg border border-outline-variant font-label-sm text-label-sm hover:bg-surface-container-low" href="/admin/devices/{{ d.id_dispositivo }}/edit">Editar</a>
+                                        </span>
                                     </td>
                                 </tr>
                                 {% else %}
@@ -146,5 +167,20 @@ tailwind.config = {
         </main>
         </div>
         <script src="/public/scripts/sidebarToggle.js"></script>
+        <script>
+// HU-014: confirmacion sobre <details>. "No" cierra la tarjeta sin accion y
+// un clic afuera tamb la cierra (sin confirm() de JS).
+document.addEventListener('click', function (ev) {
+    var boton = ev.target.closest('[data-cerrar]');
+    if (boton) {
+        var tarjeta = boton.closest('details');
+        if (tarjeta) tarjeta.removeAttribute('open');
+        return;
+    }
+    document.querySelectorAll('details.confirmar-desc[open]').forEach(function (tarjeta) {
+        if (!tarjeta.contains(ev.target)) tarjeta.removeAttribute('open');
+    });
+});
+        </script>
     </body>
 </html>
