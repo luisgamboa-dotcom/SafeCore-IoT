@@ -33,15 +33,13 @@ def registerUser(
     email: str = Form(...),
     telefono: str = Form(""),
     password: str = Form(...),
-    confirmPassword: str = Form(...),
-    id_organizacion: str = Form("")
+    confirmPassword: str = Form(...)
     ):
 
     form_data = user_utils.normalizeForm({"nombre": nombre,
                  "apellido": apellido,
                  "email": email,
                  "telefono": telefono,
-                 "id_organizacion": id_organizacion,
                  "password": password,
                  "confirmPassword": confirmPassword
                  })
@@ -74,7 +72,7 @@ def registerUser(
             form_data["email"],
             telefono_normalizado,
             form_data["password_hash"],
-            int(form_data["id_organizacion"]) if form_data["id_organizacion"] else None)
+            None)
         id_rol_usuario = user_model.getRoleIdByName("Usuario")
         if id_rol_usuario is not None:
             user_model.assignRole(nuevo_id, id_rol_usuario)
@@ -82,8 +80,6 @@ def registerUser(
     except mysql.connector.Error as e:
         if e.errno == 1062:
             return redirectWithError("Ese correo ya está registrado")
-        if e.errno == 1452:
-            return redirectWithError("La organización elegida no existe")
         return redirectWithError(f"Error al guardar: {e.msg}")
     flashForm(request, "Cuenta creada. ¡Bienvenido!", ok=True)
     return RedirectResponse("/dashboard", status_code=303)

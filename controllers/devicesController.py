@@ -1,17 +1,22 @@
 """Ficha de dispositivo y CRUD de dispositivos del panel admin."""
+import csv
+import io
 import time
+from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
 import mysql.connector
 from fastapi import Depends, Form, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from config.sessionsConfig import SessionData, cookie as session_cookie, verificador, requireAdminUser
 from models import devicesModel as dev_model
 from models import zonesModel as zone_model
 from models import usersModel as user_model
 from models import auditoriaModel as audit_model
+from models import alertsModel as alerts_model
+from models import readingsModel as lec_model
 from utils import nodeIps
 from utils.commonUtils import adminContext, restrictedOrganization, userSessionContext
 from utils.flashUtils import flashForm, popFormFlash
@@ -26,10 +31,14 @@ def showDeviceDetail(request: Request,
     dev = dev_model.getDeviceDetail(id_device)
     if dev is None:
         return RedirectResponse("/dashboard", status_code=303)
-    org = restrictedOrganization(sesion)
-    if org is not None and dev.get("id_organizacion") != org:
-        return RedirectResponse("/dashboard", status_code=303)
     contexto = {"request": request, "dev": dev, **userSessionContext(sesion)}
+    horas = request.query_params.get("horas", "24")
+    contexto["horas_export"] = horas if horas in ("24", "168", "720", "0") else "24"
+    org = restrictedOrganization(sesion)
+    # Usuario comun: sin organizacion, o con una distinta a la del dispositivo,
+    # no accede (solo administradores tienen alcance global).
+    if not contexto["is_admin"] and (org is None or dev.get("id_organizacion") != org):
+        return RedirectResponse("/dashboard", status_code=303)
     if contexto["is_admin"]:
         from models import rulesModel
         try:
@@ -47,6 +56,11 @@ def showDeviceDetail(request: Request,
             contexto["dev_tiene_lecturas"] = False
             contexto["modelos_form"] = []
     try:
+        from models import rulesModel
+        contexto["umbrales"] = rulesModel.getActiveThresholds(dev["id_zona"])
+    except Exception:
+        contexto["umbrales"] = {}
+    try:
         from models import alertsModel
         contexto["alertas"] = alertsModel.getDeviceAlertas(id_device)
     except Exception:
@@ -55,12 +69,70 @@ def showDeviceDetail(request: Request,
         from models import mantenimientosModel as mant_model
         contexto["mantenimientos"] = mant_model.getMantenimientosByDevice(id_device)
         contexto["ultimo_mant"] = mant_model.getUltimoMantenimiento(id_device)
+        contexto["proximo_mant"] = mant_model.getProximoMantenimiento(id_device)
     except Exception:
         contexto["mantenimientos"] = []
         contexto["ultimo_mant"] = None
+        contexto["proximo_mant"] = None
+    # HU-031: formularios visibles para admin global o supervisor de la org.
+    from controllers.mantenimientosController import puedeGestionar, contextoFormulario
+    if puedeGestionar(sesion, dev):
+        contexto["puede_mantenimiento"] = True
+        try:
+            contexto.update(contextoFormulario(sesion, dev))
+        except Exception:
+            contexto["puede_mantenimiento"] = False
+    contexto["ahora_local"] = datetime.now().strftime("%Y-%m-%dT%H:%M")
+    hoy = date.today().isoformat()
+    contexto["hoy_min"] = hoy + "T00:00"
+    contexto["hoy_max"] = hoy + "T23:59"
+    contexto["modo_mant"] = ("realizado"
+                             if request.query_params.get("modo") == "realizado"
+                             else "programado")
     contexto["flash_msg"], _, contexto["flash_ok"] = popFormFlash(request)
     return templates.TemplateResponse(
         request, "datos/device.html", contexto)
+
+
+PERIODOS_EXPORT = {"24", "168", "720", "0"}
+
+
+def exportDeviceCsv(request: Request,
+                    id_device: int,
+                    horas: str = "24",
+                    id_sesion: UUID = Depends(session_cookie),
+                    sesion: SessionData = Depends(verificador)):
+    """HU-011: CSV del historial de lecturas del dispositivo en el periodo dado."""
+    if horas not in PERIODOS_EXPORT:
+        horas = "24"
+    dev = dev_model.getDeviceDetail(id_device)
+    if dev is None:
+        return RedirectResponse("/dashboard", status_code=303)
+    contexto = {"request": request, "dev": dev, **userSessionContext(sesion)}
+    org = restrictedOrganization(sesion)
+    if not contexto["is_admin"] and (org is None or dev.get("id_organizacion") != org):
+        return RedirectResponse("/dashboard", status_code=303)
+    try:
+        filas = lec_model.getReadingsForExport(id_device, int(horas))
+    except Exception as e:
+        flashForm(request, f"Error al generar el CSV: {e}")
+        return RedirectResponse(f"/dashboard/devices/{id_device}?horas={horas}", status_code=303)
+    if not filas:
+        flashForm(request, "Sin lecturas en el período seleccionado.")
+        return RedirectResponse(f"/dashboard/devices/{id_device}?horas={horas}", status_code=303)
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["timestamp", "dispositivo", "id_dispositivo", "magnitud",
+                     "valor", "estado", "fecha_exportacion"])
+    ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    for fila in filas:
+        writer.writerow([fila["fecha_hora"], fila["dispositivo"],
+                         fila["id_dispositivo"], fila["magnitud"],
+                         fila["valor"], fila["calidad"], ahora])
+    nombre = f"historial_{dev['codigo_serial']}_{datetime.now().strftime('%Y-%m-%d')}.csv"
+    contenido = "\ufeff" + buffer.getvalue()
+    return Response(contenido, media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="{nombre}"'})
 
 
 def _formContext(sesion, dev=None):
@@ -280,3 +352,51 @@ def deleteDeviceFromAdmin(request: Request,
         return RedirectResponse(f"/admin/devices/{id_device}/edit", status_code=303)
     flashForm(request, "Dispositivo eliminado correctamente (incluyendo sus lecturas).", ok=True)
     return RedirectResponse("/admin/devices", status_code=303)
+
+
+async def toggleDeviceActive(request: Request,
+                             id_device: int,
+                             id_sesion: UUID = Depends(session_cookie),
+                             sesion: SessionData = Depends(requireAdminUser),
+                             motivo: str = Form("")):
+    """HU-014: da de baja (o reactiva) un dispositivo sin eliminar su informacion.
+    Al desactivar cancela sus alertas activas y audita quien, cuando y con que motivo."""
+    dev = dev_model.getDeviceDetail(id_device)
+    if dev is None:
+        flashForm(request, "El dispositivo no existe.")
+        return RedirectResponse("/admin/devices", status_code=303)
+
+    # Origen del envio (lista admin o ficha del dashboard) para volver al lugar.
+    form = await request.form()
+    destino = form.get("origen", "admin")
+    def volver():
+        return RedirectResponse(
+            f"/dashboard/devices/{id_device}" if destino == "ficha"
+            else "/admin/devices", status_code=303)
+
+    try:
+        if dev["activo"]:
+            dev_model.setDeviceActivo(id_device, False)
+            canceladas = alerts_model.cancelarAlertasDeDispositivo(id_device)
+            # Auditoria: cambio de bandera + motivo opcional del administrador.
+            audit_model.registrarAuditoria(sesion.id_usuario, "dispositivo",
+                                           id_device, "desactivar",
+                                           "activo: 1", "activo: 0")
+            motivo_limpio = (motivo or "").strip()
+            if motivo_limpio:
+                audit_model.registrarAuditoria(sesion.id_usuario, "dispositivo",
+                                               id_device, "desactivar",
+                                               "motivo: -", f"motivo: {motivo_limpio}")
+            flashForm(request,
+                      f"Dispositivo desactivado: se conservó su historial y se "
+                      f"cancelaron {canceladas} alerta(s) activa(s).", ok=True)
+        else:
+            dev_model.setDeviceActivo(id_device, True)
+            audit_model.registrarAuditoria(sesion.id_usuario, "dispositivo",
+                                           id_device, "activar",
+                                           "activo: 0", "activo: 1")
+            flashForm(request, "Dispositivo activado correctamente.", ok=True)
+    except mysql.connector.Error as e:
+        flashForm(request, f"Error al guardar el estado del dispositivo: {e.msg}")
+        return volver()
+    return volver()

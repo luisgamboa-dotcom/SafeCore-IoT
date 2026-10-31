@@ -1,5 +1,5 @@
 .env
-firmware/secrets.h
+firmware/safecoreNode/secrets.h
 .venv
 __pycache__/**
 sql/

@@ -38,6 +38,36 @@ def getZoneRules(id_zona):
         closeConnection(conn, cur)
 
 
+def getActiveThresholds(id_zona):
+    """Umbrales de las reglas activas de la zona, agrupados por tipo corto
+    de magnitud (gas/temp/hum), para la grafica de la ficha."""
+    from models.readingsModel import MAGNITUDES
+    nombre_tipo = {v["nombre"]: k for k, v in MAGNITUDES.items()}
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("""SELECT r.severidad, r.operador, r.valor_umbral,
+                              m.nombre AS magnitud
+                       FROM reglas_alerta r
+                       JOIN magnitudes m ON m.id_magnitud = r.id_magnitud
+                       WHERE r.id_zona = %s AND r.activa = 1
+                       ORDER BY m.nombre, r.severidad""",
+                    (id_zona,))
+        grupos = {}
+        for fila in cur.fetchall():
+            tipo = nombre_tipo.get(fila["magnitud"])
+            if tipo:
+                grupos.setdefault(tipo, []).append({
+                    "severidad": fila["severidad"],
+                    "operador": fila["operador"],
+                    "valor_umbral": float(fila["valor_umbral"]),
+                })
+        return grupos
+    finally:
+        closeConnection(conn, cur)
+
+
 def getRuleById(id_regla):
     conn = getConnection()
     cur = None

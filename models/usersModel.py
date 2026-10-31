@@ -151,6 +151,21 @@ def getAllUsersWithDetails(q=None, sort_by=None, sort_dir=None,
         _cerrar(conn, cur)
 
 
+def updatePerfil(id_usuario, nombre, apellido, telefono):
+    """Datos personales editables del propio usuario desde su perfil
+    (email, estado y organizacion quedan fuera del perfil)."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE usuarios SET nombre=%s, apellido=%s, telefono=%s WHERE id_usuario=%s",
+            (nombre, apellido, telefono, id_usuario))
+        conn.commit()
+    finally:
+        _cerrar(conn, cur)
+
+
 def updateUser(id_usuario, nombre, apellido, email, id_organizacion, id_estado):
     conn = getConnection()
     cur = None
@@ -208,6 +223,22 @@ def getUsersByOrganization(id_organizacion):
                        WHERE u.id_organizacion = %s
                        GROUP BY u.id_usuario ORDER BY u.nombre, u.apellido""",
                     (id_organizacion,))
+        return cur.fetchall()
+    finally:
+        _cerrar(conn, cur)
+
+
+def getAllUsersBasic():
+    """Usuarios activos en forma minima (select de responsables, HU-031)."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("""SELECT u.id_usuario, u.nombre, u.apellido, u.email, e.nombre AS estado
+                       FROM usuarios u
+                       JOIN usuarios_estados e ON e.id_usuario_estado = u.id_usuario_estado
+                       WHERE e.nombre = 'Activo'
+                       ORDER BY u.nombre, u.apellido""")
         return cur.fetchall()
     finally:
         _cerrar(conn, cur)

@@ -36,7 +36,8 @@ def getDeviceBySerial(codigo_serial):
     try:
         cur = conn.cursor(dictionary=True)
         cur.execute(
-            "SELECT id_dispositivo, codigo_serial FROM dispositivos WHERE codigo_serial = %s",
+            "SELECT id_dispositivo, codigo_serial, activo FROM dispositivos"
+            " WHERE codigo_serial = %s",
             (codigo_serial,),
         )
         return cur.fetchone()
@@ -45,22 +46,24 @@ def getDeviceBySerial(codigo_serial):
 
 
 def matchDeviceBySerial(device_serial, device_id):
-    """Resuelve el dispositivo por serial y valida/anota su identificador unico."""
+    """Resuelve el dispositivo por serial y valida/anota su identificador unico.
+    Un dispositivo dado de baja (activo=0) se retorna marcado con no_activo y
+    sin modificar el registro (HU-014)."""
     conn = getConnection()
     cur = None
     try:
         cur = conn.cursor(dictionary=True)
         cur.execute(
-            "SELECT id_dispositivo, codigo_serial, identificador_unico"
+            "SELECT id_dispositivo, codigo_serial, activo, identificador_unico"
             " FROM dispositivos WHERE codigo_serial = %s",
             (device_serial,),
         )
         dev = cur.fetchone()
         if dev is None:
             return None
-        if device_id is None:
-            return dev
-        if dev["identificador_unico"] is None:
+        inactivo = dev["activo"] == 0
+        # Solo nodos activos pueden anotar su identificador unico.
+        if device_id is not None and not inactivo and dev["identificador_unico"] is None:
             cur2 = conn.cursor()
             cur2.execute(
                 "UPDATE dispositivos SET identificador_unico = %s"
@@ -71,8 +74,10 @@ def matchDeviceBySerial(device_serial, device_id):
             cur2.close()
             dev["identificador_unico"] = device_id
             return dev
-        if dev["identificador_unico"] != device_id:
+        if not inactivo and device_id is not None and dev["identificador_unico"] != device_id:
             return {"conflicto": device_id, **dev}
+        if inactivo:
+            dev = {"no_activo": True, **dev}
         return dev
     finally:
         closeConnection(conn, cur)
@@ -226,42 +231,40 @@ def getSerieZona(id_zona, limite=300):
             for f in filas]
 
 
-def getHistoricoPorMagnitud(limite=150, id_organizacion=None):
-    limite = max(1, min(int(limite), 1000))
+def getHistoricoPorMagnitud(limite=150, id_organizacion=None, serial=None, horas=None):
+    """Serie historica (ultimas `limite` lecturas, mas recientes al final) con
+    filtros opcionales: organizacion, serial y ventana de horas (0 = sin ventana)."""
+    limite = max(1, min(int(limite), 2000))
     from models.devicesModel import dispositivosOrganizacion_sql
+    condiciones, params = [], []
+    if id_organizacion is not None:
+        condiciones.append(dispositivosOrganizacion_sql('d.id_dispositivo'))
+        params.append(id_organizacion)
+    if serial:
+        condiciones.append("d.codigo_serial = %s")
+        params.append(serial)
+    if horas is not None and horas > 0:
+        condiciones.append("l.fecha_hora >= NOW() - INTERVAL %s HOUR")
+        params.append(int(horas))
+    where = ("WHERE " + " AND ".join(condiciones)) if condiciones else ""
     conn = getConnection()
     cur = None
     try:
         cur = conn.cursor(dictionary=True)
-        if id_organizacion is None:
-            cur.execute(
-                """SELECT * FROM (
-                       SELECT l.id_lectura, l.valor, l.fecha_hora, l.calidad,
-                              m.nombre AS magnitud_nom, m.simbolo,
-                              d.codigo_serial, d.nombre AS dispositivo
-                       FROM lecturas l
-                       JOIN magnitudes m ON m.id_magnitud = l.id_magnitud
-                       JOIN sensores s ON s.id_sensor = l.id_sensor
-                       JOIN dispositivos d ON d.id_dispositivo = s.id_dispositivo
-                       ORDER BY l.id_lectura DESC LIMIT %s
-                   ) ult ORDER BY ult.id_lectura ASC""",
-                (limite,),
-            )
-        else:
-            cur.execute(
-                f"""SELECT * FROM (
-                        SELECT l.id_lectura, l.valor, l.fecha_hora, l.calidad,
-                               m.nombre AS magnitud_nom, m.simbolo,
-                               d.codigo_serial, d.nombre AS dispositivo
-                        FROM lecturas l
-                        JOIN magnitudes m ON m.id_magnitud = l.id_magnitud
-                        JOIN sensores s ON s.id_sensor = l.id_sensor
-                        JOIN dispositivos d ON d.id_dispositivo = s.id_dispositivo
-                        WHERE {dispositivosOrganizacion_sql('d.id_dispositivo')}
-                        ORDER BY l.id_lectura DESC LIMIT %s
-                    ) ult ORDER BY ult.id_lectura ASC""",
-                (id_organizacion, limite),
-            )
+        cur.execute(
+            f"""SELECT * FROM (
+                    SELECT l.id_lectura, l.valor, l.fecha_hora, l.calidad,
+                           m.nombre AS magnitud_nom, m.simbolo,
+                           d.codigo_serial, d.nombre AS dispositivo
+                    FROM lecturas l
+                    JOIN magnitudes m ON m.id_magnitud = l.id_magnitud
+                    JOIN sensores s ON s.id_sensor = l.id_sensor
+                    JOIN dispositivos d ON d.id_dispositivo = s.id_dispositivo
+                    {where}
+                    ORDER BY l.id_lectura DESC LIMIT %s
+                ) ult ORDER BY ult.id_lectura ASC""",
+            (*params, limite),
+        )
         filas = cur.fetchall()
     finally:
         closeConnection(conn, cur)
@@ -270,6 +273,32 @@ def getHistoricoPorMagnitud(limite=150, id_organizacion=None):
              "magnitud": _MANG_TIPO.get(f["magnitud_nom"], f["magnitud_nom"]),
              "simbolo": f["simbolo"], "codigo_serial": f["codigo_serial"],
              "dispositivo": f["dispositivo"]} for f in filas]
+
+
+def getReadingsForExport(id_dispositivo, horas=24):
+    """Lecturas del dispositivo para el CSV de exportacion (horas=0: todo el
+    historial), con nombre de dispositivo, magnitud y calidad por fila."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        if horas and horas > 0:
+            filtro = "AND l.fecha_hora >= NOW() - INTERVAL %s HOUR"
+            params = (id_dispositivo, horas)
+        else:
+            filtro = ""
+            params = (id_dispositivo,)
+        cur.execute(f"""SELECT l.fecha_hora, d.nombre AS dispositivo, d.id_dispositivo,
+                               m.nombre AS magnitud, l.valor, l.calidad
+                        FROM lecturas l
+                        JOIN sensores s ON s.id_sensor = l.id_sensor
+                        JOIN dispositivos d ON d.id_dispositivo = s.id_dispositivo
+                        JOIN magnitudes m ON m.id_magnitud = l.id_magnitud
+                        WHERE s.id_dispositivo = %s {filtro}
+                        ORDER BY l.fecha_hora""", params)
+        return cur.fetchall()
+    finally:
+        closeConnection(conn, cur)
 
 
 def updateFirmwareVersion(id_dispositivo, fw):
