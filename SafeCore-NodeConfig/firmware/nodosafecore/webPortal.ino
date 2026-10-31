@@ -1,15 +1,10 @@
-// webPortal.ino — servidor web del nodo + captive portal + mDNS + API JSON
-// FW 3.0-portal. Aqui vive la PWA que se edita desde el telefono:
-// - STA ya conectado:  http://safecore-nodo.local
-// - AP (sin red):      conectarse al WiFi "SafeCore-XXXX" y abrir cualquier URL
-
+// webPortal.ino — web del nodo SafeCore (FW 3.0-portal): sirve la PWA embebida en PROGMEM con la que el telefono configura todo (red WiFi, servidor, serial, FW, umbral, tasa y PIN via http://safecore-nodo.local o el AP "SafeCore-XXXX"), mantiene los endpoints JSON /api/status /api/config (lectura y guardado con PIN obligatorio) /api/scan /api/test, el captive portal con DNS wildcard y mDNS; las URLs desconocidas redirigen al portal cuando no hay internet.
 #include "nodosafecore.h"
 
 ESP8266WebServer servidor(80);
 DNSServer dnsPortal;
 char nombreAp[24];
 
-// ---------- Estado de runtime (lo comparti con el loop) ----------
 unsigned long ultimaLectura = 0;
 unsigned long ultimoIntentoWiFi = 0;
 unsigned long seqTotal = 0;
@@ -17,10 +12,9 @@ unsigned long arranqueMs = 0;
 bool ultimoEnvioOk = false;
 int  ultimoCodigoHttp = 0;
 bool alarmaActiva = false;
-String origenHost = "manual";        // "auto" | "manual"
-String estadoBD = "desconocido";     // registrado | no-registrado | desconocido
+String origenHost = "manual";
+String estadoBD = "desconocido";
 
-// ---------- PWA: paginas embebidas ----------
 static const char PAGINA_HTML[] PROGMEM = R"HTML(
 <!doctype html>
 <html lang="es">
@@ -211,10 +205,8 @@ self.addEventListener("fetch", e => {
 });
 )SWJS";
 
-// Icono 192x192 PNG embebido como base64 (tamaño: 457 bytes de png)
 static const char ICONO_B64[] PROGMEM = "iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAABkElEQVR42u3XMQ0AIAxFwRpAAQ7wL4qBBQdVwMLUpJecgp83tDHmgm9hAgSEgBAQAgIBISAEhIBAQAgIASEgEBACQkAICASEgBAQAkJAICAEhIAQEAgIASEgBAQCQkAICAGBgBAQAkJACAgEhIAQEAICASEgBISAQEAICAEhIBAQAkJACAgEhIAQEAJCQCAgBISAEBAICAEhIAQEAkJACAgBgYAQEAJCQAgIBISAEBACAgEhIASEgFrZ574YR0ACEpCABFS5G1MISEACEpCABCQgASEgAQnIGy8gAQlIQPYRkDtJQAISkIAEJCAEJCABCUhAxb933QhIQAISkIAQEAgIASEgBISATICAEBACQkAgIASEgBAQCAgBISAEBAJCQAgIAYGAEBACQkAICASEgBAQAgIBISAEhIBAQAgIASEgEBACQkAICAGBgBAQAkJAICAEhIAQEAgIASEgBAQCQkAICAGBgBAQAkJACAgEhIAQEAICASEgBISAQEAICAEhIBAQAkJACAgBgYAQEAKikQRAFFdck6GSaQAAAABJRU5ErkJggg==";
 
-// ---------- decoder base64 (lee de PROGMEM) ----------
 int8_t valB64(char c) {
   if (c >= 'A' && c <= 'Z') return c - 'A';
   if (c >= 'a' && c <= 'z') return c - 'a' + 26;
@@ -243,13 +235,11 @@ size_t decodeB64(const char* src, uint8_t* dst, size_t cap) {
   return out;
 }
 
-// ---------- helpers ----------
 void copiaSeg(char* dst, size_t tam, const String& s) {
   strncpy(dst, s.c_str(), tam - 1);
   dst[tam - 1] = '\0';
 }
 
-// Marca la IP como ingresada a mano (PWA o comandos serie)
 void hostManual() {
   origenHost = "manual";
 }
@@ -258,13 +248,12 @@ bool pinValido() {
   return servidor.arg("pin") == String(CFG.pin);
 }
 
-// Escapa una string para incluirla en JSON (loads de SSID con comillas)
 String escJson(const String& s) {
   String r = "";
   for (unsigned int i = 0; i < s.length(); i++) {
     char c = s[i];
     if (c == '"' || c == '\\') r += '\\';
-    if (c < 32 || c > 126) { r += ' '; continue; }  // sin caracteres raros
+    if (c < 32 || c > 126) { r += ' '; continue; }
     r += c;
   }
   return r;
@@ -275,7 +264,6 @@ void pinIncorrecto() {
                 "{\"ok\":false,\"error\":\"PIN incorrecto\"}");
 }
 
-// ---------- handlers ----------
 void hRaiz()    { servidor.send_P(200, "text/html", PAGINA_HTML); }
 void hManifiesto(){ servidor.send_P(200, "application/manifest+json", MANIFIESTO_JSON); }
 void hSw()      { servidor.send_P(200, "application/javascript", SW_JS); }
@@ -383,7 +371,7 @@ void hGuardarConfig() {
   if (serialArg.length()) copiaSeg(CFG.serial, sizeof(CFG.serial), serialArg);
   if (fwArg.length()) copiaSeg(CFG.fw, sizeof(CFG.fw), fwArg);
   if (puertoArg > 0 && puertoArg < 65536) CFG.puerto = (uint16_t)puertoArg;
-  if (servidor.hasArg("umbral") && umbralArg >= 30 && umbralArg <= 1023)  // FW 3.1.3: min 30
+  if (servidor.hasArg("umbral") && umbralArg >= 30 && umbralArg <= 1023)
     CFG.umbral = umbralArg;
   if (servidor.hasArg("rate") && rateArg >= 2 && rateArg <= 300)
     CFG.rate_s = (uint16_t)rateArg;
@@ -397,10 +385,6 @@ void hGuardarConfig() {
                 "{\"ok\":true,\"msg\":\"guardado\"}");
 }
 
-// Cualquier URL desconocida:
-// - si no hay internet -> redirige al portal (asi el movil dispara el
-//   flujo de captive portal solo)
-// - si hay internet -> 404 normal
 void hRedirigePortal() {
   if (WiFi.status() != WL_CONNECTED) {
     servidor.sendHeader("Location",
@@ -411,14 +395,12 @@ void hRedirigePortal() {
   }
 }
 
-// ---------- service ----------
 void atenderWeb() {
   dnsPortal.processNextRequest();
   servidor.handleClient();
 }
 
 void lanzarPortal() {
-  // nombre AP derivado del MAC (unico por nodo): SafeCore-XXXX
   String mac = WiFi.softAPmacAddress();
   String sufijo = "";
   for (int i = mac.length() - 1; i >= 0 && sufijo.length() < 4; i--) {
@@ -427,8 +409,7 @@ void lanzarPortal() {
   }
   snprintf(nombreAp, sizeof(nombreAp), "SafeCore-%s", sufijo.c_str());
 
-  WiFi.softAP(nombreAp, CLAVE_AP);  // AP con WPA2: softAP puede caer durante
-                                    // los reintentos STA (ver backoff en main)
+  WiFi.softAP(nombreAp, CLAVE_AP);
   dnsPortal.start(53, "*", WiFi.softAPIP());
 
   servidor.on("/", HTTP_GET, hRaiz);

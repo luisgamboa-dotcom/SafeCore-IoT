@@ -1,20 +1,14 @@
-// configStore.ino — configuracion persistente en EEPROM del nodo SafeCore
-// FW 3.0-portal. Definiciones: CFG + funciones de persistencia.
-// (los includes/prototipos vivan en nodosafecore.h)
-
+// configStore.ino — configuracion persistente en EEPROM del nodo SafeCore (FW 3.0-portal): define el bloque CFG con checksum CRC8, sus valores por defecto heredados del FW v2.1 (red, servidor, serial, umbral, tasa y PIN) y las funciones de escritura, carga con validacion y restablecimiento; los tipos e includes comunes viven en nodosafecore.h.
 #include "nodosafecore.h"
 
-DHT dht(DHTPIN, DHTTYPE);   // sensor temp/hum (pin D4 con DHT22)
+DHT dht(DHTPIN, DHTTYPE);
 
-// pines fisicos (mismos que v2.1)
 const int PIN_MQ2 = A0;
 const int PIN_ALARMA = D8;
 
 NodoConfig CFG;
 
 NodoConfig configPorDefecto() {
-  // Defaults = estado del repo v2.1 (secrets.h + .ino) para que el nodo
-  // siga funcionando tal como esta hoy desde el primer arranque.
   NodoConfig c;
   memset(&c, 0, sizeof(c));
   c.magic = CFG_MAGIC;
@@ -35,7 +29,7 @@ NodoConfig configPorDefecto() {
 
 uint8_t crc8Config(const NodoConfig& c) {
   const uint8_t* p = (const uint8_t*)&c;
-  size_t n = sizeof(NodoConfig) - 1;  // excluye el propio crc
+  size_t n = sizeof(NodoConfig) - 1;
   uint8_t crc = 0;
   while (n--) {
     uint8_t x = *p++;
@@ -60,8 +54,6 @@ void restablecerConfig() {
   escribirConfig();
 }
 
-// Carga la config; si el bloque no es valido aplica defaults (primer arranque
-// o config corrupta). Devuelve true si habia una config previa valida.
 bool cargarConfig() {
   EEPROM.begin(sizeof(NodoConfig) + 16);
   NodoConfig c;

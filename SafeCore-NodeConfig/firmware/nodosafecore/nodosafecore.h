@@ -1,9 +1,4 @@
-// nodosafecore.h — cabecera comun de los tres tabs del sketch
-// Arduino concatena los .ino con el PRINCIPAL (nodosafecore.ino) PRIMERO,
-// por eso las referencias cruzadas (CFG, servidor, dht, funciones de otros
-// tabs) se declaran aca y los .h guardan el orden sin importar la
-// concatenacion. Cada tab incluye esta cabecera con un guard.
-
+// nodosafecore.h — cabecera comun de los tres tabs del sketch: Arduino concatena los .ino con el principal primero, asi que aqui se declaran los includes, pines, el tipo de configuracion persistente (NodoConfig, subir CFG_VERSION si cambia su layout), las variables globales compartidas y los prototipos de las funciones de los otros tabs.
 #ifndef NODO_SAFECORE_H
 #define NODO_SAFECORE_H
 
@@ -20,8 +15,6 @@
 #define DHTPIN D4
 #define DHTTYPE DHT22
 
-// ---------- tipo de configuracion persistente (EEPROM emulada) ----------
-// Si cambiara el layout: subir CFG_VERSION.
 struct NodoConfig {
   uint32_t magic;
   uint8_t  version;
@@ -38,20 +31,18 @@ struct NodoConfig {
   uint8_t  crc;
 };
 
-const uint32_t CFG_MAGIC   = 0x47464353UL;  // 'SCFG' en little-endian
+const uint32_t CFG_MAGIC   = 0x47464353UL;
 const uint8_t  CFG_VERSION = 1;
 
 const char* CLAVE_AP = "12345678";
 
-// ---------- globals definidos en los otros tabs ----------
-extern DHT dht;                 // (configStore.ino)
-extern NodoConfig CFG;          // (configStore.ino)
+extern DHT dht;
+extern NodoConfig CFG;
 
-extern ESP8266WebServer servidor;  // (webPortal.ino)
-extern DNSServer dnsPortal;        // (webPortal.ino)
-extern char nombreAp[];            // (webPortal.ino) "SafeCore-XXXX"
+extern ESP8266WebServer servidor;
+extern DNSServer dnsPortal;
+extern char nombreAp[];
 
-// runtime compartido con el loop (webPortal.ino los define)
 extern unsigned long ultimaLectura;
 extern unsigned long ultimoIntentoWiFi;
 extern unsigned long seqTotal;
@@ -60,31 +51,24 @@ extern bool ultimoEnvioOk;
 extern int  ultimoCodigoHttp;
 extern bool alarmaActiva;
 
-// origen de la IP del servidor / estado de la BD (se actualizan en nodosafecore.ino)
-extern String origenHost;   // "auto" | "manual"
-extern String estadoBD;     // "registrado" | "no-registrado" | "desconocido"
+extern String origenHost;
+extern String estadoBD;
 
-// FW 3.1.2: maquina de radio AP/STA (definida en nodosafecore.ino)
 void gestionarModoRadio();
 
-// pines fisicos (v2.1: MQ-2 en ADC, alarma LED/buzzer en D8)
 extern const int PIN_MQ2;
 extern const int PIN_ALARMA;
 
-// ---------- prototipos ----------
-// configStore.ino
 void escribirConfig();
 bool cargarConfig();
 void restablecerConfig();
 
-// webPortal.ino
 void atenderWeb();
 void lanzarPortal();
 void copiaSeg(char* dst, size_t tam, const String& s);
 void hostManual();
 String escJson(const String& s);
 
-// nodosafecore.ino
 void aplicarRedNueva(const char* ssid, const char* pass);
 
-#endif  // NODO_SAFECORE_H
+#endif
