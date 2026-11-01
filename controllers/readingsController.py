@@ -5,8 +5,8 @@ from uuid import UUID
 
 import mysql.connector
 
-from fastapi import Depends, Request
-from fastapi.responses import JSONResponse
+from fastapi import Depends, Form, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from typing import List, Literal, Optional
@@ -18,11 +18,12 @@ from models import zonesModel as zone_model
 from models import installationsModel as inst_model
 from models import alertsModel as alerts_model
 from models import mantenimientosModel as mant_model
+from models.auditoriaModel import registrarAuditoria as registrarAuditoria
 from utils import batchStore, liveStore, nodeIps
 from utils import gasConversion
 from utils.commonUtils import userSessionContext, restrictedOrganization, \
     dashboardOrganization, organizationSerials
-from utils.flashUtils import popFormFlash
+from utils.flashUtils import popFormFlash, flashForm
 
 templates = Jinja2Templates(directory="templates")
 
@@ -338,6 +339,69 @@ def showHistorialPage(request: Request,
         {"request": request, "org_alcance": org,
          "flash_msg": flash_msg, "flash_ok": flash_ok,
          **userSessionContext(sesion)})
+
+
+def reconocerAlerta(request: Request,
+                    id_alerta: int,
+                    id_sesion: UUID = Depends(session_cookie),
+                    sesion: SessionData = Depends(verificador)):
+    """HU-019: marca la alerta como reconocida (pendiente -> reconocida),
+    registrando fecha y usuario. Un intento sobre una alerta que ya no está
+    pendiente rebota con el estado actual."""
+    alerta = alerts_model.getAlerta(id_alerta)
+    org = dashboardOrganization(sesion)
+    if (alerta is None or org == -1
+            or (org is not None and alerta["id_organizacion"] != org)):
+        flashForm(request, "La alerta no existe o no pertenece a tu organización.")
+        return RedirectResponse("/dashboard/alertas", status_code=303)
+    if alerta["estado"] == "resuelta":
+        flashForm(request, "La alerta ya está resuelta: no se puede reconocer.")
+        return RedirectResponse("/dashboard/alertas", status_code=303)
+    ok = alerts_model.reconocerAlerta(id_alerta, sesion.id_usuario)
+    if not ok:
+        # Carrera: otro usuario la reconoció entre el guard y el UPDATE.
+        flashForm(request, "La alerta ya está reconocida.")
+        return RedirectResponse("/dashboard/alertas", status_code=303)
+    registrarAuditoria(sesion.id_usuario, "alerta", id_alerta, "reconocer",
+                       "estado: pendiente", "estado: reconocida")
+    flashForm(request, "Alerta reconocida correctamente.", ok=True)
+    return RedirectResponse("/dashboard/alertas", status_code=303)
+
+
+async def resolverAlerta(request: Request,
+                         id_alerta: int,
+                         id_sesion: UUID = Depends(session_cookie),
+                         sesion: SessionData = Depends(verificador),
+                         comentario: str = Form("")):
+    """HU-020: cierra una alerta reconocida (reconocida -> resuelta) con el
+    comentario de resolución obligatorio. Una alerta pendiente exige
+    primero reconocerla; una resuelta no se reabre."""
+    alerta = alerts_model.getAlerta(id_alerta)
+    org = dashboardOrganization(sesion)
+    if (alerta is None or org == -1
+            or (org is not None and alerta["id_organizacion"] != org)):
+        flashForm(request, "La alerta no existe o no pertenece a tu organización.")
+        return RedirectResponse("/dashboard/alertas", status_code=303)
+    if alerta["estado"] == "pendiente":
+        flashForm(request, "Debes reconocer la alerta antes de poder resolverla.")
+        return RedirectResponse("/dashboard/alertas", status_code=303)
+    if alerta["estado"] == "resuelta":
+        flashForm(request, "La alerta ya está resuelta.")
+        return RedirectResponse("/dashboard/alertas", status_code=303)
+    texto = (comentario or "").strip()
+    if not texto:
+        flashForm(request, "El comentario de resolución es obligatorio.")
+        return RedirectResponse("/dashboard/alertas", status_code=303)
+    ok = alerts_model.resolverAlerta(id_alerta, sesion.id_usuario, texto)
+    if not ok:
+        # Carrera: otro usuario la resolvió entre el guard y el UPDATE.
+        flashForm(request, "La alerta ya está resuelta.")
+        return RedirectResponse("/dashboard/alertas", status_code=303)
+    registrarAuditoria(sesion.id_usuario, "alerta", id_alerta, "resolver",
+                       "estado: reconocida",
+                       f"estado: resuelta, comentario: {texto}")
+    flashForm(request, "Alerta resuelta correctamente.", ok=True)
+    return RedirectResponse("/dashboard/alertas", status_code=303)
 
 
 def nodeConfig(serial: str):

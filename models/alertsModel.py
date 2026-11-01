@@ -72,6 +72,65 @@ def createAlerta(mensaje_corto, detalle_tecnico, severidad, id_regla,
         closeConnection(conn, cur)
 
 
+def getAlerta(id_alerta):
+    """Fila simple de una alerta con su organización (para los guards de
+    reconocer/resolver y para saber el estado actual sin depender del render)."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("""SELECT a.id_alerta, a.id_estado_alerta, e.nombre AS estado,
+                              a.id_dispositivo, i.id_organizacion
+                       FROM alertas a
+                       JOIN estados_alerta e ON e.id_estado_alerta = a.id_estado_alerta
+                       JOIN dispositivos d ON d.id_dispositivo = a.id_dispositivo
+                       JOIN zonas z ON z.id_zona = d.id_zona
+                       JOIN instalaciones i ON i.id_instalacion = z.id_instalacion
+                       WHERE a.id_alerta = %s""",
+                    (id_alerta,))
+        return cur.fetchone()
+    finally:
+        closeConnection(conn, cur)
+
+
+def reconocerAlerta(id_alerta, id_usuario):
+    """HU-019: pendiente (1) -> reconocida (2), registrando fecha y usuario.
+    Solo actúa si la alerta SIGUE pendiente: 0 filas = ya estaba
+    reconocida o resuelta (el controlador avisa con el estado actual)."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute("""UPDATE alertas
+                       SET id_estado_alerta = %s, fecha_reconocimiento = NOW(),
+                           reconocido_por = %s
+                       WHERE id_alerta = %s AND id_estado_alerta = %s""",
+                    (RECONOCIDA, id_usuario, id_alerta, PENDIENTE))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        closeConnection(conn, cur)
+
+
+def resolverAlerta(id_alerta, id_usuario, comentario):
+    """HU-020: reconocida (2) -> resuelta (3), registrando fecha, usuario y
+    comentario de resolución. Solo actúa si la alerta está reconocida:
+    0 filas = el controlador avisa con el estado actual."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute("""UPDATE alertas
+                       SET id_estado_alerta = %s, fecha_resolucion = NOW(),
+                           resuelto_por = %s, comentario_resolucion = %s
+                       WHERE id_alerta = %s AND id_estado_alerta = %s""",
+                    (RESUELTA, id_usuario, comentario, id_alerta, RECONOCIDA))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        closeConnection(conn, cur)
+
+
 def resolveAlerta(id_alerta):
     conn = getConnection()
     cur = None
@@ -147,7 +206,8 @@ def getAlertasCompletas(id_organizacion=None, limite=50, estado=None):
                         r.operador, r.valor_umbral,
                         l.valor AS valor_origen, l.fecha_hora AS fecha_origen,
                         u1.nombre AS reconoce_nombre, u1.apellido AS reconoce_apellido,
-                        u2.nombre AS resuelve_nombre, u2.apellido AS resuelve_apellido
+                        u2.nombre AS resuelve_nombre, u2.apellido AS resuelve_apellido,
+                         a.comentario_resolucion
                  FROM alertas a
                  JOIN estados_alerta e ON e.id_estado_alerta = a.id_estado_alerta
                  JOIN dispositivos d ON d.id_dispositivo = a.id_dispositivo
