@@ -285,6 +285,39 @@ def countAlertsByGroup(id_organizacion=None):
         closeConnection(conn, cur)
 
 
+def getAlertasActivas(id_organizacion=None, limite=20):
+    """HU-017: alertas abiertas (pendientes y reconocidas) con el dispositivo y
+    el valor de la lectura de origen, para el pop-up y su texto
+    '¡ALERTA! dispositivo - valor'."""
+    limite = max(1, min(int(limite), 50))
+    from models.devicesModel import dispositivosOrganizacion_sql
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        sql = """SELECT a.id_alerta, a.mensaje_corto, a.severidad,
+                        a.fecha_inicio, e.nombre AS estado,
+                        d.nombre AS dispositivo, d.codigo_serial,
+                        l.valor AS valor_origen, m.unidad,
+                        l.fecha_hora AS fecha_origen
+                 FROM alertas a
+                 JOIN estados_alerta e ON e.id_estado_alerta = a.id_estado_alerta
+                 JOIN dispositivos d ON d.id_dispositivo = a.id_dispositivo
+                 JOIN reglas_alerta r ON r.id_regla = a.id_regla
+                 JOIN magnitudes m ON m.id_magnitud = r.id_magnitud
+                 JOIN lecturas l ON l.id_lectura = a.id_lectura_origen
+                 WHERE a.id_estado_alerta IN (%s, %s)"""
+        if id_organizacion is not None:
+            sql += f" AND {dispositivosOrganizacion_sql('a.id_dispositivo')}"
+            params = (PENDIENTE, RECONOCIDA, id_organizacion)
+        else:
+            params = (PENDIENTE, RECONOCIDA)
+        cur.execute(f"{sql} ORDER BY a.id_alerta DESC LIMIT {limite}", params)
+        return cur.fetchall()
+    finally:
+        closeConnection(conn, cur)
+
+
 def cancelarAlertasDeDispositivo(id_dispositivo):
     """HU-014: al dar de baja un dispositivo cancela sus alertas activas
     (pendientes y reconocidas) pasandolas a resuelta."""

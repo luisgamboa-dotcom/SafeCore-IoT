@@ -404,6 +404,31 @@ async def resolverAlerta(request: Request,
     return RedirectResponse("/dashboard/alertas", status_code=303)
 
 
+def getAlertasActivasApi(request: Request,
+                         id_sesion: UUID = Depends(session_cookie),
+                         sesion: SessionData = Depends(verificador)):
+    """HU-017: alertas activas (HU-017/019/020: pendiente o reconocida) del
+    alcance del usuario, para el polling del pop-up."""
+    org = dashboardOrganization(sesion)
+    try:
+        alertas = alerts_model.getAlertasActivas(org, limite=20)
+    except Exception:
+        alertas = []
+    return JSONResponse(
+        {"ok": True,
+         "alertas": [{"id_alerta": a["id_alerta"],
+                      "mensaje": a["mensaje_corto"],
+                      "severidad": a["severidad"],
+                      "estado": a["estado"],
+                      "dispositivo": a["dispositivo"],
+                      "codigo_serial": a["codigo_serial"],
+                      "valor": str(a["valor_origen"]),
+                      "unidad": a["unidad"] or "",
+                      "fecha": a["fecha_inicio"].strftime("%d-%m-%Y %H:%M")
+                      if a["fecha_inicio"] else ""}
+                     for a in alertas]})
+
+
 def nodeConfig(serial: str):
     """Config que consulta el nodo IoT (FW 3.0+) para saber si esta registrado."""
     dev = dev_model.getDeviceBySerial(serial)

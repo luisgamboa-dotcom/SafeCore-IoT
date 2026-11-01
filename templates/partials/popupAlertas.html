@@ -1,0 +1,6 @@
+<!-- HU-017: contenedor del pop-up de alertas del panel. Lo llena
+     alertasPopUp.js con el polling de /api/alertas/activas; las tarjetas
+     toman el color de la severidad y se apilan con contador "+N alertas mas".
+     Sin sonido (decisión de alcance). -->
+<div id="popupAlertas" class="fixed top-20 right-5 z-50 hidden flex flex-col gap-2 w-80 max-w-[calc(100vw-2.5rem)] pointer-events-none" aria-live="polite"></div>
+<script src="/public/scripts/alertasPopUp.js" defer></script>
