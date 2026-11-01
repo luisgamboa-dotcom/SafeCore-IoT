@@ -4,7 +4,16 @@ from models import usersModel as user_model
 
 
 def initialsOf(user):
-    return user["nombre"][0] + (user["apellido"][0] if user and user["apellido"] else "") if user else ""
+    if not user:
+        return ""
+    nombre = (user.get("nombre") or "").strip()
+    apellido = (user.get("apellido") or "").strip()
+    iniciales = ""
+    if nombre:
+        iniciales += nombre[0].upper()
+    if apellido:
+        iniciales += apellido[0].upper()
+    return iniciales
 
 
 def userSessionContext(sesion: SessionData):

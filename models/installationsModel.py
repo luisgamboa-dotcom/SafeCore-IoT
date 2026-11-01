@@ -94,6 +94,9 @@ def createInstallation(nombre, descripcion, id_organizacion, calle, numero, ciud
                     (nombre, descripcion, id_direccion, id_organizacion))
         conn.commit()
         return cur.lastrowid
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         closeConnection(conn, cur)
 
@@ -117,6 +120,9 @@ def updateInstallation(id_instalacion, nombre, descripcion, id_organizacion,
                     (nombre, descripcion, id_organizacion, id_instalacion))
         conn.commit()
         return True
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         closeConnection(conn, cur)
 
@@ -131,11 +137,14 @@ def deleteInstallation(id_instalacion):
         row = cur.fetchone()
         if row is None:
             return False
+        id_direccion = row["id_direccion"]
         cur.execute("DELETE FROM instalaciones WHERE id_instalacion = %s", (id_instalacion,))
-        conn.commit()
-        cur.execute("DELETE FROM direcciones WHERE id_direccion = %s", (row["id_direccion"],))
+        cur.execute("DELETE FROM direcciones WHERE id_direccion = %s", (id_direccion,))
         conn.commit()
         return True
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         closeConnection(conn, cur)
 
@@ -143,6 +152,25 @@ def deleteInstallation(id_instalacion):
 def forceDeleteInstallation(id_instalacion):
     """BORRADO FORZADO: borra las zonas (con sus dispositivos) y la dirección."""
     from models import zonesModel as zone_model
-    for z in getZonesByInstallation(id_instalacion):
-        zone_model.forceDeleteZone(z["id_zona"])
-    return deleteInstallation(id_instalacion)
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT id_direccion FROM instalaciones WHERE id_instalacion = %s",
+                    (id_instalacion,))
+        row = cur.fetchone()
+        if row is None:
+            return False
+        id_direccion = row["id_direccion"]
+        # Borrar zonas y dispositivos asociados (cascada manual)
+        for z in getZonesByInstallation(id_instalacion):
+            zone_model.forceDeleteZone(z["id_zona"])
+        cur.execute("DELETE FROM instalaciones WHERE id_instalacion = %s", (id_instalacion,))
+        cur.execute("DELETE FROM direcciones WHERE id_direccion = %s", (id_direccion,))
+        conn.commit()
+        return True
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        closeConnection(conn, cur)

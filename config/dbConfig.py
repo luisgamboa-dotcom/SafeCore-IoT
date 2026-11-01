@@ -15,11 +15,11 @@ def getPool():
         pool = pooling.MySQLConnectionPool(
             pool_name="safecore_pool",
             pool_size=10,
-            host=os.getenv("MYSQL_HOST"),
-            user=os.getenv("MYSQL_USER"),
-            password=os.getenv("MYSQL_PASSWORD"),
-            database=os.getenv("MYSQL_DATABASE"),
-            port=int(os.getenv("MYSQL_PORT")),
+            host=os.getenv("MYSQL_HOST") or "localhost",
+            user=os.getenv("MYSQL_USER") or "root",
+            password=os.getenv("MYSQL_PASSWORD") or "",
+            database=os.getenv("MYSQL_DATABASE") or "safecore",
+            port=int(os.getenv("MYSQL_PORT") or "3306"),
         )
     return pool
 

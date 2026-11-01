@@ -10,7 +10,7 @@ import os
 import socket
 import threading
 
-PUERTO_DISCOVERY = int(os.getenv("SAFECORE_DISCOVERY_PORT"))
+PUERTO_DISCOVERY = int(os.getenv("SAFECORE_DISCOVERY_PORT") or "5000")
 _ACTIVADO = os.getenv("SAFECORE_DISCOVERY") != "0"
 
 _PREGUNTA = b"SAFECORE?"  # lo envia el nodo; solo documentacion
@@ -31,7 +31,7 @@ def _ip_local():
 
 def _puerto_http():
     """Puerto HTTP donde la app efectivamente sirve: respeta el env/no."""
-    return int(os.getenv("PORT"))
+    return int(os.getenv("PORT") or "8000")
 
 
 def _loop_disco():
