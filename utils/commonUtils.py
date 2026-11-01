@@ -14,7 +14,20 @@ def userSessionContext(sesion: SessionData):
             "iniciales": initialsOf(user),
             "is_admin": "Administrador" in roles or "Superadmin" in roles,
             "id_organizacion": user["id_organizacion"] if user else None,
-            "id_usuario": sesion.id_usuario}
+            "id_usuario": sesion.id_usuario,
+            # HU-021: badge de notificaciones sin leer de la campana.
+            # 0 ante cualquier fallo: el badge nunca rompe la página.
+            "notificaciones_no_leidas": notificacionesNoLeidas(sesion)}
+
+
+def notificacionesNoLeidas(sesion: SessionData):
+    """Contador de notificaciones sin leer del usuario (badge de la campana).
+    Import diferido del modelo para no crear ciclos; 0 si la BD no responde."""
+    try:
+        from models import notificationsModel
+        return notificationsModel.countNoLeidas(sesion.id_usuario)
+    except Exception:
+        return 0
 
 
 def adminContext(sesion: SessionData, user):

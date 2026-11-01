@@ -268,6 +268,17 @@ def abrirAlerta(dev, regla, lectura, segundos_sostenido):
     detalle = (f"Ultima lectura {lectura['valor']}{sufijo} el "
                f"{lectura['fecha_hora']}. Incumplimiento sostenido por "
                f"{segundos_sostenido} segundos.")
-    alertsModel.createAlerta(mensaje_corto, detalle, regla["severidad"],
-                             regla["id_regla"], lectura["id_lectura"],
-                             dev["id_dispositivo"], regla["id_zona"])
+    id_alerta = alertsModel.createAlerta(mensaje_corto, detalle, regla["severidad"],
+                                         regla["id_regla"], lectura["id_lectura"],
+                                         dev["id_dispositivo"], regla["id_zona"])
+    # HU-017: cada alerta abierta genera una notificación web para los usuarios
+    # de la organización del dispositivo (canal web, estado 'enviado'), que es
+    # la mensajería que consume HU-021. Import diferido y tolerante a fallos:
+    # la alerta ya está abierta y la evaluación de reglas no debe caerse por
+    # un problema de mensajería.
+    try:
+        from models import notificationsModel
+        notificationsModel.crearNotificacionesDeAlerta(
+            id_alerta, mensaje_corto, detalle, dev["id_dispositivo"])
+    except Exception:
+        pass

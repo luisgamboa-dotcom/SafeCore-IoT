@@ -6,8 +6,11 @@
   </button>
   <div class="font-semibold text-lg text-primary">{{ page_title }}</div>
   <div class="ml-auto flex items-center gap-3">
-    <a href="/dashboard/alertas" class="p-2 text-on-surface-variant hover:text-primary transition-colors relative" aria-label="Alertas">
+    <a href="/dashboard/notificaciones" class="p-2 text-on-surface-variant hover:text-primary transition-colors relative" aria-label="Notificaciones">
       <span class="material-symbols-outlined">notifications</span>
+      {% if notificaciones_no_leidas %}
+      <span id="badgeNotificaciones" class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-error text-white text-[11px] font-bold flex items-center justify-center">{{ notificaciones_no_leidas }}</span>
+      {% endif %}
     </a>
     <a href="/users/perfil" class="w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold" aria-label="Mi perfil">{{ iniciales }}</a>
   </div>

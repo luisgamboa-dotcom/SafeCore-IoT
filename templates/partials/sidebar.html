@@ -16,6 +16,10 @@
       <span class="material-symbols-outlined">notifications_active</span>
       <span class="text-sm">Alertas</span>
     </a>
+    <a class="flex items-center gap-3 px-4 py-3 rounded-lg {% if active_page == 'notificaciones' %}text-white font-semibold bg-primary-container shadow-sm{% else %}text-on-surface-variant hover:bg-surface-container-low transition-colors{% endif %}" href="/dashboard/notificaciones">
+      <span class="material-symbols-outlined">mark_email_unread</span>
+      <span class="text-sm">Notificaciones</span>
+    </a>
     <a class="flex items-center gap-3 px-4 py-3 rounded-lg {% if active_page == 'sensores' %}text-white font-semibold bg-primary-container shadow-sm{% else %}text-on-surface-variant hover:bg-surface-container-low transition-colors{% endif %}" href="/dashboard/sensores">
       <span class="material-symbols-outlined">sensors</span>
       <span class="text-sm">Dispositivos</span>
