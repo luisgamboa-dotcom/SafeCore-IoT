@@ -9,6 +9,10 @@ from utils.commonUtils import closeConnection
 OPERADORES = (">", ">=", "<", "<=", "=", "!=")
 SEVERIDADES = ("baja", "media", "alta", "critica")
 MAX_DURACION_S = 7 * 24 * 60 * 60
+# Las lecturas se persisten en lotes de 60 s (utils/batchStore): cada fila es
+# el promedio de ese intervalo, por eso cuenta como si la condicion hubiera
+# durado al menos ese tiempo al comprobar la duracion minima de la regla.
+TOLERANCIA_LOTE_S = 60
 
 
 def getMagnitudes():
@@ -159,9 +163,22 @@ def getZoneDevices(id_zona):
         closeConnection(conn, cur)
 
 
+def getZonasConDispositivosActivos():
+    """Zonas con al menos un dispositivo activo (barrido periodico de alertas)."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT DISTINCT id_zona FROM dispositivos"
+                    " WHERE activo = 1 AND id_zona IS NOT NULL")
+        return [fila[0] for fila in cur.fetchall()]
+    finally:
+        closeConnection(conn, cur)
+
+
 def getRecentReadingsForMagnitud(id_dispositivo, id_magnitud, segundos):
     """Lecturas de los sensores del dispositivo para una magnitud, de la más antigua
-    a la más reciente, dentro de la última ventana de `segundos` (máximo 200 filas)."""
+    a la más reciente, dentro de la última ventana de `segundos` (máximo 5000 filas)."""
     conn = getConnection()
     cur = None
     try:
@@ -175,7 +192,7 @@ def getRecentReadingsForMagnitud(id_dispositivo, id_magnitud, segundos):
                        WHERE s.id_dispositivo = %s AND l.id_magnitud = %s
                          AND l.fecha_hora >= NOW() - INTERVAL %s SECOND
                        ORDER BY l.fecha_hora DESC, l.id_lectura DESC
-                       LIMIT 200""",
+                       LIMIT 5000""",
                     (id_dispositivo, id_magnitud, max(1, int(segundos))))
         filas = cur.fetchall()
         filas.reverse()
@@ -192,6 +209,25 @@ def evaluateZone(id_zona):
     for dev in dispositivos:
         for regla in reglas:
             evaluateDeviceRule(dev, regla)
+
+
+def evaluateDevice(id_dispositivo):
+    """Evalua un solo dispositivo contra las reglas vigentes de su zona.
+    Se llama al persistir su lote de lecturas (utils/batchStore)."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT id_dispositivo, nombre, codigo_serial, id_zona"
+                    " FROM dispositivos WHERE id_dispositivo = %s AND activo = 1",
+                    (id_dispositivo,))
+        dev = cur.fetchone()
+    finally:
+        closeConnection(conn, cur)
+    if dev is None:
+        return
+    for regla in getActiveRulesOfZone(dev["id_zona"]):
+        evaluateDeviceRule(dev, regla)
 
 
 def evaluateDeviceRule(dev, regla):
@@ -217,7 +253,8 @@ def evaluateDeviceRule(dev, regla):
             alertsModel.resolveAlerta(alerta["id_alerta"])
         return
     inicio_racha = lecturas[-racha]["fecha_hora"]
-    sostenido = (now - inicio_racha).total_seconds() >= int(regla["duracion_minima_seg"])
+    sostenido = ((now - inicio_racha).total_seconds() + TOLERANCIA_LOTE_S
+                 >= int(regla["duracion_minima_seg"]))
     if sostenido:
         alerta = getOpenAlertaFor(regla["id_regla"], dev["id_dispositivo"])
         if alerta is None:

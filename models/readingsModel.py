@@ -36,7 +36,7 @@ def getDeviceBySerial(codigo_serial):
     try:
         cur = conn.cursor(dictionary=True)
         cur.execute(
-            "SELECT id_dispositivo, codigo_serial, activo FROM dispositivos"
+            "SELECT id_dispositivo, codigo_serial, activo, id_zona FROM dispositivos"
             " WHERE codigo_serial = %s",
             (codigo_serial,),
         )

@@ -89,6 +89,13 @@ def _enviar(lote: List[Dict[str, Any]]):
                 lec_model.insertReading(m["promedio"], m["calidad"], id_sens, id_mag)
                 enviadas.append(m["magnitud"])
                 promedios.append({**m, "dispositivo": serial})
+            # HU-013: con el lote ya persistido, evaluar las reglas de la zona
+            # del dispositivo para abrir/resolver alertas y notificar.
+            try:
+                from models import rulesModel
+                rulesModel.evaluateDevice(dev["id_dispositivo"])
+            except Exception:
+                pass  # el lote ya esta guardado; la evaluacion no lo revierte
             pend_mags = {m["magnitud"] for m in magStats(items)} - set(enviadas)
             if pend_mags:
                 with _lock:

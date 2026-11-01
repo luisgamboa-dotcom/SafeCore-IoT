@@ -7,7 +7,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
-from utils import discovery
+from utils import alertScheduler, discovery
 from routers import (authRoutes, homeRoutes, readingRoutes, deviceRoutes,
                      adminPanelRoutes, userRoutes, organizationRoutes,
                      installationRoutes, zoneRoutes, myOrganizationRoutes,
@@ -15,6 +15,7 @@ from routers import (authRoutes, homeRoutes, readingRoutes, deviceRoutes,
 
 
 discovery.iniciar_descubrimiento()  # nodos FW 3.1+ reparan su IP solos
+alertScheduler.iniciar_barrido()    # evalua reglas de alerta y estado offline
 
 app = FastAPI(title="SafeCore IoT")
 

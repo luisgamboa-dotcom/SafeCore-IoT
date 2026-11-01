@@ -4,3 +4,4 @@ firmware/safecoreNode/secrets.h
 __pycache__/**
 sql/
 *.log
+opencode.json
