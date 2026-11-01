@@ -5,3 +5,4 @@ __pycache__/**
 sql/
 *.log
 opencode.json
+.aider*

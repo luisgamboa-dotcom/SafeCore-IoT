@@ -1,3 +1,0 @@
-# PLAN.md
-
-Plan acordado para la configuracion remota del nodo SafeCore sobre un ESP8266 Wemos D1 (conectado por FT232 en /dev/ttyUSB0 a 115200): se implemento el FW 3.0-portal que sustituye al v2.1 hardcodeado — sketch Arduino en `firmware/nodosafecore/` con configuracion persistente en EEPROM, PWA movil instalable que edita WiFi, servidor, serial, FW, umbral, tasa y PIN sin reflashear, portal de rescate AP "SafeCore-XXXX" con clave 12345678, auto-reparacion de la IP del servidor por UDP y edicion de `codigo_serial`/`firmware_version` que llega a la BD de FastAPI; los cambios del servidor se aplicaron directos al repo principal y la app nativa con la API JSON del nodo queda disponible para mas adelante.
