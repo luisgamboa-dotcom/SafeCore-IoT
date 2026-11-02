@@ -7,6 +7,7 @@
 <link rel="icon" type="image/png" href="/public/images/logo-icon.png">
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <script id="tailwind-config">
@@ -77,7 +78,7 @@ tailwind.config = {
 
       <div class="mb-6">
         <h2 class="font-headline-md text-headline-md text-primary">Historial</h2>
-        <p class="font-body-md text-body-md text-on-surface-variant mt-1">Evolución de las magnitudes con datos históricos y en vivo.</p>
+        <p class="font-body-md text-body-md text-on-surface-variant mt-1">Promedio de los dispositivos de la organización, por magnitud y período.</p>
       </div>
 
       <div class="mt-6">
@@ -91,9 +92,21 @@ tailwind.config = {
             </div>
           </div>
           <div class="p-6">
-            <div class="relative h-[280px]">
-              <canvas id="sensorChart" class="w-full rounded-xl border border-outline-variant" aria-label="Historial del sensor en vivo"></canvas>
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div class="flex items-center gap-3">
+                <span class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Per&iacute;odo</span>
+                <div class="flex bg-surface-container-low rounded-lg p-1" role="group" aria-label="Período del gráfico">
+                  {% for h, etiqueta in [('1', '1 h'), ('24', '24 h'), ('168', '7 días'), ('720', '30 días'), ('0', 'Todo')] %}
+                  <a href="/dashboard/historial?horas={{ h }}" aria-pressed="{{ 'true' if horas_export == h else 'false' }}" class="px-3 py-1 text-xs font-semibold rounded-md {% if horas_export == h %}bg-white shadow-sm text-primary{% else %}text-on-surface-variant hover:text-primary{% endif %}">{{ etiqueta }}</a>
+                  {% endfor %}
+                </div>
+              </div>
+              <p class="text-xs text-on-surface-variant">Promedio de los dispositivos activos de la organización.</p>
             </div>
+            <div class="relative h-[280px]">
+              <canvas id="sensorChart" data-umbrales='{{ umbrales|tojson }}' class="w-full rounded-xl border border-outline-variant" aria-label="Historial del sensor en vivo"></canvas>
+            </div>
+            <p id="chartUmbrales" class="text-xs text-on-surface-variant mt-2"></p>
             <div class="grid grid-cols-3 gap-3 mt-4">
               <div class="rounded-lg bg-surface-container-low px-3 py-2 text-center">
                 <p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Máximo</p>
@@ -120,6 +133,6 @@ tailwind.config = {
 </div>
 
 <script src="/public/scripts/sidebarToggle.js"></script>
-<script src="/public/scripts/dashboardScripts.js?v=7"></script>
+<script defer src="/public/scripts/dashboardScripts.js?v=10"></script>
 </body>
 </html>

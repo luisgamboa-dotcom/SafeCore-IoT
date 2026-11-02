@@ -1,4 +1,6 @@
 """SQL de lecturas, magnitudes y sensores (persistencia de la ingesta)."""
+from math import ceil
+
 from config.dbConfig import getConnection
 from utils.commonUtils import closeConnection
 
@@ -275,7 +277,130 @@ def getHistoricoPorMagnitud(limite=150, id_organizacion=None, serial=None, horas
              "dispositivo": f["dispositivo"]} for f in filas]
 
 
-def getReadingsForExport(id_dispositivo, horas=24):
+# Puntos objetivo del grafico: el bucket se calcula para no superarlos.
+_PUNTOS_OBJETIVO = 300
+
+
+def _bucketSegundos(horas, desde=None, hasta=None):
+    """Bucket en segundos para cubrir el rango real con ~300 puntos. Se usa el
+    rango de datos (no la ventana pedida) para no perder detalle cuando aun
+    hay pocos dias de historial."""
+    if desde is not None and hasta is not None:
+        rango = max(0.0, (hasta - desde).total_seconds())
+    elif horas:
+        rango = int(horas) * 3600
+    else:
+        rango = 3600
+    if rango <= 0:
+        return 60
+    return max(60, int(ceil(rango / float(_PUNTOS_OBJETIVO) / 60.0)) * 60)
+
+
+def _statsSerie(where, params):
+    """Minimo, maximo, promedio y total de muestras del periodo completo."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute(f"""SELECT MIN(l.fecha_hora) AS desde, MAX(l.fecha_hora) AS hasta,
+                               MIN(l.valor) AS vmin, MAX(l.valor) AS vmax,
+                               AVG(l.valor) AS vprom, COUNT(*) AS muestras
+                        FROM lecturas l
+                        JOIN magnitudes m ON m.id_magnitud = l.id_magnitud
+                        JOIN sensores s ON s.id_sensor = l.id_sensor
+                        JOIN dispositivos d ON d.id_dispositivo = s.id_dispositivo
+                        WHERE {where}""", params)
+        return cur.fetchone()
+    finally:
+        closeConnection(conn, cur)
+
+
+def _serieBucket(where, params, bucket, por_organizacion=False):
+    """Promedio por bucket temporal. En la vista de organizacion agrega
+    tambien cuantos dispositivos aportaron a cada punto."""
+    extra = ", COUNT(DISTINCT d.id_dispositivo) AS dispositivos" if por_organizacion else ""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute(f"""SELECT FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(l.fecha_hora) / %s) * %s) AS bucket,
+                               AVG(l.valor) AS valor, COUNT(*) AS muestras{extra}
+                        FROM lecturas l
+                        JOIN magnitudes m ON m.id_magnitud = l.id_magnitud
+                        JOIN sensores s ON s.id_sensor = l.id_sensor
+                        JOIN dispositivos d ON d.id_dispositivo = s.id_dispositivo
+                        WHERE {where}
+                        GROUP BY bucket
+                        ORDER BY bucket ASC""", (bucket, bucket, *params))
+        return cur.fetchall()
+    finally:
+        closeConnection(conn, cur)
+
+
+def _respuestaSerie(filas, stats, bucket, magnitud, por_organizacion=False):
+    serie = []
+    for f in filas:
+        item = {"fecha_hora": str(f["bucket"]), "valor": float(f["valor"]),
+                "muestras": int(f["muestras"])}
+        if por_organizacion:
+            item["dispositivos"] = int(f["dispositivos"])
+        serie.append(item)
+    return {"ok": True, "modo": "bd", "magnitud": magnitud, "bucket_s": bucket,
+            "desde": str(stats["desde"]), "hasta": str(stats["hasta"]),
+            "stats": {"max": float(stats["vmax"]), "min": float(stats["vmin"]),
+                      "prom": float(stats["vprom"]), "muestras": int(stats["muestras"])},
+            "serie": serie}
+
+
+def _respuestaVacia(magnitud):
+    return {"ok": True, "modo": "bd", "magnitud": magnitud, "bucket_s": 300,
+            "desde": None, "hasta": None,
+            "stats": {"max": None, "min": None, "prom": None, "muestras": 0},
+            "serie": []}
+
+
+def getSerieDispositivo(serial, horas=None, magnitud="gas", id_organizacion=None):
+    """Serie historica de un dispositivo agrupada por bucket temporal, con
+    estadisticas del periodo completo (no solo de los puntos dibujados)."""
+    from models.devicesModel import dispositivosOrganizacion_sql
+    condiciones = ["d.codigo_serial = %s", "m.nombre = %s"]
+    params = [serial, MAGNITUDES[magnitud]["nombre"]]
+    if id_organizacion is not None:
+        condiciones.append(dispositivosOrganizacion_sql("d.id_dispositivo"))
+        params.append(id_organizacion)
+    if horas:
+        condiciones.append("l.fecha_hora >= NOW() - INTERVAL %s HOUR")
+        params.append(int(horas))
+    where = " AND ".join(condiciones)
+    stats = _statsSerie(where, params)
+    if not stats or not stats["muestras"]:
+        return _respuestaVacia(magnitud)
+    bucket = _bucketSegundos(horas, stats["desde"], stats["hasta"])
+    return _respuestaSerie(_serieBucket(where, params, bucket), stats, bucket, magnitud)
+
+
+def getSerieOrganizacion(horas=None, magnitud="gas", id_organizacion=None):
+    """Promedio por bucket de todos los dispositivos activos de la
+    organizacion (None = todas), para el grafico de historial."""
+    from models.devicesModel import dispositivosOrganizacion_sql
+    condiciones = ["d.activo = 1", "m.nombre = %s"]
+    params = [MAGNITUDES[magnitud]["nombre"]]
+    if id_organizacion is not None:
+        condiciones.append(dispositivosOrganizacion_sql("d.id_dispositivo"))
+        params.append(id_organizacion)
+    if horas:
+        condiciones.append("l.fecha_hora >= NOW() - INTERVAL %s HOUR")
+        params.append(int(horas))
+    where = " AND ".join(condiciones)
+    stats = _statsSerie(where, params)
+    if not stats or not stats["muestras"]:
+        return _respuestaVacia(magnitud)
+    bucket = _bucketSegundos(horas, stats["desde"], stats["hasta"])
+    filas = _serieBucket(where, params, bucket, por_organizacion=True)
+    return _respuestaSerie(filas, stats, bucket, magnitud, por_organizacion=True)
+
+
+def getReadingsForExport(id_dispositivo, horas=1):
     """Lecturas del dispositivo para el CSV de exportacion (horas=0: todo el
     historial), con nombre de dispositivo, magnitud y calidad por fila."""
     conn = getConnection()

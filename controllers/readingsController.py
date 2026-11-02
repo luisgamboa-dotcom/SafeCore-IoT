@@ -215,13 +215,63 @@ def getHistoricoReadings(request: Request,
     org = dashboardOrganization(sesion)
     serial = request.query_params.get("serial") or None
     horas_q = request.query_params.get("horas", "")
-    horas = int(horas_q) if horas_q.isdigit() and int(horas_q) in (0, 24, 168, 720) else None
+    horas = int(horas_q) if horas_q.isdigit() and int(horas_q) in (0, 1, 24, 168, 720) else None
     try:
         return {"ok": True, "modo": "bd",
                 "lecturas": lec_model.getHistoricoPorMagnitud(limit, org,
                                                               serial=serial, horas=horas)}
     except Exception as e:
         return {"ok": False, "modo": "bd-no-disponible", "lecturas": [],
+                "error": str(e)}
+
+
+def _horasValidas(valor, defecto=1):
+    """Periodo aceptado por el grafico: 1 h, 24 h, 7 d, 30 d o todo (0)."""
+    try:
+        horas = int(valor)
+    except (TypeError, ValueError):
+        return defecto
+    return horas if horas in (0, 1, 24, 168, 720) else defecto
+
+
+def _serieVacia(magnitud):
+    return {"ok": True, "modo": "bd", "magnitud": magnitud, "bucket_s": 300,
+            "desde": None, "hasta": None,
+            "stats": {"max": None, "min": None, "prom": None, "muestras": 0},
+            "serie": []}
+
+
+def getHistoricoSerie(request: Request,
+                      serial: str = "",
+                      horas: str = "1",
+                      magnitud: str = "gas",
+                      id_sesion: UUID = Depends(session_cookie),
+                      sesion: SessionData = Depends(verificador)):
+    """Serie agregada por tiempo del dispositivo, para el grafico de la ficha."""
+    org = dashboardOrganization(sesion)
+    mag = magnitud if magnitud in lec_model.MAGNITUDES else "gas"
+    serial = (serial or "").strip()
+    if not serial:
+        return _serieVacia(mag)
+    try:
+        return lec_model.getSerieDispositivo(serial, _horasValidas(horas), mag, org)
+    except Exception as e:
+        return {"ok": False, "modo": "bd-no-disponible", "serie": [],
+                "error": str(e)}
+
+
+def getHistoricoOrganizacion(request: Request,
+                             horas: str = "1",
+                             magnitud: str = "gas",
+                             id_sesion: UUID = Depends(session_cookie),
+                             sesion: SessionData = Depends(verificador)):
+    """Promedio por tiempo de los dispositivos de la organizacion del usuario."""
+    org = dashboardOrganization(sesion)
+    mag = magnitud if magnitud in lec_model.MAGNITUDES else "gas"
+    try:
+        return lec_model.getSerieOrganizacion(_horasValidas(horas), mag, org)
+    except Exception as e:
+        return {"ok": False, "modo": "bd-no-disponible", "serie": [],
                 "error": str(e)}
 
 
@@ -330,13 +380,21 @@ def showSensoresPage(request: Request,
 def showHistorialPage(request: Request,
                       id_sesion: UUID = Depends(session_cookie),
                       sesion: SessionData = Depends(verificador)):
-    """Pagina de historial: grafico en vivo con semilla historica de la
-    organizacion del usuario, con pestañas por magnitud y estadisticas."""
+    """Pagina de historial: promedio por tiempo de los dispositivos de la
+    organizacion del usuario, con pestañas por magnitud y periodo."""
     flash_msg, _, flash_ok = popFormFlash(request)
     org = dashboardOrganization(sesion)
+    horas = request.query_params.get("horas", "1")
+    try:
+        from models import rulesModel
+        umbrales = rulesModel.getActiveThresholdsByOrganization(org)
+    except Exception:
+        umbrales = {}
     return templates.TemplateResponse(
         request, "datos/historial.html",
         {"request": request, "org_alcance": org,
+         "horas_export": horas if horas in ("1", "24", "168", "720", "0") else "1",
+         "umbrales": umbrales,
          "flash_msg": flash_msg, "flash_ok": flash_ok,
          **userSessionContext(sesion)})
 

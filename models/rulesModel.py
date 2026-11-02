@@ -72,6 +72,52 @@ def getActiveThresholds(id_zona):
         closeConnection(conn, cur)
 
 
+def getActiveThresholdsByOrganization(id_organizacion=None):
+    """Umbrales de las reglas activas de todas las zonas de la organizacion
+    (None = todas), agrupados por tipo corto de magnitud (gas/temp/hum).
+    Se deduplican por (tipo, operador, valor, severidad) para no dibujar la
+    misma linea varias veces cuando varias zonas comparten el umbral."""
+    from models.readingsModel import MAGNITUDES
+    nombre_tipo = {v["nombre"]: k for k, v in MAGNITUDES.items()}
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        sql = """SELECT r.severidad, r.operador, r.valor_umbral,
+                        m.nombre AS magnitud, z.nombre AS zona
+                 FROM reglas_alerta r
+                 JOIN magnitudes m ON m.id_magnitud = r.id_magnitud
+                 JOIN zonas z ON z.id_zona = r.id_zona
+                 JOIN instalaciones i ON i.id_instalacion = z.id_instalacion
+                 WHERE r.activa = 1"""
+        params = ()
+        if id_organizacion is not None:
+            sql += " AND i.id_organizacion = %s"
+            params = (id_organizacion,)
+        sql += " ORDER BY m.nombre, r.severidad, r.valor_umbral"
+        cur.execute(sql, params)
+        grupos = {}
+        vistos = set()
+        for fila in cur.fetchall():
+            tipo = nombre_tipo.get(fila["magnitud"])
+            if not tipo:
+                continue
+            clave = (tipo, fila["operador"], float(fila["valor_umbral"]),
+                     fila["severidad"])
+            if clave in vistos:
+                continue
+            vistos.add(clave)
+            grupos.setdefault(tipo, []).append({
+                "severidad": fila["severidad"],
+                "operador": fila["operador"],
+                "valor_umbral": float(fila["valor_umbral"]),
+                "zona": fila["zona"],
+            })
+        return grupos
+    finally:
+        closeConnection(conn, cur)
+
+
 def getRuleById(id_regla):
     conn = getConnection()
     cur = None
@@ -121,12 +167,15 @@ def updateRule(id_regla, operador, valor_umbral, severidad, duracion_minima_seg,
         closeConnection(conn, cur)
 
 
-def deleteRule(id_regla):
+def setRuleActive(id_regla, activa):
+    """Activa o desactiva una regla. Las reglas no se borran: conservan su
+    historial de alertas y pueden reactivarse despues."""
     conn = getConnection()
     cur = None
     try:
         cur = conn.cursor()
-        cur.execute("DELETE FROM reglas_alerta WHERE id_regla = %s", (id_regla,))
+        cur.execute("UPDATE reglas_alerta SET activa = %s WHERE id_regla = %s",
+                    (1 if activa else 0, id_regla))
         conn.commit()
         return cur.rowcount > 0
     finally:

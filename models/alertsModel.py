@@ -146,6 +146,25 @@ def resolveAlerta(id_alerta):
         closeConnection(conn, cur)
 
 
+def resolveAlertasDeRegla(id_regla, motivo=None):
+    """Resuelve las alertas pendientes o reconocidas de una regla. Se usa al
+    desactivarla: el motor deja de evaluarla y, sin esto, quedarian abiertas
+    para siempre."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute("""UPDATE alertas
+                       SET id_estado_alerta = %s, fecha_resolucion = NOW(),
+                           comentario_resolucion = %s
+                       WHERE id_regla = %s AND id_estado_alerta IN (%s, %s)""",
+                    (RESUELTA, motivo, id_regla, PENDIENTE, RECONOCIDA))
+        conn.commit()
+        return cur.rowcount
+    finally:
+        closeConnection(conn, cur)
+
+
 def getRecentAlerts(id_organizacion=None, limite=10):
     """Últimas alertas registradas, recortadas a los dispositivos de la
     organización cuando se indique (None = todas las organizaciones)."""

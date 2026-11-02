@@ -1,15 +1,16 @@
 """Gestión de reglas de alerta del panel admin desde la ficha del dispositivo (HU-013).
-Guardar una regla dispara el recálculo del estado de alertas de la zona."""
-from datetime import datetime
+Guardar una regla dispara el recálculo del estado de alertas de la zona. Las reglas
+no se borran: solo se activan o desactivan para conservar su historial."""
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
-import mysql.connector
 from fastapi import Depends, Form, Request
 from fastapi.responses import RedirectResponse
 
 from config.sessionsConfig import SessionData, cookie as session_cookie, requireAdminUser
 from models import rulesModel as rule_model
+from models import alertsModel as alert_model
 from models import devicesModel as dev_model
 from utils.flashUtils import flashForm
 
@@ -48,6 +49,12 @@ def _parseRuleForm(id_magnitud, operador, valor_umbral, severidad,
     hasta = _parseVigencia(vigencia_hasta)
     if desde == "x" or hasta == "x":
         return None, "fecha de vigencia inválida"
+    # La vigencia solo puede empezar hoy o en el futuro, y terminar hoy o después.
+    hoy = date.today()
+    if desde is not None and desde.date() < hoy:
+        return None, "la vigencia desde no puede ser anterior a hoy"
+    if hasta is not None and hasta.date() < hoy:
+        return None, "la vigencia hasta no puede ser anterior a hoy"
     if desde is not None and hasta is not None and hasta <= desde:
         return None, "vigencia incoherente (fin anterior al inicio)"
     regla = {"id_magnitud": id_magnitud, "operador": operador, "valor_umbral": umbral,
@@ -127,8 +134,7 @@ def updateRule(request: Request,
                severidad: str = Form(...),
                duracion_minima_seg: str = Form(...),
                vigencia_desde: str = Form(""),
-               vigencia_hasta: str = Form(""),
-               activa: str = Form("")):
+               vigencia_hasta: str = Form("")):
     dev = _deviceGuard(request, id_device, sesion)
     if dev is None:
         return RedirectResponse("/dashboard", status_code=303)
@@ -142,21 +148,25 @@ def updateRule(request: Request,
     if error is not None:
         flashForm(request, f"{_INVALID_MSG}: {error}")
         return RedirectResponse(f"/dashboard/devices/{id_device}", status_code=303)
+    # El estado activo/inactivo se cambia solo con el boton Activar/Desactivar:
+    # editar la regla conserva el estado actual.
     rule_model.updateRule(id_regla, regla["operador"], regla["valor_umbral"],
                           regla["severidad"], regla["duracion_minima_seg"],
                           regla["vigencia_desde"], regla["vigencia_hasta"],
-                          activa == "1", regla["id_magnitud"])
+                          bool(regla_actual["activa"]), regla["id_magnitud"])
     if _recalc(request, dev):
         flashForm(request, "Regla actualizada. Estado de los dispositivos de la zona recalculado.",
                   ok=True)
     return RedirectResponse(f"/dashboard/devices/{id_device}", status_code=303)
 
 
-def deleteRule(request: Request,
+def toggleRule(request: Request,
                id_device: int,
                id_regla: int,
                id_sesion: UUID = Depends(session_cookie),
                sesion: SessionData = Depends(requireAdminUser)):
+    """Activa o desactiva una regla. Al desactivarla se resuelven sus alertas
+    abiertas, porque el motor deja de evaluarla y quedarian colgadas."""
     dev = _deviceGuard(request, id_device, sesion)
     if dev is None:
         return RedirectResponse("/dashboard", status_code=303)
@@ -164,27 +174,15 @@ def deleteRule(request: Request,
     if regla_actual is None or regla_actual["id_zona"] != dev["id_zona"]:
         flashForm(request, "La regla no pertenece a la zona de este dispositivo.")
         return RedirectResponse(f"/dashboard/devices/{id_device}", status_code=303)
-    try:
-        rule_model.deleteRule(id_regla)
-    except mysql.connector.Error as e:
-        if e.errno == 1451:
-            # Las alertas históricas referencian la regla (RESTRICT): desactivar en su lugar.
-            rule_model.updateRule(id_regla, regla_actual["operador"],
-                                  regla_actual["valor_umbral"], regla_actual["severidad"],
-                                  regla_actual["duracion_minima_seg"],
-                                  regla_actual["vigencia_desde"],
-                                  regla_actual["vigencia_hasta"], False,
-                                  regla_actual["id_magnitud"])
-            _recalc(request, dev)
-            flashForm(request, "La regla tiene alertas registradas: se desactivó en lugar de borrarse.",
-                      ok=True)
-            return RedirectResponse(f"/dashboard/devices/{id_device}", status_code=303)
-        flashForm(request, f"No se pudo borrar la regla: {e.msg}")
-        return RedirectResponse(f"/dashboard/devices/{id_device}", status_code=303)
-    except Exception as e:
-        flashForm(request, f"No se pudo borrar la regla: {e}")
-        return RedirectResponse(f"/dashboard/devices/{id_device}", status_code=303)
+    activar = not bool(regla_actual["activa"])
+    if not activar:
+        alert_model.resolveAlertasDeRegla(
+            id_regla, "Regla desactivada por el administrador")
+    rule_model.setRuleActive(id_regla, activar)
     if _recalc(request, dev):
-        flashForm(request, "Regla eliminada. Estado de los dispositivos de la zona recalculado.",
-                  ok=True)
+        if activar:
+            flashForm(request, "Regla activada. Estado de la zona recalculado.", ok=True)
+        else:
+            flashForm(request, "Regla desactivada. Sus alertas abiertas se resolvieron.",
+                      ok=True)
     return RedirectResponse(f"/dashboard/devices/{id_device}", status_code=303)

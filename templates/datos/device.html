@@ -7,6 +7,7 @@
 <link rel="icon" type="image/png" href="/public/images/logo-icon.png">
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <script id="tailwind-config">
@@ -170,7 +171,7 @@ tailwind.config = {
                             <div class="flex items-center gap-3">
                                 <span class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Per&iacute;odo</span>
                                 <div class="flex bg-surface-container-low rounded-lg p-1" role="group" aria-label="Período del gráfico y de la exportación" title="Afecta al gráfico y al CSV">
-                                {% for h, etiqueta in [('24', '24 h'), ('168', '7 días'), ('720', '30 días'), ('0', 'Todo')] %}
+                                {% for h, etiqueta in [('1', '1 h'), ('24', '24 h'), ('168', '7 días'), ('720', '30 días'), ('0', 'Todo')] %}
                                 <a href="/dashboard/devices/{{ dev.id_dispositivo }}?horas={{ h }}" aria-pressed="{{ 'true' if horas_export == h else 'false' }}" class="px-3 py-1 text-xs font-semibold rounded-md {% if horas_export == h %}bg-white shadow-sm text-primary{% else %}text-on-surface-variant hover:text-primary{% endif %}">{{ etiqueta }}</a>
                                 {% endfor %}
                                 </div>
@@ -455,7 +456,7 @@ tailwind.config = {
                 <!-- NUEVA SECCIÓN: Configurar reglas (HU-013), solo administración -->
                 <section id="reglas" class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-6 scroll-mt-24">
                     <h3 class="font-title-md text-title-md text-primary">Configurar reglas{% if reglas|length %} ({{ reglas|length }} reglas){% endif %}</h3>
-                    <p class="text-sm text-on-surface-variant mt-1 mb-5">Reglas vigentes de la zona {{ dev.zona }}. Al guardar se recalcula el estado del dispositivo con las nuevas lecturas.</p>
+                    <p class="text-sm text-on-surface-variant mt-1 mb-5">Reglas de la zona {{ dev.zona }}. Las reglas inactivas no generan alertas y pueden reactivarse en cualquier momento.</p>
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-5">
                         {% for r in reglas %}
                         <article class="bg-surface-container-low border border-surface-variant rounded-lg p-4 flex flex-col gap-3 min-w-0">
@@ -475,7 +476,7 @@ tailwind.config = {
                                     <dt class="text-[11px] uppercase tracking-wider text-on-surface-variant">Vigencia</dt>
                                     <dd class="font-medium">
                                         {% if r.vigencia_desde %}desde {{ r.vigencia_desde }}{% endif %}
-                                        {% if r.vigencia_hasta %}{{ ' &middot; ' if r.vigencia_desde }}hasta {{ r.vigencia_hasta }}{% endif %}
+                                        {% if r.vigencia_hasta %}{% if r.vigencia_desde %} &middot; {% endif %}hasta {{ r.vigencia_hasta }}{% endif %}
                                         {% if not r.vigencia_desde and not r.vigencia_hasta %}sin l&iacute;mite{% endif %}
                                     </dd>
                                 </div>
@@ -522,27 +523,30 @@ tailwind.config = {
                                         </div>
                                         <div>
                                             <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="u{{ r.id_regla }}_vd">Vigencia desde</label>
-                                            <input id="u{{ r.id_regla }}_vd" name="vigencia_desde" type="datetime-local" value="{% if r.vigencia_desde %}{{ r.vigencia_desde.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
+                                            <input id="u{{ r.id_regla }}_vd" name="vigencia_desde" type="datetime-local" min="{{ vigencia_min }}T00:00" value="{% if r.vigencia_desde %}{{ r.vigencia_desde.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
                                         </div>
                                         <div>
                                             <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="u{{ r.id_regla }}_vh">Vigencia hasta</label>
-                                            <input id="u{{ r.id_regla }}_vh" name="vigencia_hasta" type="datetime-local" value="{% if r.vigencia_hasta %}{{ r.vigencia_hasta.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
+                                            <input id="u{{ r.id_regla }}_vh" name="vigencia_hasta" type="datetime-local" min="{{ vigencia_min }}T00:00" value="{% if r.vigencia_hasta %}{{ r.vigencia_hasta.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
                                         </div>
-                                        <div class="sm:col-span-2 flex items-center justify-between gap-3">
-                                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="activa" value="1" {% if r.activa %}checked{% endif %}/> Activa</label>
+                                        <div class="sm:col-span-2 flex items-center justify-end gap-3">
                                             <button type="submit" class="bg-secondary text-on-secondary px-3 py-1.5 rounded-lg text-xs font-semibold">Guardar</button>
                                         </div>
                                     </form>
                                 </details>
-                                <form method="POST" action="/admin/devices/{{ dev.id_dispositivo }}/rules/{{ r.id_regla }}/delete" onsubmit="return confirm('¿Eliminar la regla {{ r.id_regla }} de {{ r.magnitud }}?');">
-                                    <button type="submit" class="shrink-0 inline-flex items-center gap-1 border border-error text-error text-sm font-medium rounded-lg px-3 py-1.5 hover:bg-surface-container-low">Borrar</button>
+                                <form method="POST" action="/admin/devices/{{ dev.id_dispositivo }}/rules/{{ r.id_regla }}/toggle"{% if r.activa %} onsubmit="return confirm('¿Desactivar la regla {{ r.id_regla }} de {{ r.magnitud }}? Sus alertas abiertas se resolverán.');"{% endif %}>
+                                    {% if r.activa %}
+                                    <button type="submit" class="shrink-0 inline-flex items-center gap-1 border border-amber-600 text-amber-700 text-sm font-medium rounded-lg px-3 py-1.5 hover:bg-surface-container-low">Desactivar</button>
+                                    {% else %}
+                                    <button type="submit" class="shrink-0 inline-flex items-center gap-1 border border-green-600 text-green-700 text-sm font-medium rounded-lg px-3 py-1.5 hover:bg-surface-container-low">Activar</button>
+                                    {% endif %}
                                 </form>
                             </div>
                         </article>
                         {% else %}
                         <div class="rounded-lg border border-dashed border-outline-variant bg-surface-container-low p-6 text-center">
                             <span class="material-symbols-outlined text-3xl text-on-surface-variant" aria-hidden="true">rule</span>
-                            <p class="text-sm text-on-surface-variant mt-1">Sin reglas vigentes para esta zona.</p>
+                            <p class="text-sm text-on-surface-variant mt-1">Sin reglas definidas para esta zona.</p>
                             <p class="text-xs text-on-surface-variant mt-1">Usa &laquo;+ Agregar regla a la zona&raquo; para definir la primera.</p>
                         </div>
                         {% endfor %}
@@ -585,11 +589,11 @@ tailwind.config = {
                             </div>
                             <div>
                                 <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="n_vd">Vigencia desde</label>
-                                <input id="n_vd" name="vigencia_desde" type="datetime-local" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
+                                <input id="n_vd" name="vigencia_desde" type="datetime-local" min="{{ vigencia_min }}T00:00" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
                             </div>
                             <div>
                                 <label class="block text-[11px] uppercase tracking-wider text-on-surface-variant mb-1" for="n_vh">Vigencia hasta</label>
-                                <input id="n_vh" name="vigencia_hasta" type="datetime-local" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
+                                <input id="n_vh" name="vigencia_hasta" type="datetime-local" min="{{ vigencia_min }}T00:00" class="w-full border border-outline-variant rounded-lg px-2 py-1.5"/>
                             </div>
                             <div class="flex items-end gap-3">
                                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="activa" value="1" checked/> Activa</label>
@@ -680,6 +684,6 @@ document.addEventListener('click', function (ev) {
 });
         </script>
         <script src="/public/scripts/devLive.js?v=2"></script>
-        <script src="/public/scripts/deviceChart.js?v=5"></script>
+        <script defer src="/public/scripts/deviceChart.js?v=7"></script>
     </body>
 </html>
