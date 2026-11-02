@@ -283,20 +283,50 @@ def showAlertasPage(request: Request,
                     sesion: SessionData = Depends(verificador)):
     """Pagina de alertas: tarjetas con todas las alertas de la organizacion
     del usuario (None = global), expandibles con todo su detalle.
-    ?estado=activas|resueltas filtra por grupo; sin filtro, todas."""
+    HU-018: busqueda (?q=) y filtros combinables por dispositivo, zona,
+    severidad, estado (?estado=activas|resueltas) y fecha (?fecha=hoy|7d|30d);
+    el listado queda ordenado de la mas reciente a la mas antigua."""
+    params_q = request.query_params
     org = dashboardOrganization(sesion)
-    estado = request.query_params.get("estado", "")
+    estado = params_q.get("estado", "")
     if estado not in ("activas", "resueltas"):
         estado = None
+    q = (params_q.get("q") or "").strip() or None
+
+    def _id(nombre):
+        valor = params_q.get(nombre, "")
+        return int(valor) if valor.isdigit() else None
+
+    severidad = params_q.get("severidad", "")
+    if severidad not in ("critica", "alta", "media", "baja"):
+        severidad = None
+    fecha = params_q.get("fecha", "")
+    if fecha not in ("hoy", "7d", "30d"):
+        fecha = None
+    filtros = {"q": q, "id_dispositivo": _id("dispositivo"),
+               "id_zona": _id("zona"), "severidad": severidad, "fecha": fecha}
     try:
-        alertas = alerts_model.getAlertasCompletas(org, limite=50, estado=estado)
+        alertas = alerts_model.getAlertasCompletas(
+            org, limite=50, estado=estado, **filtros)
         conteo_grupos = alerts_model.countAlertsByGroup(org)
     except Exception:
         alertas = []
         conteo_grupos = {"todas": 0, "activas": 0, "resueltas": 0}
+    # Opciones de los selects del panel "Filtrar" (alcance = la organizacion).
+    try:
+        dispositivos_filtro = dev_model.getActiveDevices(org)
+    except Exception:
+        dispositivos_filtro = []
+    try:
+        zonas_filtro = zone_model.getZonasOrganizacion(org)
+    except Exception:
+        zonas_filtro = []
     conteo = {}
     for a in alertas:
         conteo[a["severidad"]] = conteo.get(a["severidad"], 0) + 1
+    hay_filtros = any(filtros.values()) or estado is not None
+    n_filtros = (sum(1 for v in filtros.values() if v)
+                 + (1 if estado is not None else 0))
     flash_msg, _, flash_ok = popFormFlash(request)
     return templates.TemplateResponse(
         request, "datos/alertas.html",
@@ -304,6 +334,10 @@ def showAlertasPage(request: Request,
          "conteo_severidad": conteo, "org_alcance": org,
          "sin_organizacion": org == -1,
          "estado_actual": estado, "conteo_grupos": conteo_grupos,
+         **filtros,
+         "dispositivos_filtro": dispositivos_filtro,
+         "zonas_filtro": zonas_filtro,
+         "hay_filtros": hay_filtros, "n_filtros": n_filtros,
          "flash_msg": flash_msg, "flash_ok": flash_ok,
          **userSessionContext(sesion)})
 

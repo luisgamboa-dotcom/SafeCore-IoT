@@ -44,6 +44,29 @@ def getAllZones():
         closeConnection(conn, cur)
 
 
+def getZonasOrganizacion(id_organizacion):
+    """Zonas con su instalación de UNA organización (HU-018: opción del panel
+    'Filtrar por zona'); None = todas las organizaciones (usuario global)."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        if id_organizacion is None:
+            cur.execute("""SELECT z.id_zona, z.nombre, i.nombre AS instalacion
+                           FROM zonas z
+                           JOIN instalaciones i ON i.id_instalacion = z.id_instalacion
+                           ORDER BY i.nombre, z.nombre""")
+        else:
+            cur.execute("""SELECT z.id_zona, z.nombre, i.nombre AS instalacion
+                           FROM zonas z
+                           JOIN instalaciones i ON i.id_instalacion = z.id_instalacion
+                           WHERE i.id_organizacion = %s
+                           ORDER BY i.nombre, z.nombre""", (id_organizacion,))
+        return cur.fetchall()
+    finally:
+        closeConnection(conn, cur)
+
+
 def getAllZonesWithCounts():
     conn = getConnection()
     cur = None

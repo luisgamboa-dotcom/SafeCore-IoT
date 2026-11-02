@@ -185,11 +185,18 @@ def getRecentAlerts(id_organizacion=None, limite=10):
         closeConnection(conn, cur)
 
 
-def getAlertasCompletas(id_organizacion=None, limite=50, estado=None):
+def getAlertasCompletas(id_organizacion=None, limite=50, estado=None,
+                        q=None, id_dispositivo=None, id_zona=None,
+                        severidad=None, fecha=None):
     """Pagina de alertas: todas las alertas de la organizacion con el detalle
     de regla, lectura de origen y quien las reconocio/resolvio
     (None = usuario global -> todas las organizaciones).
-    estado: 'activas', 'resueltas' o None = todas."""
+    estado: 'activas', 'resueltas' o None = todas.
+    HU-018: filtros combinables (todos opcionales):
+      - q: nombre de dispositivo, codigo serial o mensaje (busqueda).
+      - id_dispositivo / id_zona / severidad: valor exacto.
+      - fecha: 'hoy', '7d' o '30d' (desde esa fecha).
+    Ordenado de la mas reciente a la mas antigua (criterio 5)."""
     limite = max(1, min(int(limite), 200))
     from models.devicesModel import dispositivosOrganizacion_sql
     conn = getConnection()
@@ -207,7 +214,7 @@ def getAlertasCompletas(id_organizacion=None, limite=50, estado=None):
                         l.valor AS valor_origen, l.fecha_hora AS fecha_origen,
                         u1.nombre AS reconoce_nombre, u1.apellido AS reconoce_apellido,
                         u2.nombre AS resuelve_nombre, u2.apellido AS resuelve_apellido,
-                         a.comentario_resolucion
+                        a.comentario_resolucion
                  FROM alertas a
                  JOIN estados_alerta e ON e.id_estado_alerta = a.id_estado_alerta
                  JOIN dispositivos d ON d.id_dispositivo = a.id_dispositivo
@@ -219,17 +226,38 @@ def getAlertasCompletas(id_organizacion=None, limite=50, estado=None):
                  LEFT JOIN usuarios u1 ON u1.id_usuario = a.reconocido_por
                  LEFT JOIN usuarios u2 ON u2.id_usuario = a.resuelto_por"""
         condiciones = []
+        params = []
         if id_organizacion is not None:
             condiciones.append(dispositivosOrganizacion_sql('a.id_dispositivo'))
+            params.append(id_organizacion)
         if estado == "activas":
             condiciones.append(f"a.id_estado_alerta IN ({PENDIENTE}, {RECONOCIDA})")
         elif estado == "resueltas":
             condiciones.append(f"a.id_estado_alerta = {RESUELTA}")
+        if q:
+            patron = f"%{q}%"
+            condiciones.append("(d.nombre LIKE %s OR d.codigo_serial LIKE %s"
+                               " OR a.mensaje_corto LIKE %s)")
+            params.extend([patron, patron, patron])
+        if id_dispositivo is not None:
+            condiciones.append("a.id_dispositivo = %s")
+            params.append(id_dispositivo)
+        if id_zona is not None:
+            condiciones.append("a.id_zona = %s")
+            params.append(id_zona)
+        if severidad:
+            condiciones.append("a.severidad = %s")
+            params.append(severidad)
+        if fecha == "hoy":
+            condiciones.append("DATE(a.fecha_inicio) = CURDATE()")
+        elif fecha == "7d":
+            condiciones.append("a.fecha_inicio >= NOW() - INTERVAL 7 DAY")
+        elif fecha == "30d":
+            condiciones.append("a.fecha_inicio >= NOW() - INTERVAL 30 DAY")
         filtro = f" WHERE {' AND '.join(condiciones)}" if condiciones else ""
         cur.execute(f"""{sql}{filtro}
-                        ORDER BY a.id_alerta DESC
-                        LIMIT {limite}""",
-                    (id_organizacion,) if id_organizacion is not None else ())
+                        ORDER BY a.fecha_inicio DESC, a.id_alerta DESC
+                        LIMIT {limite}""", tuple(params))
         return cur.fetchall()
     finally:
         closeConnection(conn, cur)
