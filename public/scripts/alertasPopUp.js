@@ -7,9 +7,9 @@
  * - Desaparece sola cuando la alerta deja de estar activa (resuelta/suprimida).
  * - Máximo 3 visibles; de más se muestra "+N alertas más" con enlace a la
  *   bitácora (/dashboard/alertas).
- * - No repite avisos ya mostrados mientras la alerta siga activa:
- *   guarda las vistas en localStorage y refresca el badge de la campana
- *   (/api/notificaciones/no-leidas).
+ * - Cada alerta avisa UNA sola vez: la marca vive en localStorage y sobrevive
+ *   a recargas y navegación; cerrarla con ✖ la borra por completo.
+ *   Además refresca el badge de la campana (/api/notificaciones/no-leidas).
  */
 (function () {
   "use strict";
@@ -153,34 +153,30 @@
     const activas = new Set(alertas.map(a => String(a.id_alerta)));
     const vistas = leerLista(CLAVE_VISTAS);
     const cerradas = leerLista(CLAVE_CERRADAS);
-    // Limpieza: se olvida lo que ya no está activo (permite avisar de nuevo
-    // si la misma regla vuelve a abrirse con otro id).
+    // Limpieza: se olvida lo que ya no está activo (evita crecimiento eterno y
+    // deja avisar cuando la misma regla vuelva a abrirse con un id nuevo; el
+    // mismo id nunca reaparece porque es autoincremental).
     [...vistas, ...cerradas].forEach(id => {
       if (!activas.has(id)) { vistas.delete(id); cerradas.delete(id); }
     });
 
-    const presentes = new Set(
-      [...cont.querySelectorAll("[data-id-alerta]")].map(t => t.dataset.idAlerta));
-
-    // Limpieza de tarjetas cuya alerta dejó de estar activa.
+    // Tarjetas cuya alerta dejó de estar activa (resuelta/suprimida)
+    // desaparecen de la pantalla con el siguiente tick.
     [...cont.children].forEach(t => {
       const id = t.dataset && t.dataset.idAlerta;
       if (id && !activas.has(id)) { t.remove(); }
     });
 
+    // HU-017 (corrección): cada alerta notifica UNA sola vez. La marca vive en
+    // localStorage, así que la primera vez que aparece en el panel se muestra
+    // y ni el cambio de página ni el despliegue del menú la repiten; cerrarla
+    // con ✖ la borra por completo. El borrado en pantalla (deja de estar
+    // activa) corre a continuación, aparte.
     alertas.forEach(alerta => {
       const id = String(alerta.id_alerta);
-      if (vistas.has(id) && presentes.has(id)) { return; }
-      if (vistas.has(id) && !presentes.has(id)) {
-        // Reaparece (recarga de página): tarjeta nueva, sigue siendo notificada.
-      } else if (!vistas.has(id)) {
-        vistas.add(id);
-      }
-      // Las cerradas manualmente no vuelven mientras sigan activas.
-      if (cerradas.has(id)) { return; }
-      if (!presentes.has(id)) {
-        cont.insertBefore(tarjetaAlerta(alerta), cont.firstChild);
-      }
+      if (vistas.has(id) || cerradas.has(id)) { return; }
+      vistas.add(id);
+      cont.insertBefore(tarjetaAlerta(alerta), cont.firstChild);
     });
     guardarLista(CLAVE_VISTAS, vistas);
     guardarLista(CLAVE_CERRADAS, cerradas);
