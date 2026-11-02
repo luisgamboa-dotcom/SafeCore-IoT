@@ -32,8 +32,10 @@ def showDeviceDetail(request: Request,
     if dev is None:
         return RedirectResponse("/dashboard", status_code=303)
     contexto = {"request": request, "dev": dev, **userSessionContext(sesion)}
-    horas = request.query_params.get("horas", "24")
-    contexto["horas_export"] = horas if horas in ("24", "168", "720", "0") else "24"
+    # Minimo de los campos de vigencia: hoy (el backend lo valida igual).
+    contexto["vigencia_min"] = date.today().isoformat()
+    horas = request.query_params.get("horas", "1")
+    contexto["horas_export"] = horas if horas in ("1", "24", "168", "720", "0") else "1"
     org = restrictedOrganization(sesion)
     # Usuario comun: sin organizacion, o con una distinta a la del dispositivo,
     # no accede (solo administradores tienen alcance global).
@@ -94,17 +96,17 @@ def showDeviceDetail(request: Request,
         request, "datos/device.html", contexto)
 
 
-PERIODOS_EXPORT = {"24", "168", "720", "0"}
+PERIODOS_EXPORT = {"1", "24", "168", "720", "0"}
 
 
 def exportDeviceCsv(request: Request,
                     id_device: int,
-                    horas: str = "24",
+                    horas: str = "1",
                     id_sesion: UUID = Depends(session_cookie),
                     sesion: SessionData = Depends(verificador)):
     """HU-011: CSV del historial de lecturas del dispositivo en el periodo dado."""
     if horas not in PERIODOS_EXPORT:
-        horas = "24"
+        horas = "1"
     dev = dev_model.getDeviceDetail(id_device)
     if dev is None:
         return RedirectResponse("/dashboard", status_code=303)
