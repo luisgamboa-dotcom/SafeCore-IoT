@@ -388,45 +388,119 @@
   // --- Tarjetas por dispositivo y KPI de estado (buffer en vivo) ---
   var ultimos = [];
   var APAGADO_SEG = 300;
+  var COLOR_SEV = {critica: '#7f1d1d', alta: '#dc2626', media: '#b45309', baja: '#15803d'};
 
-  // Rellena las tarjetas [data-serial] con lo fresco del buffer: items viene
-  // ordenado de mas nuevo a mas viejo, el primer item de un serial es su
-  // paquete mas reciente. Sin items -> Apagado. Edad > 5 min -> Apagado.
-  function actualizarTarjetas(items) {
-    var grid = document.getElementById('devicesLive');
-    if (!grid) return;
+  function fmtValor(v) {
+    var n = Number(v);
+    return isNaN(n) ? String(v) : String(Math.round(n * 100) / 100);
+  }
+
+  // Ajusta el tamano del valor para que quepa en su bloque sin partir el
+  // numero. El bloque es un contenedor de tamano (container-type:inline-size),
+  // asi que cqw mide su ancho real. 0.62 = ancho aproximado de un digito
+  // tabular respecto al font-size; 1.875rem es el tope visual y 0.75rem el
+  // minimo legible (por debajo, break-all actua como ultimo recurso).
+  function ajustarFuenteValor(el, texto) {
+    if (!el) return;
+    var n = Math.max(1, String(texto == null ? '' : texto).length);
+    var cqw = Math.max(14, Math.min(42, 100 / (0.62 * n)));
+    el.style.fontSize = 'clamp(0.75rem, ' + cqw.toFixed(1) + 'cqw, 1.875rem)';
+  }
+
+  function reglaExcedida(valor, reglas) {
+    var v = Number(valor);
+    return (reglas || []).find(function (r) {
+      var u = Number(r.valor_umbral), op = r.operador;
+      return (op === '>' && v > u) || (op === '>=' && v >= u) ||
+             (op === '<' && v < u) || (op === '<=' && v <= u) ||
+             (op === '=' && v === u) || (op === '!=' && v !== u);
+    }) || null;
+  }
+
+  // Agrupa las lecturas del buffer por dispositivo y magnitud. `items` viene
+  // de mas nuevo a mas viejo, asi que la primera aparicion de cada pareja es
+  // la lectura vigente.
+  function agruparPorMagnitud(items) {
     var porSerial = {};
     items.forEach(function (x) {
       var ser = x.codigo_serial || '';
-      if (!porSerial[ser]) porSerial[ser] = x;
+      var mag = x.magnitud || '';
+      if (!porSerial[ser]) porSerial[ser] = {};
+      if (!porSerial[ser][mag]) porSerial[ser][mag] = x;
     });
+    return porSerial;
+  }
+
+  // Rellena las tarjetas grandes [data-serial] con las tres magnitudes.
+  // Sin datos o ultima lectura > 5 min -> Apagado.
+  function actualizarTarjetas(items) {
+    var grid = document.getElementById('devicesLive');
+    if (!grid) return;
+    var porSerial = agruparPorMagnitud(items);
     grid.querySelectorAll('[data-serial]').forEach(function (card) {
       var ser = card.getAttribute('data-serial');
-      var it = porSerial[ser];
+      var lecturas = porSerial[ser] || {};
+      var umbrales = {};
+      try {
+        umbrales = JSON.parse(card.getAttribute('data-umbrales') || '{}') || {};
+      } catch (e) { umbrales = {}; }
+
+      var masReciente = null;
+      card.querySelectorAll('[data-mag]').forEach(function (bloque) {
+        var mag = bloque.getAttribute('data-mag');
+        var it = lecturas[mag];
+        var elV = bloque.querySelector('[data-campo="valor"]');
+        var elE = bloque.querySelector('.dev-live-edad');
+        var elQ = bloque.querySelector('.dev-live-calidad');
+        if (!it) {
+          if (elV) {
+            elV.textContent = '—';
+            elV.style.color = '';
+            ajustarFuenteValor(elV, '—');
+          }
+          if (elE) elE.textContent = 'sin datos';
+          if (elQ) elQ.classList.add('hidden');
+          return;
+        }
+        if (elV) {
+          var textoValor = fmtValor(it.valor);
+          elV.textContent = textoValor;
+          ajustarFuenteValor(elV, textoValor);
+          var regla = reglaExcedida(it.valor, umbrales[mag]);
+          elV.style.color = regla
+            ? (COLOR_SEV[(regla.severidad || '').toLowerCase()] || '#7f1d1d')
+            : '';
+        }
+        if (elE) {
+          var age = ageSecs(it.fecha_hora);
+          elE.textContent = age >= 0 ? 'hace ' + ageFmt(age) : 'sin datos';
+        }
+        if (elQ) elQ.classList.toggle('hidden', it.calidad !== 'dudosa');
+        if (!masReciente || String(it.fecha_hora).localeCompare(String(masReciente)) > 0) {
+          masReciente = it.fecha_hora;
+        }
+      });
+
       var dot = card.querySelector('.js-dot');
       var est = card.querySelector('.js-estado');
-      var lec = card.querySelector('.js-lectura');
+      var texto = card.querySelector('.js-estado-texto');
       var fec = card.querySelector('.js-fecha');
-      if (!dot || !est || !lec || !fec) return;
-      if (!it) {
-        dot.className = 'js-dot w-3 h-3 rounded-full status-dot-crit';
-        est.className = 'js-estado inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container-low text-xs font-semibold text-error';
-        est.textContent = 'Apagado';
-        lec.textContent = '—';
-        fec.textContent = '—';
-        return;
+      var ageUltima = masReciente ? ageSecs(masReciente) : -1;
+      var apagado = !masReciente || ageUltima > APAGADO_SEG;
+      if (dot) {
+        dot.className = 'js-dot w-2.5 h-2.5 rounded-full ' +
+          (apagado ? 'status-dot-crit' : 'status-dot-online');
       }
-      var age = ageSecs(it.fecha_hora);
-      lec.textContent = esc(it.magnitud) + ': ' + esc(it.valor);
-      fec.textContent = esc(it.fecha_hora) + (age >= 0 ? ' · hace ' + ageFmt(age) : '');
-      if (age > APAGADO_SEG) {
-        dot.className = 'js-dot w-3 h-3 rounded-full status-dot-crit';
-        est.className = 'js-estado inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container-low text-xs font-semibold text-error';
-        est.textContent = 'Apagado';
-      } else {
-        dot.className = 'js-dot w-3 h-3 rounded-full status-dot-online';
-        est.className = 'js-estado inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container-low text-xs font-semibold';
-        est.textContent = 'online';
+      if (est) {
+        est.className = 'js-estado inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap shrink-0 ' +
+          (apagado ? 'bg-error-container text-error' : 'bg-green-100 text-green-800');
+      }
+      if (texto) texto.textContent = apagado ? 'Apagado' : 'En línea';
+      if (fec) {
+        fec.textContent = masReciente
+          ? 'Última lectura: ' + masReciente + (ageUltima >= 0 ? ' · hace ' + ageFmt(ageUltima) : '')
+          : 'Sin lecturas recientes';
+        fec.title = fec.textContent;
       }
     });
   }
@@ -434,7 +508,7 @@
   async function tick() {
     var items = ultimos;
     try {
-      var r = await fetch('/api/live?limit=150', {cache: 'no-store'});
+      var r = await fetch('/api/live?limit=200&agrupado=1', {cache: 'no-store'});
       if (!r.ok) throw new Error('http ' + r.status);
       items = ((await r.json()).lecturas) || [];
       ultimos = items;

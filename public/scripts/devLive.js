@@ -51,7 +51,7 @@
   async function tick() {
     var items = [];
     try {
-      var r = await fetch('/api/live?limit=150', {cache: 'no-store'});
+      var r = await fetch('/api/live?limit=200&agrupado=1', {cache: 'no-store'});
       if (r.ok) items = ((await r.json()).lecturas) || [];
     } catch (e) { /* sin servidor: se deja el ultimo texto */ }
 
@@ -70,9 +70,11 @@
       var it = ultimas[mag];
       var elV = fila.querySelector('[data-campo="valor"]');
       var elE = fila.querySelector('.dev-live-edad');
+      var elQ = fila.querySelector('.dev-live-calidad');
       if (!it) {
         if (elV) { elV.textContent = '—'; elV.style.color = ''; }
         if (elE) elE.textContent = 'sin datos';
+        if (elQ) elQ.classList.add('hidden');
         return;
       }
       if (elV) {
@@ -83,6 +85,7 @@
           : '';
       }
       if (elE) elE.textContent = edad(it.fecha_hora);
+      if (elQ) elQ.classList.toggle('hidden', it.calidad !== 'dudosa');
       if (!ultimaTs || String(it.fecha_hora).localeCompare(String(ultimaTs)) > 0) {
         ultimaTs = it.fecha_hora;
       }

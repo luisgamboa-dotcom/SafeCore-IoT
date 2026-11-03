@@ -160,11 +160,15 @@ def ingestReadings(request: Request, payload: IngestIn):
 
 def getLiveReadings(request: Request,
                     limit: int = 50,
+                    agrupado: bool = False,
                     id_sesion: UUID = Depends(session_cookie),
                     sesion: SessionData = Depends(verificador)):
     # Mismo alcance que el dashboard: cada usuario ve solo su organización.
+    # agrupado=1 devuelve solo la ultima lectura de cada dispositivo+magnitud,
+    # que es lo que necesitan las tarjetas grandes del panel.
     org = dashboardOrganization(sesion)
-    lecturas = liveStore.get_latest(limit)
+    lecturas = (liveStore.get_latest_por_magnitud(limit) if agrupado
+                else liveStore.get_latest(limit))
     if org is not None:
         seriales = organizationSerials(org)
         lecturas = [l for l in lecturas if l["codigo_serial"] in seriales]
@@ -402,10 +406,17 @@ def showSensoresPage(request: Request,
         dispositivos = dev_model.getActiveDevices(org)
     except Exception:
         dispositivos = []
+    # Umbrales activos para colorear las lecturas en vivo de cada tarjeta.
+    try:
+        from models import rulesModel
+        umbrales = rulesModel.getActiveThresholdsByOrganization(org)
+    except Exception:
+        umbrales = {}
     flash_msg, _, flash_ok = popFormFlash(request)
     return templates.TemplateResponse(
         request, "datos/sensores.html",
         {"request": request, "dispositivos": dispositivos,
+         "umbrales": umbrales,
          "org_alcance": org, "sin_organizacion": org == -1,
          "flash_msg": flash_msg, "flash_ok": flash_ok,
          **userSessionContext(sesion)})
