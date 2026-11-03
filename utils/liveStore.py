@@ -39,3 +39,25 @@ def get_latest(limit: int = 50) -> List[Dict[str, Any]]:
     with _lock:
         out = list(_buf)[:limit]
     return [{k: v for k, v in d.items() if not k.startswith("_")} for d in out]
+
+
+def get_latest_por_magnitud(limit: int = 200) -> List[Dict[str, Any]]:
+    """Ultima lectura de cada (serial, magnitud), de mas nuevo a mas viejo.
+
+    El buffer guarda los items de mas reciente a mas antiguo, asi que la
+    primera aparicion de cada pareja ya es la lectura vigente. Evita que una
+    magnitud desaparezca de la ventana cuando hay varios dispositivos.
+    """
+    limit = max(1, min(int(limit), _MAX))
+    with _lock:
+        vistos = set()
+        out = []
+        for d in _buf:
+            clave = (d["codigo_serial"], d["magnitud"])
+            if clave in vistos:
+                continue
+            vistos.add(clave)
+            out.append({k: v for k, v in d.items() if not k.startswith("_")})
+            if len(out) >= limit:
+                break
+    return out
