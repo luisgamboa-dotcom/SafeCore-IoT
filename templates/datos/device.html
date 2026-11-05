@@ -396,7 +396,7 @@ tailwind.config = {
                                         'alta': 'error',
                                         'media': 'warning',
                                         'baja': 'info'}.get(sev, 'warning') %}
-                    <details class="group border-l-4 {{ clase_borde }} {{ clase_fondo }}">
+                    <details class="group border-l-4 {{ clase_borde }} {{ clase_fondo }} border-t border-t-outline-variant first:border-t-0">
                         <summary class="flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-1 px-4 py-3 cursor-pointer select-none hover:bg-black/[0.03] transition-colors [&::-webkit-details-marker]:hidden">
                             <span class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                                   style="background:{{ bg_mag }}; color:{{ color_mag }}" aria-hidden="true">
@@ -500,7 +500,7 @@ tailwind.config = {
                                 <h4 class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Historial reciente</h4>
                                 <span class="text-[11px] text-on-surface-variant">Últimas {{ [resueltas|length, 5]|min }} de {{ resueltas|length }}</span>
                             </div>
-                            <div class="mt-2 rounded-xl border border-outline-variant overflow-hidden divide-y divide-surface-variant">
+                            <div class="mt-2 rounded-xl border border-outline-variant overflow-hidden">
                                 {% for a in resueltas[:5] %}
                                     {{ fila_alerta(a, chip_sev, chip_estado_alerta) }}
                                 {% endfor %}
@@ -512,7 +512,7 @@ tailwind.config = {
                                     {% set n_rest = resueltas|length - 5 %}
                                     Ver {% if n_rest == 1 %}la 1 restante{% else %}las {{ n_rest }} restantes{% endif %}
                                 </summary>
-                                <div class="mt-2 rounded-xl border border-outline-variant overflow-hidden divide-y divide-surface-variant max-h-[420px] overflow-y-auto">
+                                <div class="mt-2 rounded-xl border border-outline-variant overflow-hidden max-h-[420px] overflow-y-auto">
                                     {% for a in resueltas[5:] %}
                                         {{ fila_alerta(a, chip_sev, chip_estado_alerta) }}
                                     {% endfor %}
