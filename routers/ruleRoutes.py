@@ -1,4 +1,3 @@
-"""Rutas de reglas de alerta: POST solo de administración, anidados bajo la ficha del dispositivo."""
 from fastapi import APIRouter
 
 import controllers.rulesController as rulesController

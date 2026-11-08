@@ -1,4 +1,3 @@
-"""SQL de auditoria_cambios: una fila por cada campo cambiado en un guardado."""
 from config.dbConfig import getConnection
 from utils.commonUtils import closeConnection
 
@@ -39,8 +38,6 @@ def getCambios(entidad, registro_id, limite=50):
 
 
 def getResumenAuditoria():
-    """HU-032: alternativas para los filtros (entidades presentes en la
-    auditoria y usuarios que han realizado cambios)."""
     conn = getConnection()
     cur = None
     try:
@@ -59,8 +56,6 @@ def getResumenAuditoria():
 
 def consultarAuditoria(entidad=None, registro_id=None, id_usuario=None,
                        desde=None, hasta=None, pagina=1, por_pagina=30):
-    """HU-032: busqueda de cambios con filtros de entidad, registro, usuario
-    y rango de fechas; devuelve (filas, total) paginados, lo mas reciente primero."""
     desde = desde or None
     hasta = hasta or None
     condiciones = []

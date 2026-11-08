@@ -1,4 +1,3 @@
-"""SQL de la tabla de sesiones."""
 from config.dbConfig import getConnection
 
 

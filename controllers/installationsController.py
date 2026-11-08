@@ -1,4 +1,3 @@
-"""Gestión de instalaciones del panel admin (la dirección se maneja en línea)."""
 from uuid import UUID
 
 import mysql.connector

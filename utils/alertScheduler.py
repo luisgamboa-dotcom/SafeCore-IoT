@@ -1,14 +1,3 @@
-"""Barrido periodico de alertas y estado de dispositivos (hilo daemon).
-
-Cada intervalo evalua las reglas de las zonas con dispositivos activos (para
-abrir/resolver alertas y generar sus notificaciones) y marca como offline los
-equipos sin comunicacion reciente. Complementa la evaluacion que dispara la
-ingesta (utils/batchStore), cubriendo cambios de vigencia de las reglas y
-equipos que dejan de enviar.
-
-Se inicia junto a la app (main.py). Se desactiva con SAFECORE_ALERTS=0 y el
-intervalo se ajusta con SAFECORE_ALERTS_INTERVAL (segundos, minimo 15).
-"""
 import os
 import threading
 import time
@@ -44,7 +33,6 @@ def _bucle():
 
 
 def iniciar_barrido():
-    """Arranca el hilo daemon del barrido (idempotente)."""
     global _hilo
     if not _ACTIVADO:
         print("[alertas] desactivado por SAFECORE_ALERTS=0")

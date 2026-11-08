@@ -1,4 +1,3 @@
-"""Gestión de organizaciones del panel admin."""
 from uuid import UUID
 
 import mysql.connector
@@ -103,7 +102,7 @@ def updateOrganization(request: Request,
     return RedirectResponse(f"/admin/organizations/{id_organization}", status_code=303)
 
 
-# Bloquear si existen relaciones: desactivar en su lugar (tiene usuarios o instalaciones).
+
 def deleteOrganization(request: Request,
                        id_organization: int,
                        id_sesion: UUID = Depends(session_cookie),

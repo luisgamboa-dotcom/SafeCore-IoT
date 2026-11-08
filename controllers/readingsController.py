@@ -1,4 +1,3 @@
-"""Ingesta de lecturas, API en vivo y panel de datos."""
 import json
 import os
 from uuid import UUID
@@ -27,14 +26,14 @@ from utils.flashUtils import popFormFlash, flashForm
 
 templates = Jinja2Templates(directory="templates")
 
-# Sin persistencia por defecto: solo en vivo. Configurar SAVE_READINGS=1 en .env para persistir.
+
 SAVE_TO_DB = os.getenv("SAVE_READINGS") == "1"
 
-# Editable: segundos que se acumulan las lecturas antes del envío del lote a la BD.
+
 AGGREGATE_INTERVAL_S = 60
 
-# Rangos de calidad sobre el VALOR CRUDO que llega del nodo (el gas llega en
-# cuentas ADC 0-1023; la conversion a ppm se hace en la ingesta, ver abajo).
+
+
 RANGOS = {"gas": (0, 1023), "temp": (-40.0, 80.0), "hum": (0.0, 100.0)}
 
 batchStore.start(AGGREGATE_INTERVAL_S, lambda: SAVE_TO_DB)
@@ -55,16 +54,16 @@ class IngestIn(BaseModel):
 
 
 def ingestReadings(request: Request, payload: IngestIn):
-    # Ultima IP conocida del nodo (para abrir la PWA de config desde el panel).
-    # Nunca interrumpe el ingest.
+
+
     try:
         ip_cliente = request.client.host if request.client else None
         nodeIps.recordar(payload.device_serial, ip_cliente)
     except Exception:
         pass
 
-    # Log de diagnostico: valores crudos que reporta el nodo (1 linea/POST,
-    # rotado: se conservan las ultimas 300 lineas ~50 min).
+
+
     try:
         _LOG = os.path.join("data", "ingest_debug.jsonl")
         lineas = []
@@ -84,8 +83,8 @@ def ingestReadings(request: Request, payload: IngestIn):
         calidad = "valida" if (lo <= float(r.valor_crudo) <= hi) else "dudosa"
         if calidad == "dudosa":
             dudosas += 1
-        # Gas: se guarda y muestra en ppm (estimado via curva del datasheet);
-        # el crudo ADC solo queda en el log de diagnostico.
+
+
         valor = (gasConversion.adc_a_ppm(r.valor_crudo) if r.tipo == "gas"
                  else float(r.valor_crudo))
         calificadas.append({"tipo": r.tipo,
@@ -95,18 +94,18 @@ def ingestReadings(request: Request, payload: IngestIn):
     liveStore.push(payload.device_serial, payload.fw, payload.seq, calificadas)
     pendientes = batchStore.add(payload.device_serial, payload.fw, payload.seq, calificadas)
 
-    # Metadatos del nodo: corren SIEMPRE (tambien en vivo-sin-guardar).
-    # Tolerante a BD caida: si falla, el ingest sigue igual.
+
+
     dev = None
     bd_error = None
     try:
         dev = lec_model.matchDeviceBySerial(payload.device_serial, payload.device_id)
-        # HU-014: un dispositivo dado de baja no refresca su estado ni firmware.
+
         if dev is not None and "conflicto" not in dev and "no_activo" not in dev:
-            # El dispositivo que reporta está vivo: última comunicación AHORA (+ estado de vuelta
-            # a online si estaba offline). No guarda lecturas, solo metadatos.
+
+
             lec_model.markDeviceAlive(dev["id_dispositivo"])
-            # FW reportado por el nodo: persistir si difiere de la BD (PWA 3.0+)
+
             if payload.fw and payload.fw != dev.get("firmware_version"):
                 lec_model.updateFirmwareVersion(dev["id_dispositivo"], payload.fw)
     except Exception as e:
@@ -124,8 +123,8 @@ def ingestReadings(request: Request, payload: IngestIn):
     else:
         bd_estado = "sincronizado"
 
-    # HU-014: la ingesta de un dispositivo desactivado se rechaza sin guardar
-    # lecturas ni actualizar nada (tambien en modo en-vivo).
+
+
     if dev is not None and "no_activo" in dev:
         return JSONResponse(
             status_code=409,
@@ -163,9 +162,9 @@ def getLiveReadings(request: Request,
                     agrupado: bool = False,
                     id_sesion: UUID = Depends(session_cookie),
                     sesion: SessionData = Depends(verificador)):
-    # Mismo alcance que el dashboard: cada usuario ve solo su organización.
-    # agrupado=1 devuelve solo la ultima lectura de cada dispositivo+magnitud,
-    # que es lo que necesitan las tarjetas grandes del panel.
+
+
+
     org = dashboardOrganization(sesion)
     lecturas = (liveStore.get_latest_por_magnitud(limit) if agrupado
                 else liveStore.get_latest(limit))
@@ -230,7 +229,6 @@ def getHistoricoReadings(request: Request,
 
 
 def _horasValidas(valor, defecto=1):
-    """Periodo aceptado por el grafico: 1 h, 24 h, 7 d, 30 d o todo (0)."""
     try:
         horas = int(valor)
     except (TypeError, ValueError):
@@ -251,7 +249,6 @@ def getHistoricoSerie(request: Request,
                       magnitud: str = "gas",
                       id_sesion: UUID = Depends(session_cookie),
                       sesion: SessionData = Depends(verificador)):
-    """Serie agregada por tiempo del dispositivo, para el grafico de la ficha."""
     org = dashboardOrganization(sesion)
     mag = magnitud if magnitud in lec_model.MAGNITUDES else "gas"
     serial = (serial or "").strip()
@@ -269,7 +266,6 @@ def getHistoricoOrganizacion(request: Request,
                              magnitud: str = "gas",
                              id_sesion: UUID = Depends(session_cookie),
                              sesion: SessionData = Depends(verificador)):
-    """Promedio por tiempo de los dispositivos de la organizacion del usuario."""
     org = dashboardOrganization(sesion)
     mag = magnitud if magnitud in lec_model.MAGNITUDES else "gas"
     try:
@@ -303,8 +299,8 @@ def getZonaSeries(request: Request,
 def showDataPage(request: Request,
                  id_sesion: UUID = Depends(session_cookie),
                  sesion: SessionData = Depends(verificador)):
-    # Dashboard principal: cada usuario ve solo los dispositivos de su
-    # organización (None = usuario sin organización -> panel global).
+
+
     org = dashboardOrganization(sesion)
     try:
         dispositivos = dev_model.getActiveDevices(org)
@@ -316,7 +312,7 @@ def showDataPage(request: Request,
     except Exception:
         alertas = []
         alertas_abiertas = 0
-    # HU-031: mantenimientos programados donde el usuario es responsable.
+
     try:
         mant_pendientes = mant_model.getPendientesByResponsable(sesion.id_usuario)
     except Exception:
@@ -335,11 +331,6 @@ def showDataPage(request: Request,
 def showAlertasPage(request: Request,
                     id_sesion: UUID = Depends(session_cookie),
                     sesion: SessionData = Depends(verificador)):
-    """Pagina de alertas: tarjetas con todas las alertas de la organizacion
-    del usuario (None = global), expandibles con todo su detalle.
-    HU-018: busqueda (?q=) y filtros combinables por dispositivo, zona,
-    severidad, estado (?estado=activas|resueltas) y fecha (?fecha=hoy|7d|30d);
-    el listado queda ordenado de la mas reciente a la mas antigua."""
     params_q = request.query_params
     org = dashboardOrganization(sesion)
     estado = params_q.get("estado", "")
@@ -366,7 +357,7 @@ def showAlertasPage(request: Request,
     except Exception:
         alertas = []
         conteo_grupos = {"todas": 0, "activas": 0, "resueltas": 0}
-    # Opciones de los selects del panel "Filtrar" (alcance = la organizacion).
+
     try:
         dispositivos_filtro = dev_model.getActiveDevices(org)
     except Exception:
@@ -399,14 +390,12 @@ def showAlertasPage(request: Request,
 def showSensoresPage(request: Request,
                      id_sesion: UUID = Depends(session_cookie),
                      sesion: SessionData = Depends(verificador)):
-    """Pagina de sensores: estado de los dispositivos activos de la
-    organizacion del usuario (None = global)."""
     org = dashboardOrganization(sesion)
     try:
         dispositivos = dev_model.getActiveDevices(org)
     except Exception:
         dispositivos = []
-    # Umbrales activos para colorear las lecturas en vivo de cada tarjeta.
+
     try:
         from models import rulesModel
         umbrales = rulesModel.getActiveThresholdsByOrganization(org)
@@ -425,8 +414,6 @@ def showSensoresPage(request: Request,
 def showHistorialPage(request: Request,
                       id_sesion: UUID = Depends(session_cookie),
                       sesion: SessionData = Depends(verificador)):
-    """Pagina de historial: promedio por tiempo de los dispositivos de la
-    organizacion del usuario, con pestañas por magnitud y periodo."""
     flash_msg, _, flash_ok = popFormFlash(request)
     org = dashboardOrganization(sesion)
     horas = request.query_params.get("horas", "1")
@@ -448,9 +435,6 @@ def reconocerAlerta(request: Request,
                     id_alerta: int,
                     id_sesion: UUID = Depends(session_cookie),
                     sesion: SessionData = Depends(verificador)):
-    """HU-019: marca la alerta como reconocida (pendiente -> reconocida),
-    registrando fecha y usuario. Un intento sobre una alerta que ya no está
-    pendiente rebota con el estado actual."""
     alerta = alerts_model.getAlerta(id_alerta)
     org = dashboardOrganization(sesion)
     if (alerta is None or org == -1
@@ -462,7 +446,7 @@ def reconocerAlerta(request: Request,
         return RedirectResponse("/dashboard/alertas", status_code=303)
     ok = alerts_model.reconocerAlerta(id_alerta, sesion.id_usuario)
     if not ok:
-        # Carrera: otro usuario la reconoció entre el guard y el UPDATE.
+
         flashForm(request, "La alerta ya está reconocida.")
         return RedirectResponse("/dashboard/alertas", status_code=303)
     registrarAuditoria(sesion.id_usuario, "alerta", id_alerta, "reconocer",
@@ -476,9 +460,6 @@ async def resolverAlerta(request: Request,
                          id_sesion: UUID = Depends(session_cookie),
                          sesion: SessionData = Depends(verificador),
                          comentario: str = Form("")):
-    """HU-020: cierra una alerta reconocida (reconocida -> resuelta) con el
-    comentario de resolución obligatorio. Una alerta pendiente exige
-    primero reconocerla; una resuelta no se reabre."""
     alerta = alerts_model.getAlerta(id_alerta)
     org = dashboardOrganization(sesion)
     if (alerta is None or org == -1
@@ -497,7 +478,7 @@ async def resolverAlerta(request: Request,
         return RedirectResponse("/dashboard/alertas", status_code=303)
     ok = alerts_model.resolverAlerta(id_alerta, sesion.id_usuario, texto)
     if not ok:
-        # Carrera: otro usuario la resolvió entre el guard y el UPDATE.
+
         flashForm(request, "La alerta ya está resuelta.")
         return RedirectResponse("/dashboard/alertas", status_code=303)
     registrarAuditoria(sesion.id_usuario, "alerta", id_alerta, "resolver",
@@ -510,8 +491,6 @@ async def resolverAlerta(request: Request,
 def getAlertasActivasApi(request: Request,
                          id_sesion: UUID = Depends(session_cookie),
                          sesion: SessionData = Depends(verificador)):
-    """HU-017: alertas activas (HU-017/019/020: pendiente o reconocida) del
-    alcance del usuario, para el polling del pop-up."""
     org = dashboardOrganization(sesion)
     try:
         alertas = alerts_model.getAlertasActivas(org, limite=20)
@@ -533,7 +512,6 @@ def getAlertasActivasApi(request: Request,
 
 
 def nodeConfig(serial: str):
-    """Config que consulta el nodo IoT (FW 3.0+) para saber si esta registrado."""
     dev = dev_model.getDeviceBySerial(serial)
     if dev is None:
         return JSONResponse(

@@ -1,4 +1,3 @@
-"""Gestión de zonas del panel admin (anidadas bajo instalaciones)."""
 from uuid import UUID
 
 import mysql.connector
@@ -70,7 +69,7 @@ def showZoneDetail(request: Request,
          **adminContext(sesion, user_model.getUserById(sesion.id_usuario))})
 
 
-# Conteo previo de dispositivos: fk_dev_zona es RESTRICT (y reglas_alerta→zonas es CASCADE).
+
 def deleteZone(request: Request,
                id_installation: int,
                id_zone: int,
@@ -85,7 +84,7 @@ def deleteZone(request: Request,
     return RedirectResponse(f"/admin/installations/{id_installation}", status_code=303)
 
 
-# Vista global de todas las zonas del sistema, con creacion independiente.
+
 def showZonesPage(request: Request,
                   id_sesion: UUID = Depends(session_cookie),
                   sesion: SessionData = Depends(requireAdminUser)):

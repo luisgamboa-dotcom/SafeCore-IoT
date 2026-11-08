@@ -1,9 +1,3 @@
-"""Perfil del usuario conectado: ver sus datos personales y editarlos.
-
-Accesible desde el circulo de iniciales del panel (GET /users/perfil). El
-usuario sale de la sesion (nunca de la URL); email, organizacion, estado y
-contrasena no se editan aqui.
-"""
 from uuid import UUID
 
 from fastapi import Depends, Form, Request
@@ -26,7 +20,7 @@ def showMyProfile(request: Request,
     if usuario is None:
         return RedirectResponse("/users/logout", status_code=303)
     flash_msg, old, flash_ok = popFormFlash(request)
-    # El form de edicion reusa los valores enviados si hubo error de validacion.
+
     viejo = old or {"nombre": usuario["nombre"], "apellido": usuario["apellido"],
                     "telefono": usuario["telefono"] or ""}
     return templates.TemplateResponse(
@@ -48,7 +42,7 @@ async def updateMyProfile(request: Request,
         flashForm(request, mensaje, viejo)
         return RedirectResponse("/users/perfil", status_code=303)
 
-    # Mismas reglas del registro: strip + capitalize y telefono chileno.
+
     datos = user_utils.normalizeForm({"nombre": nombre, "apellido": apellido,
                                       "telefono": telefono})
     if not datos["nombre"] or not datos["apellido"]:

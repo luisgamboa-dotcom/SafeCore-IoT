@@ -1,5 +1,3 @@
-"""Centro de notificaciones: listado de los avisos del usuario y lectura.
-HU-022: configuracion de los canales web/email (habilitado, destino, prioridad)."""
 from uuid import UUID
 
 from fastapi import Depends, Request, Form
@@ -21,9 +19,6 @@ PRIORIDADES = (1, 2, 3)
 def showNotificacionesPage(request: Request,
                            id_sesion: UUID = Depends(session_cookie),
                            sesion: SessionData = Depends(verificador)):
-    """HU-021: centro de notificaciones del usuario con asunto, contenido,
-    canal, estado de envío, fechas y enlace a la alerta de origen.
-    ?estado=sin_leer filtra las aún sin leer; sin filtro, todas."""
     estado = request.query_params.get("estado", "")
     solo_no_leidas = (estado == "sin_leer")
     if not solo_no_leidas:
@@ -51,8 +46,6 @@ def marcarLeidaNotificacion(request: Request,
                             id_notificacion: int,
                             id_sesion: UUID = Depends(session_cookie),
                             sesion: SessionData = Depends(verificador)):
-    """HU-021: botón 'Marcar leída' de una notificación del propio usuario.
-    El guard de dueño vive en el modelo (0 filas = no existe, ya leída o ajena)."""
     ok = notif_model.marcarLeida(id_notificacion, sesion.id_usuario)
     if ok:
         flashForm(request, "Notificación marcada como leída.", ok=True)
@@ -61,13 +54,11 @@ def marcarLeidaNotificacion(request: Request,
     return RedirectResponse("/dashboard/notificaciones", status_code=303)
 
 
-# Configuracion de canales (HU-022).
+
 
 def showConfigCanales(request: Request,
                       id_sesion: UUID = Depends(session_cookie),
                       sesion: SessionData = Depends(verificador)):
-    """HU-022: vista para activar/desactivar web y correo, con destino y
-    prioridad. Si el canal email queda habilitado sin destino, el correo de la cuenta actua de prefill."""
     perfil = notif_model.getPerfilCanales(sesion.id_usuario)
     usuario = user_model.getUserById(sesion.id_usuario)
     flash_msg, old, flash_ok = popFormFlash(request)
@@ -89,9 +80,6 @@ def saveConfigCanales(
     email_prioridad: str = Form(""),
     email_destino: str = Form(""),
     ):
-    """HU-022: valida todo ANTES de persistir (destino del correo con formato
-    correcto, prioridad 1-3); si nada queda habilitado guarda igual y advierte
-    que no habrá notificaciones."""
     filas = []
     if web_habilitado:
         prioridad_web = _prioridadValida(web_prioridad)

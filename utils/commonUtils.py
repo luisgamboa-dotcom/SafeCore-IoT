@@ -1,4 +1,3 @@
-"""Utilidades compartidas: contexto de cabecera de sesión, limpieza de BD y parseo de direcciones."""
 from config.sessionsConfig import SessionData
 from models import usersModel as user_model
 
@@ -24,14 +23,12 @@ def userSessionContext(sesion: SessionData):
             "is_admin": "Administrador" in roles or "Superadmin" in roles,
             "id_organizacion": user["id_organizacion"] if user else None,
             "id_usuario": sesion.id_usuario,
-            # HU-021: badge de notificaciones sin leer de la campana.
-            # 0 ante cualquier fallo: el badge nunca rompe la página.
+
+
             "notificaciones_no_leidas": notificacionesNoLeidas(sesion)}
 
 
 def notificacionesNoLeidas(sesion: SessionData):
-    """Contador de notificaciones sin leer del usuario (badge de la campana).
-    Import diferido del modelo para no crear ciclos; 0 si la BD no responde."""
     try:
         from models import notificationsModel
         return notificationsModel.countNoLeidas(sesion.id_usuario)
@@ -50,8 +47,6 @@ def adminContext(sesion: SessionData, user):
 
 
 def restrictedOrganization(sesion: SessionData):
-    """Organizacion que recorta los datos visibles (None = ve todo).
-    Solo roles por debajo de Administrador y con organizacion asignada."""
     user = user_model.getUserById(sesion.id_usuario)
     if user is None or user["id_organizacion"] is None:
         return None
@@ -62,9 +57,6 @@ def restrictedOrganization(sesion: SessionData):
 
 
 def dashboardOrganization(sesion: SessionData):
-    """Organizacion que acota el dashboard: la del usuario cuando tenga una
-    (ve solo sus dispositivos). Usuario comun sin organizacion -> -1 (no ve
-    datos de nadie); None solo para administradores sin organizacion (global)."""
     user = user_model.getUserById(sesion.id_usuario)
     if user is None:
         return -1

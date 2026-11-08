@@ -1,4 +1,3 @@
-"""SQL de alertas: alertas persistidas generadas por la evaluación de reglas."""
 from config.dbConfig import getConnection
 from utils.commonUtils import closeConnection
 
@@ -6,7 +5,7 @@ PENDIENTE = 1
 RECONOCIDA = 2
 RESUELTA = 3
 
-# Nombres de catálogo por magnitud, se crea un tipo genérico para magnitudes nuevas.
+
 _TIPO_POR_MAGNITUD = {
     "Gases inflamables": "umbral_gas",
     "Temperatura": "umbral_temperatura",
@@ -15,7 +14,6 @@ _TIPO_POR_MAGNITUD = {
 
 
 def magnitudInfo(id_magnitud):
-    """(nombre, unidad) de una magnitud, o sino (None, None)."""
     conn = getConnection()
     cur = None
     try:
@@ -73,8 +71,6 @@ def createAlerta(mensaje_corto, detalle_tecnico, severidad, id_regla,
 
 
 def getAlerta(id_alerta):
-    """Fila simple de una alerta con su organización (para los guards de
-    reconocer/resolver y para saber el estado actual sin depender del render)."""
     conn = getConnection()
     cur = None
     try:
@@ -94,9 +90,6 @@ def getAlerta(id_alerta):
 
 
 def reconocerAlerta(id_alerta, id_usuario):
-    """HU-019: pendiente (1) -> reconocida (2), registrando fecha y usuario.
-    Solo actúa si la alerta SIGUE pendiente: 0 filas = ya estaba
-    reconocida o resuelta (el controlador avisa con el estado actual)."""
     conn = getConnection()
     cur = None
     try:
@@ -113,9 +106,6 @@ def reconocerAlerta(id_alerta, id_usuario):
 
 
 def resolverAlerta(id_alerta, id_usuario, comentario):
-    """HU-020: reconocida (2) -> resuelta (3), registrando fecha, usuario y
-    comentario de resolución. Solo actúa si la alerta está reconocida:
-    0 filas = el controlador avisa con el estado actual."""
     conn = getConnection()
     cur = None
     try:
@@ -147,9 +137,6 @@ def resolveAlerta(id_alerta):
 
 
 def resolveAlertasDeRegla(id_regla, motivo=None):
-    """Resuelve las alertas pendientes o reconocidas de una regla. Se usa al
-    desactivarla: el motor deja de evaluarla y, sin esto, quedarian abiertas
-    para siempre."""
     conn = getConnection()
     cur = None
     try:
@@ -166,8 +153,6 @@ def resolveAlertasDeRegla(id_regla, motivo=None):
 
 
 def getRecentAlerts(id_organizacion=None, limite=10):
-    """Últimas alertas registradas, recortadas a los dispositivos de la
-    organización cuando se indique (None = todas las organizaciones)."""
     limite = max(1, min(int(limite), 50))
     from models.devicesModel import dispositivosOrganizacion_sql
     conn = getConnection()
@@ -207,15 +192,6 @@ def getRecentAlerts(id_organizacion=None, limite=10):
 def getAlertasCompletas(id_organizacion=None, limite=50, estado=None,
                         q=None, id_dispositivo=None, id_zona=None,
                         severidad=None, fecha=None):
-    """Pagina de alertas: todas las alertas de la organizacion con el detalle
-    de regla, lectura de origen y quien las reconocio/resolvio
-    (None = usuario global -> todas las organizaciones).
-    estado: 'activas', 'resueltas' o None = todas.
-    HU-018: filtros combinables (todos opcionales):
-      - q: nombre de dispositivo, codigo serial o mensaje (busqueda).
-      - id_dispositivo / id_zona / severidad: valor exacto.
-      - fecha: 'hoy', '7d' o '30d' (desde esa fecha).
-    Ordenado de la mas reciente a la mas antigua (criterio 5)."""
     limite = max(1, min(int(limite), 200))
     from models.devicesModel import dispositivosOrganizacion_sql
     conn = getConnection()
@@ -283,8 +259,6 @@ def getAlertasCompletas(id_organizacion=None, limite=50, estado=None,
 
 
 def countActiveAlerts(id_organizacion=None):
-    """Cantidad de alertas abiertas (pendientes + reconocidas), recortadas por
-    organización cuando se indique."""
     from models.devicesModel import dispositivosOrganizacion_sql
     conn = getConnection()
     cur = None
@@ -304,7 +278,6 @@ def countActiveAlerts(id_organizacion=None):
 
 
 def countAlertsByGroup(id_organizacion=None):
-    """Conteos de alertas por grupo (activas/resueltas/todas) para los tabs."""
     from models.devicesModel import dispositivosOrganizacion_sql
     conn = getConnection()
     cur = None
@@ -333,9 +306,6 @@ def countAlertsByGroup(id_organizacion=None):
 
 
 def getAlertasActivas(id_organizacion=None, limite=20):
-    """HU-017: alertas abiertas (pendientes y reconocidas) con el dispositivo y
-    el valor de la lectura de origen, para el pop-up y su texto
-    '¡ALERTA! dispositivo - valor'."""
     limite = max(1, min(int(limite), 50))
     from models.devicesModel import dispositivosOrganizacion_sql
     conn = getConnection()
@@ -366,8 +336,6 @@ def getAlertasActivas(id_organizacion=None, limite=20):
 
 
 def cancelarAlertasDeDispositivo(id_dispositivo):
-    """HU-014: al dar de baja un dispositivo cancela sus alertas activas
-    (pendientes y reconocidas) pasandolas a resuelta."""
     conn = getConnection()
     cur = None
     try:

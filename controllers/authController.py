@@ -1,4 +1,3 @@
-"""Auth: register, login and logout."""
 import hashlib
 import hmac
 import os
@@ -138,7 +137,7 @@ async def logoutUser(request: Request, session_id: UUID = Depends(session_cookie
     return respuesta
 
 
-# Recuperacion de contrasena.
+
 
 def showRecuperarForm(request: Request):
     flash_msg, old, flash_ok = popFormFlash(request)

@@ -1,5 +1,3 @@
-"""SQL de reglas_alerta: CRUD de reglas de alerta por zona y evaluación de
-incumplimientos de las lecturas guardadas. Severidades y operadores son catálogos fijos."""
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
@@ -9,9 +7,9 @@ from utils.commonUtils import closeConnection
 OPERADORES = (">", ">=", "<", "<=", "=", "!=")
 SEVERIDADES = ("baja", "media", "alta", "critica")
 MAX_DURACION_S = 7 * 24 * 60 * 60
-# Las lecturas se persisten en lotes de 60 s (utils/batchStore): cada fila es
-# el promedio de ese intervalo, por eso cuenta como si la condicion hubiera
-# durado al menos ese tiempo al comprobar la duracion minima de la regla.
+
+
+
 TOLERANCIA_LOTE_S = 60
 
 
@@ -43,8 +41,6 @@ def getZoneRules(id_zona):
 
 
 def getActiveThresholds(id_zona):
-    """Umbrales de las reglas activas de la zona, agrupados por tipo corto
-    de magnitud (gas/temp/hum), para la grafica de la ficha."""
     from models.readingsModel import MAGNITUDES
     nombre_tipo = {v["nombre"]: k for k, v in MAGNITUDES.items()}
     conn = getConnection()
@@ -73,10 +69,6 @@ def getActiveThresholds(id_zona):
 
 
 def getActiveThresholdsByOrganization(id_organizacion=None):
-    """Umbrales de las reglas activas de todas las zonas de la organizacion
-    (None = todas), agrupados por tipo corto de magnitud (gas/temp/hum).
-    Se deduplican por (tipo, operador, valor, severidad) para no dibujar la
-    misma linea varias veces cuando varias zonas comparten el umbral."""
     from models.readingsModel import MAGNITUDES
     nombre_tipo = {v["nombre"]: k for k, v in MAGNITUDES.items()}
     conn = getConnection()
@@ -168,8 +160,6 @@ def updateRule(id_regla, operador, valor_umbral, severidad, duracion_minima_seg,
 
 
 def setRuleActive(id_regla, activa):
-    """Activa o desactiva una regla. Las reglas no se borran: conservan su
-    historial de alertas y pueden reactivarse despues."""
     conn = getConnection()
     cur = None
     try:
@@ -183,7 +173,6 @@ def setRuleActive(id_regla, activa):
 
 
 def getActiveRulesOfZone(id_zona):
-    """Reglas activas Y dentro de su ventana de vigencia al momento de la llamada."""
     conn = getConnection()
     cur = None
     try:
@@ -213,7 +202,6 @@ def getZoneDevices(id_zona):
 
 
 def getZonasConDispositivosActivos():
-    """Zonas con al menos un dispositivo activo (barrido periodico de alertas)."""
     conn = getConnection()
     cur = None
     try:
@@ -226,8 +214,6 @@ def getZonasConDispositivosActivos():
 
 
 def getRecentReadingsForMagnitud(id_dispositivo, id_magnitud, segundos):
-    """Lecturas de los sensores del dispositivo para una magnitud, de la más antigua
-    a la más reciente, dentro de la última ventana de `segundos` (máximo 5000 filas)."""
     conn = getConnection()
     cur = None
     try:
@@ -251,8 +237,6 @@ def getRecentReadingsForMagnitud(id_dispositivo, id_magnitud, segundos):
 
 
 def evaluateZone(id_zona):
-    """Recalcula el estado de alertas de cada dispositivo activo de la zona con
-    las reglas vigentes; crea alertas pendientes y resuelve las abiertas."""
     reglas = getActiveRulesOfZone(id_zona)
     dispositivos = getZoneDevices(id_zona)
     for dev in dispositivos:
@@ -261,8 +245,6 @@ def evaluateZone(id_zona):
 
 
 def evaluateDevice(id_dispositivo):
-    """Evalua un solo dispositivo contra las reglas vigentes de su zona.
-    Se llama al persistir su lote de lecturas (utils/batchStore)."""
     conn = getConnection()
     cur = None
     try:
@@ -290,12 +272,12 @@ def evaluateDeviceRule(dev, regla):
     operador = regla["operador"]
     incumple = [_cumples(valor, operador, umbral) for valor in
                 (row["valor"] for row in lecturas)]
-    # Racha de incumplimiento final: lecturas consecutivas incumpliendo hasta la última.
+
     racha = 1 if incumple[-1] else 0
     while racha < len(lecturas) and incumple[-(racha + 1)]:
         racha += 1
     if racha == 0:
-        # Sin incumplimiento en la última lectura: cualquier alerta abierta de esta regla se resuelve.
+
         alerta = getOpenAlertaFor(regla["id_regla"], dev["id_dispositivo"])
         if alerta is not None:
             from models import alertsModel
@@ -309,7 +291,7 @@ def evaluateDeviceRule(dev, regla):
         if alerta is None:
             abrirAlerta(dev, regla, lecturas[-1], int(
                 (now - inicio_racha).total_seconds()))
-    # Hay incumplimiento pero aún no es sostenido: no tocar las alertas abiertas.
+
 
 
 def _cumples(valor, operador, umbral):
@@ -328,7 +310,6 @@ def _cumples(valor, operador, umbral):
 
 
 def getOpenAlertaFor(id_regla, id_dispositivo):
-    """Import-free helper kept local: pending (1) or acknowledged (2) alert."""
     conn = getConnection()
     cur = None
     try:
@@ -344,7 +325,6 @@ def getOpenAlertaFor(id_regla, id_dispositivo):
 
 
 def abrirAlerta(dev, regla, lectura, segundos_sostenido):
-    """Import diferido para evitar la importación circular alertsModel/rulesModel."""
     from models import alertsModel
     nombre_magnitud, unidad = alertsModel.magnitudInfo(regla["id_magnitud"])
     sufijo = f" {unidad}" if unidad else ""
@@ -357,11 +337,11 @@ def abrirAlerta(dev, regla, lectura, segundos_sostenido):
     id_alerta = alertsModel.createAlerta(mensaje_corto, detalle, regla["severidad"],
                                          regla["id_regla"], lectura["id_lectura"],
                                          dev["id_dispositivo"], regla["id_zona"])
-    # HU-017: cada alerta abierta genera una notificación web para los usuarios
-    # de la organización del dispositivo (canal web, estado 'enviado'), que es
-    # la mensajería que consume HU-021. Import diferido y tolerante a fallos:
-    # la alerta ya está abierta y la evaluación de reglas no debe caerse por
-    # un problema de mensajería.
+
+
+
+
+
     try:
         from models import notificationsModel
         notificationsModel.crearNotificacionesDeAlerta(

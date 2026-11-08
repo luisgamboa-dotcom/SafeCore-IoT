@@ -1,4 +1,3 @@
-"""SQL de usuarios, roles y estados."""
 from config.dbConfig import getConnection
 
 
@@ -95,7 +94,6 @@ def getAllUsersWithDetails(q=None, sort_by=None, sort_dir=None,
                            estado=None, rol=None, id_organizacion=None):
     import re
     def _seguro(valor):
-        """Solo nombres simples en interpolación (estado/rol vienen de la URL)."""
         return valor if (valor and re.fullmatch(r"[\w áéíóúÁÉÍÓÚñÑ]{1,50}", str(valor))) else None
 
     estado = _seguro(estado)
@@ -110,7 +108,7 @@ def getAllUsersWithDetails(q=None, sort_by=None, sort_dir=None,
     }
     col = SORT_COLS.get(sort_by, SORT_COLS["id"])
     direction = "DESC" if (sort_dir or "").upper() == "DESC" else "ASC"
-    # -1 = filtro "Sin organización", 0/sin filtro = todos
+
     org_val = None
     if id_organizacion is not None and str(id_organizacion) != "":
         org_val = -1 if int(id_organizacion) == 0 else int(id_organizacion)
@@ -152,8 +150,6 @@ def getAllUsersWithDetails(q=None, sort_by=None, sort_dir=None,
 
 
 def updatePerfil(id_usuario, nombre, apellido, telefono):
-    """Datos personales editables del propio usuario desde su perfil
-    (email, estado y organizacion quedan fuera del perfil)."""
     conn = getConnection()
     cur = None
     try:
@@ -229,7 +225,6 @@ def getUsersByOrganization(id_organizacion):
 
 
 def getAllUsersBasic():
-    """Usuarios activos en forma minima (select de responsables, HU-031)."""
     conn = getConnection()
     cur = None
     try:
@@ -271,7 +266,6 @@ def setUserOrganization(id_usuario, id_organizacion):
 
 
 def updatePasswordHash(id_usuario, password_hash):
-    """Nueva contrasena del restablecimiento por correo (HU-003)."""
     conn = getConnection()
     cur = None
     try:

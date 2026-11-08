@@ -1,4 +1,3 @@
-"""Rutas de organizaciones del panel admin (/admin/organizations)."""
 from fastapi import APIRouter
 
 import controllers.organizationsController as organizationsController

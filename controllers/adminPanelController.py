@@ -1,4 +1,3 @@
-"""Página principal del panel de administración y auditoría de cambios."""
 import urllib.parse
 from uuid import UUID
 
@@ -31,8 +30,6 @@ def showAuditoria(request: Request,
                   pagina: int = 1,
                   id_sesion: UUID = Depends(session_cookie),
                   sesion: SessionData = Depends(requireSuperadminUser)):
-    """HU-032: auditoría de cambios del sistema, filtrable por entidad,
-    registro, usuario y rango de fechas. Solo superadmins (guard en la ruta)."""
     entidades, usuarios = audit_model.getResumenAuditoria()
     filas, total = audit_model.consultarAuditoria(
         entidad=(entidad or None),
@@ -42,7 +39,7 @@ def showAuditoria(request: Request,
         hasta=(hasta or None),
         pagina=pagina,
         por_pagina=30)
-    # Base del querystring para los enlaces de paginacion conservando filtros.
+
     base_qsa = urllib.parse.urlencode(
         {k: v for k, v in [("entidad", entidad), ("registro", registro),
                            ("usuario", usuario), ("desde", desde), ("hasta", hasta)]

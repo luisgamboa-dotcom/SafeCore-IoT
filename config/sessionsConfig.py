@@ -1,4 +1,4 @@
-# Sesion firmada con cookies y backend MySQL
+
 import os
 from uuid import UUID
 
@@ -35,7 +35,7 @@ cookie_params = CookieParameters(max_age=8 * 60 * 60)
 cookie = SessionCookie(
     cookie_name="safecore_session",
     identifier="safecore_verifier",
-    # auto_error=False: el verificador responde con un 303 -> /users/login (con True respondería con un error JSON)
+
     auto_error=False,
     secret_key=os.getenv("SECRET_KEY"),
     cookie_params=cookie_params,
@@ -114,7 +114,7 @@ async def getOptionalSession(request: Request):
 async def requireAdminUser(request: Request,
                            id_sesion: UUID = Depends(cookie),
                            sesion: SessionData = Depends(verificador)):
-    # El rol se verifica en cada petición, así la revocación es inmediata.
+
     from models import usersModel as user_model
     from utils.flashUtils import flashForm
     roles = user_model.getUserRoles(sesion.id_usuario)
@@ -127,7 +127,7 @@ async def requireAdminUser(request: Request,
 async def requireSuperadminUser(request: Request,
                                 id_sesion: UUID = Depends(cookie),
                                 sesion: SessionData = Depends(verificador)):
-    # HU-032: la auditoria de cambios queda reservada al Superadmin.
+
     from models import usersModel as user_model
     from utils.flashUtils import flashForm
     roles = user_model.getUserRoles(sesion.id_usuario)

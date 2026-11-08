@@ -1,4 +1,3 @@
-"""HU-031: programar mantenimientos de dispositivos y registrar su ejecucion."""
 from datetime import date, datetime
 from uuid import UUID
 
@@ -15,7 +14,6 @@ from utils.flashUtils import flashForm
 
 
 def puedeGestionar(sesion, dev):
-    """Admin global, o Supervisor cuya organizacion coincide con la del dispositivo."""
     roles = user_model.getUserRoles(sesion.id_usuario)
     if "Administrador" in roles or "Superadmin" in roles:
         return True
@@ -26,7 +24,6 @@ def puedeGestionar(sesion, dev):
 
 
 def contextoFormulario(sesion, dev):
-    """Datos para los formularios de la ficha: tipos y responsables posibles."""
     org_dev = dev.get("id_organizacion")
     usuarios = (user_model.getUsersByOrganization(org_dev) if org_dev
                 else user_model.getAllUsersBasic())
@@ -36,7 +33,6 @@ def contextoFormulario(sesion, dev):
 
 
 def _normalizarFecha(valor):
-    """datetime-local -> 'YYYY-MM-DD HH:MM:SS' (None si viene vacio o invalido)."""
     limpio = (valor or "").strip().replace("T", " ")
     if not limpio:
         return None
@@ -59,8 +55,6 @@ def storeMantenimiento(request: Request,
                        fecha_ejecucion: str = Form(""),
                        resultado: str = Form(""),
                        proxima_fecha: str = Form("")):
-    """Crea un mantenimiento programado (fecha futura u hoy) o realizado
-    (ejecucion hoy o en el pasado, con resultado)."""
     dev = dev_model.getDeviceDetail(id_device)
     if dev is None:
         flashForm(request, "El dispositivo no existe.")
@@ -119,7 +113,6 @@ async def registrarEjecucion(request: Request,
                              fecha_ejecucion: str = Form(...),
                              resultado: str = Form(...),
                              proxima_fecha: str = Form("")):
-    """Registra fecha, resultado y proxima fecha de un mantenimiento (CA2 de HU-031)."""
     mn = mant_model.getMantenimientoById(id_mantenimiento)
     if mn is None:
         flashForm(request, "El mantenimiento no existe.")

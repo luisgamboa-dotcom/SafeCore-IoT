@@ -1,4 +1,3 @@
-"""SQL de las tablas de zonas."""
 from config.dbConfig import getConnection
 from utils.commonUtils import closeConnection
 
@@ -45,8 +44,6 @@ def getAllZones():
 
 
 def getZonasOrganizacion(id_organizacion):
-    """Zonas con su instalación de UNA organización (HU-018: opción del panel
-    'Filtrar por zona'); None = todas las organizaciones (usuario global)."""
     conn = getConnection()
     cur = None
     try:
@@ -138,7 +135,6 @@ def updateZone(id_zona, nombre, descripcion):
 
 
 def forceDeleteZone(id_zona):
-    """BORRADO FORZADO: elimina primero dispositivos + sensores + lecturas."""
     from models import devicesModel as dev_model
     for d in getDevicesByZone(id_zona):
         dev_model.deleteDeviceCascade(d["id_dispositivo"])

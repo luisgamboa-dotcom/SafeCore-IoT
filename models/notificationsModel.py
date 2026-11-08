@@ -1,6 +1,3 @@
-"""SQL de notificaciones: mensajes por canal (web/email/telegram) hacia los
-usuarios, generados al abrirse una alerta o como avisos generales (HU-021).
-HU-022: cada usuario recibe por sus canales habilitados en usuarios_canales."""
 from config.dbConfig import getConnection
 from utils.commonUtils import closeConnection
 
@@ -11,7 +8,6 @@ _CANALES_PERFIL = (CANAL_WEB, CANAL_EMAIL)
 
 def crearNotificacion(asunto, contenido, id_usuario_destino,
                       id_canal=CANAL_WEB, id_alerta=None):
-    """Un aviso para un usuario concreto (تواند con o sin alerta de origen)."""
     conn = getConnection()
     cur = None
     try:
@@ -28,13 +24,6 @@ def crearNotificacion(asunto, contenido, id_usuario_destino,
 
 
 def crearNotificacionesDeAlerta(id_alerta, asunto, contenido, id_dispositivo):
-    """Se llama al abrirse una alerta (HU-017 + HU-022): por cada usuario de
-    la organización del dispositivo crea una notificación por cada canal
-    habilitado en usuarios_canales (web/email); sin configuración previa
-    queda el web por defecto. Los canales email además disparan el correo
-    SMTP fuera de la transacción: 'enviado' si salió, 'error' si falló.
-    Recibe el dispositivo porque el guard de organización de la regla ya
-    garantizó que la alerta es de ese dispositivo."""
     conn = getConnection()
     cur = None
     try:
@@ -56,7 +45,7 @@ def crearNotificacionesDeAlerta(id_alerta, asunto, contenido, id_dispositivo):
         por_usuario = {}
         for fila in cur.fetchall():
             if fila["id_canal"] is None:
-                # Sin configuracion previa: solo el web por defecto.
+
                 por_usuario.setdefault(fila["id_usuario"], []).append(
                     {"id_usuario": fila["id_usuario"], "email": fila["email"],
                      "id_canal": CANAL_WEB, "destino": None, "prioridad": 1})
@@ -105,8 +94,6 @@ def _actualizarEstadoEnvio(id_notificacion, estado):
 
 
 def getPerfilCanales(id_usuario):
-    """HU-022: configuracion web(1)/email(2) del usuario; uc.* NULL significa
-    canal sin configurar (el motor lo trata como web por defecto)."""
     conn = getConnection()
     cur = None
     try:
@@ -124,8 +111,6 @@ def getPerfilCanales(id_usuario):
 
 
 def savePerfilCanales(id_usuario, filas):
-    """HU-022: reemplazo completo en una sola transaccion del perfil de
-    canales web/email del usuario (solo se insertan los habilitados)."""
     conn = getConnection()
     cur = None
     try:
@@ -148,10 +133,6 @@ def savePerfilCanales(id_usuario, filas):
 
 
 def getNotificacionesUsuario(id_usuario, limite=50, solo_no_leidas=False):
-    """Centro de notificaciones (HU-021): mensajes del usuario con el canal,
-    el estado de envío y, si la notificación nació de una alerta, sus datos
-    para el enlace de origen. Ordenado del más reciente al más antiguo.
-    solo_no_leidas=True filtra las aún sin leer."""
     limite = max(1, min(int(limite), 200))
     filtro = " AND n.fecha_leida IS NULL" if solo_no_leidas else ""
     conn = getConnection()
@@ -180,7 +161,6 @@ def getNotificacionesUsuario(id_usuario, limite=50, solo_no_leidas=False):
 
 
 def countNoLeidas(id_usuario):
-    """Cantidad de notificaciones sin leer de un usuario (badge de la campana)."""
     conn = getConnection()
     cur = None
     try:
@@ -194,7 +174,6 @@ def countNoLeidas(id_usuario):
 
 
 def countUsuario(id_usuario):
-    """Total de notificaciones del usuario (todas, leídas y sin leer)."""
     conn = getConnection()
     cur = None
     try:
@@ -207,9 +186,6 @@ def countUsuario(id_usuario):
 
 
 def marcarLeida(id_notificacion, id_usuario):
-    """HU-021: registra la fecha de lectura SOLO si la notificación es del
-    usuario (guard de dueño) y sigue sin leer. 0 filas = no existe, ya está
-    leída o no es tuya."""
     conn = getConnection()
     cur = None
     try:

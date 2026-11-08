@@ -1,4 +1,3 @@
-"""SQL de organizaciones."""
 from config.dbConfig import getConnection
 
 
@@ -100,7 +99,6 @@ def deleteOrganization(id_organizacion):
 
 
 def forceDeleteOrganization(id_organizacion):
-    """BORRADO FORZADO: instalaciones (con zonas/dispositivos/lecturas) + usuarios desvinculados."""
     from models import installationsModel as inst_model
     conn = getConnection()
     cur = None

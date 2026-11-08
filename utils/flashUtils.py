@@ -1,4 +1,3 @@
-"""Mensajes flash: sobreviven UN redirect y se eliminan al leerse."""
 
 CLAVE = "_form_flash"
 

@@ -1,4 +1,3 @@
-"""Pool de conexiones perezoso: no conecta al importar el módulo."""
 import os
 from dotenv import load_dotenv
 from mysql.connector import pooling

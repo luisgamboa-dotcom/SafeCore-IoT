@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-# Cargar el .env antes de importar módulos que leen variables al importarse.
+
 load_dotenv()
 
 from fastapi import FastAPI
@@ -14,8 +14,8 @@ from routers import (authRoutes, homeRoutes, readingRoutes, deviceRoutes,
                      ruleRoutes, notificationsRoutes)
 
 
-discovery.iniciar_descubrimiento()  # nodos FW 3.1+ reparan su IP solos
-alertScheduler.iniciar_barrido()    # evalua reglas de alerta y estado offline
+discovery.iniciar_descubrimiento()
+alertScheduler.iniciar_barrido()
 
 app = FastAPI(title="SafeCore IoT")
 

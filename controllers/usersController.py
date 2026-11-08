@@ -1,4 +1,3 @@
-"""Gestión de usuarios del panel admin."""
 from typing import List
 from uuid import UUID
 
@@ -30,9 +29,6 @@ def _nivelPoder(nombres_roles):
 
 
 def _checkEditAccess(sesion, id_user):
-    """(permitido, auto_edicion) según jerarquía: solo el Superadmin
-    administra cuentas de Administrador/Superadmin; un Administrador
-    puedo editar sus propios datos pero sin cambiar roles ni estado."""
     roles_actor = user_model.getUserRoles(sesion.id_usuario)
     if _nivelPoder(roles_actor) >= 3:
         return True, id_user == sesion.id_usuario
@@ -113,7 +109,7 @@ def updateUserFromAdmin(request: Request,
     roles_actor = user_model.getUserRoles(sesion.id_usuario)
     es_super = ROL_PROTEGIDO in roles_actor
     user_actual = user_model.getUserById(id_user)
-    # Autoedición limitada (admin editándose a sí mismo): roles y estado quedan como están.
+
     estado_elegido = int(id_estado) if str(id_estado).strip().isdigit() else None
     estado_final = None
     if auto_edicion and not es_super:
@@ -126,7 +122,7 @@ def updateUserFromAdmin(request: Request,
     if auto_edicion and not es_super:
         ids_elegidos = {row["id_rol"] for row in user_model.getUserRoleIds(id_user)}
     elif not es_super:
-        # Un Administrador solo puede asignar roles por debajo de su nivel.
+
         ids_bajos = {r["id_catalogo_rol"] for r in user_model.getAllRoles()
                      if _nivelPoder([r["nombre_rol"]]) < 2}
         ids_elegidos &= ids_bajos
@@ -135,7 +131,7 @@ def updateUserFromAdmin(request: Request,
     ids_finales = ids_elegidos | ids_retenidos
     nombres_finales = {r["nombre_rol"] for r in user_model.getAllRoles()
                        if r["id_catalogo_rol"] in ids_finales}
-    # Un Supervisor siempre supervisa una organizacion concreta.
+
     if "Supervisor" in nombres_finales and not id_organizacion.strip():
         flashForm(request, "El rol Supervisor requiere una organización asignada.")
         return RedirectResponse(f"/admin/users/{id_user}/edit", status_code=303)

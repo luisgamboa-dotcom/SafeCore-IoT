@@ -1,4 +1,3 @@
-"""Ficha de dispositivo y CRUD de dispositivos del panel admin."""
 import csv
 import io
 import time
@@ -32,13 +31,13 @@ def showDeviceDetail(request: Request,
     if dev is None:
         return RedirectResponse("/dashboard", status_code=303)
     contexto = {"request": request, "dev": dev, **userSessionContext(sesion)}
-    # Minimo de los campos de vigencia: hoy (el backend lo valida igual).
+
     contexto["vigencia_min"] = date.today().isoformat()
     horas = request.query_params.get("horas", "1")
     contexto["horas_export"] = horas if horas in ("1", "24", "168", "720", "0") else "1"
     org = restrictedOrganization(sesion)
-    # Usuario comun: sin organizacion, o con una distinta a la del dispositivo,
-    # no accede (solo administradores tienen alcance global).
+
+
     if not contexto["is_admin"] and (org is None or dev.get("id_organizacion") != org):
         return RedirectResponse("/dashboard", status_code=303)
     if contexto["is_admin"]:
@@ -76,12 +75,12 @@ def showDeviceDetail(request: Request,
         contexto["mantenimientos"] = []
         contexto["ultimo_mant"] = None
         contexto["proximo_mant"] = None
-    # HU-028: historial de ubicaciones del dispositivo (tramos cronologicos).
+
     try:
         contexto["historial_zonas"] = dev_model.getHistorialZonas(id_device)
     except Exception:
         contexto["historial_zonas"] = []
-    # HU-031: formularios visibles para admin global o supervisor de la org.
+
     from controllers.mantenimientosController import puedeGestionar, contextoFormulario
     if puedeGestionar(sesion, dev):
         contexto["puede_mantenimiento"] = True
@@ -109,7 +108,6 @@ def exportDeviceCsv(request: Request,
                     horas: str = "1",
                     id_sesion: UUID = Depends(session_cookie),
                     sesion: SessionData = Depends(verificador)):
-    """HU-011: CSV del historial de lecturas del dispositivo en el periodo dado."""
     if horas not in PERIODOS_EXPORT:
         horas = "1"
     dev = dev_model.getDeviceDetail(id_device)
@@ -162,7 +160,6 @@ MSG_ZONA_IGUAL = "El dispositivo ya está en esa zona; no se registró ningún t
 
 
 def _haceCuanto(ts: float):
-    """Etiqueta humana: '34 s', '5 min', '2 h', '3 d'."""
     s = max(1, int(time.time() - ts))
     if s < 60:
         return f"{s} s"
@@ -178,8 +175,8 @@ def showDevicesPage(request: Request,
                     sesion: SessionData = Depends(requireAdminUser)):
     flash_msg, _, flash_ok = popFormFlash(request)
     dispositivos = dev_model.getAllDevices()
-    # Ultima IP conocida de cada nodo (fichero data/nodo_ips.json): asi se
-    # puede abrir la PWA de configuracion aunque el nodo cambie de red.
+
+
     for d in dispositivos:
         reg = nodeIps.obtener(d["codigo_serial"])
         if reg:
@@ -270,13 +267,13 @@ async def updateDeviceFromAdmin(request: Request,
         return RedirectResponse(volver_ficha if destino == "ficha" else volver_admin,
                                 status_code=303)
 
-    # HU-015: el modelo no puede cambiar si el dispositivo tiene historial de lecturas.
+
     if int(id_modelo) != dev["id_modelo"] and dev_model.tieneLecturas(id_device):
         flashForm(request, MSG_MODELO_BLOQUEADO)
         return volver()
 
-    # HU-028: traslado de zona con historial. Exige dispositivo activo y
-    # motivo cuando la zona cambia; si la zona no cambia solo se advierte.
+
+
     traslado = int(id_zona) != dev["id_zona"]
     motivo_traslado = (motivo or "").strip()
     if traslado and not dev["activo"]:
@@ -287,7 +284,7 @@ async def updateDeviceFromAdmin(request: Request,
         return volver()
     aviso_zona_igual = (not traslado and bool(motivo_traslado))
 
-    # Las frecuencias llegan dinámicamente como campos frec_<id_sensor> del formulario.
+
     frecuencias = []
     for clave, valor in form.items():
         if not clave.startswith("frec_"):
@@ -341,7 +338,7 @@ async def updateDeviceFromAdmin(request: Request,
             flashForm(request, f"Error al guardar: {e.msg}")
         return volver()
 
-    # Auditar cada cambio de frecuencia (el valor anterior se lee antes de actualizar).
+
     try:
         anteriores = {s["id_sensor"]: s["frecuencia_muestreo"]
                       for s in dev_model.getSensoresOfDevice(id_device)}
@@ -356,10 +353,10 @@ async def updateDeviceFromAdmin(request: Request,
         flashForm(request, f"Error al actualizar frecuencias: {e.msg}")
         return volver()
 
-    # Criterio 1 de HU-015: auditar cada campo modificado con su valor anterior y nuevo.
+
     for campo, anterior, nuevo in cambio_audit:
         if campo == "fecha_instalacion":
-            # Form sends YYYY-MM-DD; DB keeps full timestamp. Compare by date.
+
             a = anterior.strftime("%Y-%m-%d") if anterior else ""
             n = (str(nuevo or "").strip())[:10]
             if a == n:
@@ -400,14 +397,12 @@ async def toggleDeviceActive(request: Request,
                              id_sesion: UUID = Depends(session_cookie),
                              sesion: SessionData = Depends(requireAdminUser),
                              motivo: str = Form("")):
-    """HU-014: da de baja (o reactiva) un dispositivo sin eliminar su informacion.
-    Al desactivar cancela sus alertas activas y audita quien, cuando y con que motivo."""
     dev = dev_model.getDeviceDetail(id_device)
     if dev is None:
         flashForm(request, "El dispositivo no existe.")
         return RedirectResponse("/admin/devices", status_code=303)
 
-    # Origen del envio (lista admin o ficha del dashboard) para volver al lugar.
+
     form = await request.form()
     destino = form.get("origen", "admin")
     def volver():
@@ -419,7 +414,7 @@ async def toggleDeviceActive(request: Request,
         if dev["activo"]:
             dev_model.setDeviceActivo(id_device, False)
             canceladas = alerts_model.cancelarAlertasDeDispositivo(id_device)
-            # Auditoria: cambio de bandera + motivo opcional del administrador.
+
             audit_model.registrarAuditoria(sesion.id_usuario, "dispositivo",
                                            id_device, "desactivar",
                                            "activo: 1", "activo: 0")

@@ -1,4 +1,3 @@
-"""Envio de correo SMTP: restablecimiento (HU-003) y alertas (HU-022)."""
 import os
 import smtplib
 from email.message import EmailMessage
@@ -42,7 +41,6 @@ def _enviar(msg):
 
 
 def sendPasswordResetEmail(email_destino, nombre, enlace, horas=1):
-    """Envia el correo con el enlace temporal. Lanza excepcion si falla el envio."""
     msg = EmailMessage()
     msg["Subject"] = "Recupera tu contraseña - SafeCore IoT"
     msg["From"] = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or "safecore-iot@localhost"
@@ -61,7 +59,6 @@ def sendPasswordResetEmail(email_destino, nombre, enlace, horas=1):
 
 
 def sendAlertaEmail(email_destino, asunto, contenido):
-    """Envia el correo con el aviso de una alerta (canal email, HU-022)."""
     msg = EmailMessage()
     msg["Subject"] = f"Alerta SafeCore IoT: {asunto}"
     msg["From"] = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or "safecore-iot@localhost"

@@ -1,5 +1,3 @@
-"""SQL de mantenimientos (mantenimiento de dispositivos). HU-016 solo lee;
-HU-031 programa mantenimientos y registra su ejecucion."""
 from config.dbConfig import getConnection
 from utils.commonUtils import closeConnection
 
@@ -14,7 +12,6 @@ _BASE_SELECT = """SELECT mn.id_mantenimiento, mn.fecha_programada, mn.fecha_ejec
 
 
 def getUltimoMantenimiento(id_dispositivo):
-    """Mantenimiento ejecutado más reciente (None si aun no hay)."""
     conn = getConnection()
     cur = None
     try:
@@ -30,7 +27,6 @@ def getUltimoMantenimiento(id_dispositivo):
 
 
 def getProximoMantenimiento(id_dispositivo):
-    """Mantenimiento programado más cercano en el tiempo (None si no hay)."""
     conn = getConnection()
     cur = None
     try:
@@ -46,8 +42,6 @@ def getProximoMantenimiento(id_dispositivo):
 
 
 def getMantenimientosByDevice(id_dispositivo, limite=20):
-    """Programados primero (el mas proximo arriba) y luego ejecutados
-    (el mas reciente arriba): primero lo accionable, despues el historial."""
     conn = getConnection()
     cur = None
     try:
@@ -65,7 +59,6 @@ def getMantenimientosByDevice(id_dispositivo, limite=20):
 
 
 def getTiposMantenimiento():
-    """Catalogo de tipos para el formulario de programacion."""
     conn = getConnection()
     cur = None
     try:
@@ -79,7 +72,6 @@ def getTiposMantenimiento():
 
 def createMantenimiento(id_dispositivo, id_tipo, fecha_programada, id_responsable,
                         fecha_ejecucion=None, resultado=None, proxima_fecha=None):
-    """Crea un mantenimiento: programado, o ejecutado si viene su fecha."""
     conn = getConnection()
     cur = None
     try:
@@ -99,7 +91,6 @@ def createMantenimiento(id_dispositivo, id_tipo, fecha_programada, id_responsabl
 
 
 def getMantenimientoById(id_mantenimiento):
-    """Registro individual (con su dispositivo) para validar permisos y estado."""
     conn = getConnection()
     cur = None
     try:
@@ -120,7 +111,6 @@ def getMantenimientoById(id_mantenimiento):
 
 
 def registrarEjecucion(id_mantenimiento, fecha_ejecucion, resultado, proxima_fecha):
-    """Marca ejecutado un mantenimiento guardando fecha, resultado y proxima fecha."""
     conn = getConnection()
     cur = None
     try:
@@ -138,7 +128,6 @@ def registrarEjecucion(id_mantenimiento, fecha_ejecucion, resultado, proxima_fec
 
 
 def getPendientesByResponsable(id_responsable, limite=10):
-    """Mantenimientos programados asignados al usuario (lista de pendientes)."""
     conn = getConnection()
     cur = None
     try:

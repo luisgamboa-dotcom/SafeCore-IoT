@@ -1,5 +1,4 @@
-"""SQL de instalaciones (su dirección se crea/edita junto con ellas)."""
-# La FK fk_zona_inst es CASCADE: borrar una instalación con zonas las eliminaría en silencio.
+
 from config.dbConfig import getConnection
 from utils.commonUtils import closeConnection
 
@@ -150,7 +149,6 @@ def deleteInstallation(id_instalacion):
 
 
 def forceDeleteInstallation(id_instalacion):
-    """BORRADO FORZADO: borra las zonas (con sus dispositivos) y la dirección."""
     from models import zonesModel as zone_model
     conn = getConnection()
     cur = None
@@ -162,7 +160,7 @@ def forceDeleteInstallation(id_instalacion):
         if row is None:
             return False
         id_direccion = row["id_direccion"]
-        # Borrar zonas y dispositivos asociados (cascada manual)
+
         for z in getZonesByInstallation(id_instalacion):
             zone_model.forceDeleteZone(z["id_zona"])
         cur.execute("DELETE FROM instalaciones WHERE id_instalacion = %s", (id_instalacion,))

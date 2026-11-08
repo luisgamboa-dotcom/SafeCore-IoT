@@ -1,5 +1,3 @@
-"""Página Mi organización: vista de solo lectura para miembros, edición para supervisores
-y administradores de su propia organización. La eliminación vive solo en el panel admin."""
 from uuid import UUID
 
 import mysql.connector
@@ -24,7 +22,6 @@ def _puedeEditar(roles):
 
 
 def _orgAccesible(sesion, org_param=None):
-    """Organizacion a mostrar. Solo el Superadmin puede abrir una distinta de la suya."""
     roles = user_model.getUserRoles(sesion.id_usuario)
     es_super = "Superadmin" in roles
     user = user_model.getUserById(sesion.id_usuario)
@@ -64,9 +61,6 @@ def showMyOrganization(request: Request,
 
 
 def _sesionCtx(sesion):
-    """Contexto de sesion para las paginas de Mi organizacion. is_admin se
-    calcula con los roles reales: adminContext() lo fija en True y mostraba
-    el panel de administrador a usuarios comunes en la sidebar."""
     from utils.commonUtils import userSessionContext
     user = user_model.getUserById(sesion.id_usuario)
     roles = user_model.getUserRoles(sesion.id_usuario)

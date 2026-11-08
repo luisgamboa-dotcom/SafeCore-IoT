@@ -1,9 +1,8 @@
-"""SQL de las tablas de dispositivos."""
 from config.dbConfig import getConnection
 from utils.commonUtils import closeConnection
 
 
-# 5 minutos sin datos -> se considera apagado (estado forzado a offline).
+
 OFFLINE_ID = 2
 
 
@@ -24,7 +23,7 @@ def markTimedOutDevices():
 
 
 def getActiveDevices(id_organizacion=None):
-    # Solo identidad: las lecturas dinámicas pertenecen al búfer en vivo (tick de JS).
+
     conn = getConnection()
     cur = None
     try:
@@ -47,7 +46,6 @@ def getActiveDevices(id_organizacion=None):
 
 
 def dispositivosOrganizacion_sql(campo):
-    """Subquery de dispositivos (tabla `campos`) filtra por organizacion."""
     return f"""{campo} IN (
                     SELECT d2.id_dispositivo FROM dispositivos d2
                     JOIN zonas z2 ON z2.id_zona = d2.id_zona
@@ -96,7 +94,6 @@ def getDeviceDetail(id_dispositivo):
 
 
 def deleteDeviceCascade(id_dispositivo):
-    """BORRADO FORZADO: lecturas + sensores (sensores_magnitudes cae en CASCADE)."""
     conn = getConnection()
     cur = None
     try:
@@ -134,8 +131,6 @@ def getAllDevices():
 
 def createDevice(codigo_serial, identificador_unico, nombre, firmware_version,
                  fecha_instalacion, id_modelo, id_zona):
-    """Crea el dispositivo siempre en estado offline; el sistema lo pasa a online
-    cuando el nodo se conecta."""
     conn = getConnection()
     cur = None
     try:
@@ -175,8 +170,8 @@ def updateDevice(id_dispositivo, codigo_serial, identificador_unico, nombre,
         closeConnection(conn, cur)
 
 
-# HU-028: historial de ubicaciones del dispositivo (tramos en
-# dispositivo_zona_historial). Zona actual del dispositivo siempre en d.id_zona.
+
+
 
 def getTramoVigente(id_dispositivo):
     conn = getConnection()
@@ -193,8 +188,6 @@ def getTramoVigente(id_dispositivo):
 
 
 def getHistorialZonas(id_dispositivo):
-    """Tramos del dispositivo, mas nuevo primero, con el nombre de la zona
-    y su instalacion para mostrar el historial de ubicaciones."""
     conn = getConnection()
     cur = None
     try:
@@ -216,10 +209,6 @@ def updateDeviceConTraslado(id_dispositivo, codigo_serial, identificador_unico,
                             nombre, firmware_version, notas, fecha_instalacion,
                             id_modelo, id_estado_dispositivo, id_zona, activo,
                             id_zona_anterior, motivo):
-    """HU-028: traslado atomico en una sola transaccion. Cierra el tramo
-    vigente (si existe) guardando el motivo, abre el nuevo y deja la zona
-    vigente del dispositivo en id_zona. El resto de los campos del
-    formulario viaja igual que en updateDevice."""
     conn = getConnection()
     cur = None
     try:
@@ -237,8 +226,8 @@ def updateDeviceConTraslado(id_dispositivo, codigo_serial, identificador_unico,
                        ORDER BY desde DESC LIMIT 1""", (id_dispositivo,))
         tramo = cur.fetchone()
         if tramo is None:
-            # Primer traslado: sintetiza el tramo de origen cerrado con la
-            # fecha de instalacion/alta del dispositivo y el motivo indicado.
+
+
             cur.execute("""SELECT COALESCE(fecha_instalacion, fecha_alta) AS desde
                            FROM dispositivos WHERE id_dispositivo = %s""",
                         (id_dispositivo,))
@@ -261,8 +250,6 @@ def updateDeviceConTraslado(id_dispositivo, codigo_serial, identificador_unico,
 
 
 def setDeviceActivo(id_dispositivo, activo):
-    """HU-014: activa o da de baja el dispositivo (bandera activo) preservando
-    lecturas, alertas y demas informacion asociada."""
     conn = getConnection()
     cur = None
     try:
@@ -276,7 +263,6 @@ def setDeviceActivo(id_dispositivo, activo):
 
 
 def getSensoresOfDevice(id_dispositivo):
-    """Sensores del dispositivo con frecuencia de muestreo, estado y magnitudes."""
     conn = getConnection()
     cur = None
     try:
@@ -296,7 +282,6 @@ def getSensoresOfDevice(id_dispositivo):
 
 
 def tieneLecturas(id_dispositivo):
-    """True cuando algún sensor del dispositivo tiene lecturas guardadas (historial)."""
     conn = getConnection()
     cur = None
     try:
@@ -348,7 +333,6 @@ def getAllDeviceStates():
 
 
 def getDeviceBySerial(codigo_serial):
-    """Devuelve el dispositivo activo por codigo_serial (lo usa el nodo IoT)."""
     conn = getConnection()
     cur = None
     try:

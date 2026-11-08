@@ -1,11 +1,3 @@
-"""Ultima IP conocida de cada nodo IoT, por codigo_serial.
-
-Se persiste en data/nodo_ips.json (fichero, sin tocar el esquema de la BD)
-para que el panel /admin/devices muestre siempre donde esta el nodo y se
-pueda abrir su pagina de configuracion (PWA http://<ip>/) aunque cambie de
-red. Escritura limitada: solo al cambiar de IP o como maximo 1 vez por
-minuto por nodo.
-"""
 import json
 import os
 import threading
@@ -14,7 +6,7 @@ import time
 _PATH = os.path.join("data", "nodo_ips.json")
 _LOCK = threading.Lock()
 
-_registros = {}          # {serial: {"ip": ..., "ts": float, "escrito_ts": float}}
+_registros = {}
 _cargado = False
 
 
@@ -30,7 +22,7 @@ def _cargar():
         except FileNotFoundError:
             pass
         except Exception:
-            pass  # fichero corrupto: arrancamos de cero
+            pass
 
 
 def _guardar():
@@ -41,11 +33,10 @@ def _guardar():
         with open(_PATH, "w", encoding="utf-8") as f:
             json.dump(salida, f, indent=2)
     except Exception:
-        pass  # nunca bloquear el ingest por el fichero
+        pass
 
 
 def recordar(serial: str, ip: str):
-    """Anota la IP del nodo si cambio o como maximo 1 vez por minuto."""
     if not serial or not ip:
         return
     with _LOCK:
@@ -60,7 +51,6 @@ def recordar(serial: str, ip: str):
 
 
 def obtener(serial: str):
-    """Devuelve {"ip": ..., "ts": ...} o None si no hay registro."""
     with _LOCK:
         _cargar()
         reg = _registros.get(serial)

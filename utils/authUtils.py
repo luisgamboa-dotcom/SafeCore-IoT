@@ -1,4 +1,3 @@
-"""Validation helpers: email, Chilean phone and passwords."""
 import phonenumbers
 from email_validator import validate_email, EmailNotValidError
 from phonenumbers import NumberParseException

@@ -1,6 +1,3 @@
-"""Gestión de reglas de alerta del panel admin desde la ficha del dispositivo (HU-013).
-Guardar una regla dispara el recálculo del estado de alertas de la zona. Las reglas
-no se borran: solo se activan o desactivan para conservar su historial."""
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
@@ -15,13 +12,12 @@ from models import devicesModel as dev_model
 from utils.flashUtils import flashForm
 
 
-# Frase base "Valores invalidos" exigida por la checklist de aceptación.
+
 _INVALID_MSG = "Valores inválidos"
 
 
 def _parseRuleForm(id_magnitud, operador, valor_umbral, severidad,
                    duracion_minima_seg, vigencia_desde, vigencia_hasta):
-    """Devuelve (regla, error). regla es None siempre que error no sea None."""
     try:
         id_magnitud = int(str(id_magnitud).strip())
     except (TypeError, ValueError):
@@ -35,7 +31,7 @@ def _parseRuleForm(id_magnitud, operador, valor_umbral, severidad,
     except (InvalidOperation, TypeError, ValueError):
         return None, "valor umbral no numérico"
     if umbral < 0:
-        # Umbral negativo incoherente con las magnitudes del sistema.
+
         return None, "umbral negativo"
     if severidad not in rule_model.SEVERIDADES:
         return None, "severidad no permitida"
@@ -49,7 +45,7 @@ def _parseRuleForm(id_magnitud, operador, valor_umbral, severidad,
     hasta = _parseVigencia(vigencia_hasta)
     if desde == "x" or hasta == "x":
         return None, "fecha de vigencia inválida"
-    # La vigencia solo puede empezar hoy o en el futuro, y terminar hoy o después.
+
     hoy = date.today()
     if desde is not None and desde.date() < hoy:
         return None, "la vigencia desde no puede ser anterior a hoy"
@@ -74,7 +70,6 @@ def _parseVigencia(valor):
 
 
 def _deviceGuard(request, id_device, sesion):
-    """El dispositivo debe existir (el alcance por organización se hereda del chequeo de la ruta de detalle)."""
     dev = dev_model.getDeviceDetail(id_device)
     if dev is None:
         flashForm(request, "El dispositivo no existe.")
@@ -83,7 +78,6 @@ def _deviceGuard(request, id_device, sesion):
 
 
 def _recalc(request, dev):
-    """Recalcula la zona; si falla, avisa por flash pero conserva el cambio."""
     try:
         rule_model.evaluateZone(dev["id_zona"])
         return True
@@ -148,8 +142,8 @@ def updateRule(request: Request,
     if error is not None:
         flashForm(request, f"{_INVALID_MSG}: {error}")
         return RedirectResponse(f"/dashboard/devices/{id_device}", status_code=303)
-    # El estado activo/inactivo se cambia solo con el boton Activar/Desactivar:
-    # editar la regla conserva el estado actual.
+
+
     rule_model.updateRule(id_regla, regla["operador"], regla["valor_umbral"],
                           regla["severidad"], regla["duracion_minima_seg"],
                           regla["vigencia_desde"], regla["vigencia_hasta"],
@@ -165,8 +159,6 @@ def toggleRule(request: Request,
                id_regla: int,
                id_sesion: UUID = Depends(session_cookie),
                sesion: SessionData = Depends(requireAdminUser)):
-    """Activa o desactiva una regla. Al desactivarla se resuelven sus alertas
-    abiertas, porque el motor deja de evaluarla y quedarian colgadas."""
     dev = _deviceGuard(request, id_device, sesion)
     if dev is None:
         return RedirectResponse("/dashboard", status_code=303)

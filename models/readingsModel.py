@@ -1,4 +1,3 @@
-"""SQL de lecturas, magnitudes y sensores (persistencia de la ingesta)."""
 from math import ceil
 
 from config.dbConfig import getConnection
@@ -48,9 +47,6 @@ def getDeviceBySerial(codigo_serial):
 
 
 def matchDeviceBySerial(device_serial, device_id):
-    """Resuelve el dispositivo por serial y valida/anota su identificador unico.
-    Un dispositivo dado de baja (activo=0) se retorna marcado con no_activo y
-    sin modificar el registro (HU-014)."""
     conn = getConnection()
     cur = None
     try:
@@ -64,7 +60,7 @@ def matchDeviceBySerial(device_serial, device_id):
         if dev is None:
             return None
         inactivo = dev["activo"] == 0
-        # Solo nodos activos pueden anotar su identificador unico.
+
         if device_id is not None and not inactivo and dev["identificador_unico"] is None:
             cur2 = conn.cursor()
             cur2.execute(
@@ -149,7 +145,6 @@ def touchDevice(id_dispositivo):
 
 
 def markDeviceAlive(id_dispositivo):
-    """Última comunicación AHORA + estado de vuelta a online (1) si estaba offline."""
     conn = getConnection()
     cur = None
     try:
@@ -234,8 +229,6 @@ def getSerieZona(id_zona, limite=300):
 
 
 def getHistoricoPorMagnitud(limite=150, id_organizacion=None, serial=None, horas=None):
-    """Serie historica (ultimas `limite` lecturas, mas recientes al final) con
-    filtros opcionales: organizacion, serial y ventana de horas (0 = sin ventana)."""
     limite = max(1, min(int(limite), 2000))
     from models.devicesModel import dispositivosOrganizacion_sql
     condiciones, params = [], []
@@ -277,14 +270,11 @@ def getHistoricoPorMagnitud(limite=150, id_organizacion=None, serial=None, horas
              "dispositivo": f["dispositivo"]} for f in filas]
 
 
-# Puntos objetivo del grafico: el bucket se calcula para no superarlos.
+
 _PUNTOS_OBJETIVO = 300
 
 
 def _bucketSegundos(horas, desde=None, hasta=None):
-    """Bucket en segundos para cubrir el rango real con ~300 puntos. Se usa el
-    rango de datos (no la ventana pedida) para no perder detalle cuando aun
-    hay pocos dias de historial."""
     if desde is not None and hasta is not None:
         rango = max(0.0, (hasta - desde).total_seconds())
     elif horas:
@@ -297,7 +287,6 @@ def _bucketSegundos(horas, desde=None, hasta=None):
 
 
 def _statsSerie(where, params):
-    """Minimo, maximo, promedio y total de muestras del periodo completo."""
     conn = getConnection()
     cur = None
     try:
@@ -316,8 +305,6 @@ def _statsSerie(where, params):
 
 
 def _serieBucket(where, params, bucket, por_organizacion=False):
-    """Promedio por bucket temporal. En la vista de organizacion agrega
-    tambien cuantos dispositivos aportaron a cada punto."""
     extra = ", COUNT(DISTINCT d.id_dispositivo) AS dispositivos" if por_organizacion else ""
     conn = getConnection()
     cur = None
@@ -360,8 +347,6 @@ def _respuestaVacia(magnitud):
 
 
 def getSerieDispositivo(serial, horas=None, magnitud="gas", id_organizacion=None):
-    """Serie historica de un dispositivo agrupada por bucket temporal, con
-    estadisticas del periodo completo (no solo de los puntos dibujados)."""
     from models.devicesModel import dispositivosOrganizacion_sql
     condiciones = ["d.codigo_serial = %s", "m.nombre = %s"]
     params = [serial, MAGNITUDES[magnitud]["nombre"]]
@@ -380,8 +365,6 @@ def getSerieDispositivo(serial, horas=None, magnitud="gas", id_organizacion=None
 
 
 def getSerieOrganizacion(horas=None, magnitud="gas", id_organizacion=None):
-    """Promedio por bucket de todos los dispositivos activos de la
-    organizacion (None = todas), para el grafico de historial."""
     from models.devicesModel import dispositivosOrganizacion_sql
     condiciones = ["d.activo = 1", "m.nombre = %s"]
     params = [MAGNITUDES[magnitud]["nombre"]]
@@ -401,8 +384,6 @@ def getSerieOrganizacion(horas=None, magnitud="gas", id_organizacion=None):
 
 
 def getReadingsForExport(id_dispositivo, horas=1):
-    """Lecturas del dispositivo para el CSV de exportacion (horas=0: todo el
-    historial), con nombre de dispositivo, magnitud y calidad por fila."""
     conn = getConnection()
     cur = None
     try:
@@ -427,7 +408,6 @@ def getReadingsForExport(id_dispositivo, horas=1):
 
 
 def updateFirmwareVersion(id_dispositivo, fw):
-    """Persiste la version de FW reportada por el nodo (editable desde su PWA)."""
     conn = getConnection()
     cur = None
     try:

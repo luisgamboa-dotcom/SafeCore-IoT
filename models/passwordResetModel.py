@@ -19,7 +19,7 @@ def _cerrar(conn, *cursores):
 
 
 def createToken(id_usuario):
-    # Emite un token nuevo al usuario, dejando uno solo activo por usuario
+
     conn = getConnection()
     cur = None
     try:
@@ -56,7 +56,7 @@ def getValidToken(token):
 
 
 def markUsed(id_token):
-    # Inhabilita el token luego de restablecer la contrasena
+
     conn = getConnection()
     cur = None
     try:

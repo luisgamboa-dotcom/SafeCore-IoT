@@ -1,4 +1,3 @@
-"""Acumulación de lecturas por intervalo en RAM; envío a BD por lote (promedio por magnitud)."""
 import threading
 import time
 from typing import Any, Callable, Dict, List
@@ -75,8 +74,8 @@ def _enviar(lote: List[Dict[str, Any]]):
                 errores.append(f"{serial}: dispositivo no existe en la BD")
                 continue
             if not dev["activo"]:
-                # HU-014: dispositivos dados de baja no acumulan lecturas
-                # (el lote se descarta, no se re-encola).
+
+
                 errores.append(f"{serial}: dispositivo no activo")
                 continue
             lec_model.markDeviceAlive(dev["id_dispositivo"])
@@ -89,13 +88,13 @@ def _enviar(lote: List[Dict[str, Any]]):
                 lec_model.insertReading(m["promedio"], m["calidad"], id_sens, id_mag)
                 enviadas.append(m["magnitud"])
                 promedios.append({**m, "dispositivo": serial})
-            # HU-013: con el lote ya persistido, evaluar las reglas de la zona
-            # del dispositivo para abrir/resolver alertas y notificar.
+
+
             try:
                 from models import rulesModel
                 rulesModel.evaluateDevice(dev["id_dispositivo"])
             except Exception:
-                pass  # el lote ya esta guardado; la evaluacion no lo revierte
+                pass
             pend_mags = {m["magnitud"] for m in magStats(items)} - set(enviadas)
             if pend_mags:
                 with _lock:

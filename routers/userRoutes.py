@@ -1,4 +1,3 @@
-"""Rutas de usuarios del panel admin (/admin/users)."""
 from fastapi import APIRouter
 
 import controllers.usersController as usersController
