@@ -1,0 +1,40 @@
+<!-- Footer público compartido por la landing.
+     Contexto: logged (nombre o None). -->
+<footer class="bg-surface-container-lowest border-t border-outline-variant">
+    <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-stack-lg">
+            <div class="lg:col-span-2 flex flex-col gap-4 max-w-sm">
+                <a href="/home" aria-label="SafeCore IoT inicio">
+                    <img src="/public/images/logo-horizontal.png" alt="SafeCore IoT" class="h-12 w-auto object-contain" style="max-width:200px">
+                </a>
+                <p class="font-body-md text-body-md text-on-surface-variant">Monitoreo ambiental para espacios cerrados. Detección temprana de humo y gases con supervisión centralizada.</p>
+                <p class="text-sm text-on-surface-variant">© 2026 SafeCore IoT · Inter d’code</p>
+            </div>
+            <div>
+                <h3 class="font-label-md text-label-md font-semibold text-primary uppercase tracking-wider mb-3">Producto</h3>
+                <ul class="space-y-2 text-sm">
+                    <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="/home#producto">Características</a></li>
+                    <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="/home#como-funciona">Cómo funciona</a></li>
+                    <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="/home#casos-de-uso">Casos de uso</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="font-label-md text-label-md font-semibold text-primary uppercase tracking-wider mb-3">Empresa</h3>
+                <ul class="space-y-2 text-sm">
+                    <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="/home#nosotros">Nosotros</a></li>
+                    <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="/home#faq">Preguntas frecuentes</a></li>
+                </ul>
+                <h3 class="font-label-md text-label-md font-semibold text-primary uppercase tracking-wider mb-3 mt-6">Acceso</h3>
+                <ul class="space-y-2 text-sm">
+                    {% if logged %}
+                    <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="/dashboard">Ir al panel</a></li>
+                    <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="/users/perfil">Mi perfil</a></li>
+                    {% else %}
+                    <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="/users/login">Iniciar sesión</a></li>
+                    <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="/users/register">Crear cuenta</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>

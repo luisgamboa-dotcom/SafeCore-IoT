@@ -132,7 +132,10 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span class="material-symbols-outlined text-outline">lock</span>
                         </div>
-                        <input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg bg-surface-bright text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-200" id="password" name="password" placeholder="••••••••" required="" type="password" />
+                        <input class="block w-full pl-10 pr-11 py-2 border border-outline-variant rounded-lg bg-surface-bright text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-200" id="password" name="password" placeholder="••••••••" required="" type="password" />
+                        <button type="button" data-password-toggle data-target="password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-primary transition-colors" aria-label="Mostrar contraseña" aria-pressed="false" aria-controls="password">
+                            <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                        </button>
                     </div>
                 </div>
                 <div class="flex items-center justify-between pt-stack-xs">
@@ -161,5 +164,6 @@
             </div>
         </div>
         <script src="/public/scripts/sidebarToggle.js"></script>
+        <script src="/public/scripts/passwordToggle.js"></script>
     </body>
 </html>

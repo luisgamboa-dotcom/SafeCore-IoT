@@ -1,0 +1,70 @@
+<!-- Navbar pública compartida por la landing.
+     Contexto: logged (nombre o None), iniciales. -->
+<header id="publicHeader" class="fixed top-0 inset-x-0 z-50 bg-white/85 backdrop-blur-md border-b border-outline-variant/70 transition-shadow duration-300">
+    <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
+        <div class="flex items-center justify-between h-[72px] gap-4">
+            <a class="flex items-center shrink-0" href="/home" aria-label="SafeCore IoT inicio">
+                <img src="/public/images/logo-horizontal.png" alt="SafeCore IoT" class="h-10 md:h-11 w-auto object-contain" style="max-width:190px">
+            </a>
+
+            <nav class="hidden lg:flex items-center gap-1" aria-label="Navegación principal">
+                <a class="public-nav-link" data-nav-section="producto" href="/home#producto">Producto</a>
+                <a class="public-nav-link" data-nav-section="como-funciona" href="/home#como-funciona">Cómo funciona</a>
+                <a class="public-nav-link" data-nav-section="casos-de-uso" href="/home#casos-de-uso">Casos de uso</a>
+                <a class="public-nav-link" data-nav-section="nosotros" href="/home#nosotros">Nosotros</a>
+                <a class="public-nav-link" data-nav-section="faq" href="/home#faq">FAQ</a>
+            </nav>
+
+            <div class="hidden lg:flex items-center gap-3">
+                {% if logged %}
+                <a href="/dashboard" class="inline-flex items-center gap-2 bg-secondary text-on-secondary px-5 py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary transition-colors">
+                    <span class="material-symbols-outlined text-base">space_dashboard</span>
+                    Ir al panel
+                </a>
+                <a href="/users/perfil" class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold" aria-label="Mi perfil">{{ iniciales }}</a>
+                {% else %}
+                <a href="/users/login" class="font-label-md text-label-md text-primary hover:text-secondary transition-colors px-3 py-2">Iniciar sesión</a>
+                <a href="/users/register" class="inline-flex items-center gap-2 bg-secondary text-on-secondary px-5 py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary transition-colors">Crear cuenta</a>
+                {% endif %}
+            </div>
+
+            <button id="publicNavToggle" type="button" class="lg:hidden p-2.5 rounded-lg border border-outline-variant text-primary hover:bg-surface-container-low transition-colors" aria-label="Abrir menú" aria-controls="publicNavDrawer" aria-expanded="false">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<div id="publicNavBackdrop" class="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm hidden lg:hidden" aria-hidden="true"></div>
+
+<aside id="publicNavDrawer" class="fixed top-0 right-0 z-[60] h-full w-[min(330px,88vw)] bg-white shadow-2xl translate-x-full transition-transform duration-300 ease-out lg:hidden flex flex-col" aria-label="Menú de navegación" aria-hidden="true" inert>
+    <div class="flex items-center justify-between h-[72px] px-5 border-b border-outline-variant">
+        <a href="/home" aria-label="SafeCore IoT inicio">
+            <img src="/public/images/logo-horizontal.png" alt="SafeCore IoT" class="h-9 w-auto object-contain" style="max-width:170px">
+        </a>
+        <button id="publicNavClose" type="button" class="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors" aria-label="Cerrar menú">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-1" aria-label="Navegación móvil">
+        <a class="public-nav-link-mobile" data-nav-section="producto" href="/home#producto">Producto</a>
+        <a class="public-nav-link-mobile" data-nav-section="como-funciona" href="/home#como-funciona">Cómo funciona</a>
+        <a class="public-nav-link-mobile" data-nav-section="casos-de-uso" href="/home#casos-de-uso">Casos de uso</a>
+        <a class="public-nav-link-mobile" data-nav-section="nosotros" href="/home#nosotros">Nosotros</a>
+        <a class="public-nav-link-mobile" data-nav-section="faq" href="/home#faq">FAQ</a>
+    </nav>
+
+    <div class="px-5 py-5 border-t border-outline-variant flex flex-col gap-3">
+        {% if logged %}
+        <a href="/dashboard" class="inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary px-5 py-3 rounded-lg font-label-md text-label-md hover:bg-primary transition-colors">
+            <span class="material-symbols-outlined text-base">space_dashboard</span>
+            Ir al panel
+        </a>
+        <a href="/users/perfil" class="inline-flex items-center justify-center gap-2 border border-outline-variant text-primary px-5 py-3 rounded-lg font-label-md text-label-md hover:bg-surface-container-low transition-colors">Mi perfil</a>
+        {% else %}
+        <a href="/users/login" class="inline-flex items-center justify-center gap-2 border border-outline-variant text-primary px-5 py-3 rounded-lg font-label-md text-label-md hover:bg-surface-container-low transition-colors">Iniciar sesión</a>
+        <a href="/users/register" class="inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary px-5 py-3 rounded-lg font-label-md text-label-md hover:bg-primary transition-colors">Crear cuenta</a>
+        {% endif %}
+    </div>
+</aside>

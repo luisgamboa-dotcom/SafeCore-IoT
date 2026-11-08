@@ -146,12 +146,20 @@
                     <div class="space-y-stack-xs">
                         <label class="block font-label-md text-label-md text-on-surface" for="password">Contraseña</label>
                         <div class="relative">
-                            <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="password" name="password" minlength="8" maxlength="254" required type="password" />
+                            <input class="w-full bg-surface-bright border border-outline-variant rounded-lg pl-4 pr-12 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="password" name="password" minlength="8" maxlength="254" required type="password" />
+                            <button type="button" data-password-toggle data-target="password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-primary transition-colors" aria-label="Mostrar contraseña" aria-pressed="false" aria-controls="password">
+                                <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                            </button>
                         </div>
                     </div>
                     <div class="space-y-stack-xs">
                         <label class="block font-label-md text-label-md text-on-surface" for="confirmPassword">Confirmar contraseña</label>
-                        <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="confirmPassword" name="confirmPassword" minlength="8" maxlength="254" required type="password" />
+                        <div class="relative">
+                            <input class="w-full bg-surface-bright border border-outline-variant rounded-lg pl-4 pr-12 py-2 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary-container focus:border-secondary-container transition-shadow" id="confirmPassword" name="confirmPassword" minlength="8" maxlength="254" required type="password" />
+                            <button type="button" data-password-toggle data-target="confirmPassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-primary transition-colors" aria-label="Mostrar contraseña" aria-pressed="false" aria-controls="confirmPassword">
+                                <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="pt-stack-sm">
                         <button class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-label-md text-label-md text-on-primary bg-primary-container hover:bg-primary-container/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-container transition-all hover:-translate-y-[1px]" type="submit">
@@ -169,5 +177,6 @@
         </main>
         <!-- Footer suprimido por el carácter transaccional de la página (Registro) -->
         <script src="/public/scripts/sidebarToggle.js"></script>
+        <script src="/public/scripts/passwordToggle.js"></script>
     </body>
 </html>
