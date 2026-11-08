@@ -175,6 +175,91 @@ def updateDevice(id_dispositivo, codigo_serial, identificador_unico, nombre,
         closeConnection(conn, cur)
 
 
+# HU-028: historial de ubicaciones del dispositivo (tramos en
+# dispositivo_zona_historial). Zona actual del dispositivo siempre en d.id_zona.
+
+def getTramoVigente(id_dispositivo):
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("""SELECT id_historial, id_zona, desde
+                       FROM dispositivo_zona_historial
+                       WHERE id_dispositivo = %s AND hasta IS NULL
+                       ORDER BY desde DESC LIMIT 1""", (id_dispositivo,))
+        return cur.fetchone()
+    finally:
+        closeConnection(conn, cur)
+
+
+def getHistorialZonas(id_dispositivo):
+    """Tramos del dispositivo, mas nuevo primero, con el nombre de la zona
+    y su instalacion para mostrar el historial de ubicaciones."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("""SELECT h.id_historial, h.id_zona, z.nombre AS zona,
+                              i.nombre AS instalacion, h.desde, h.hasta, h.motivo
+                       FROM dispositivo_zona_historial h
+                       JOIN zonas z ON z.id_zona = h.id_zona
+                       JOIN instalaciones i ON i.id_instalacion = z.id_instalacion
+                       WHERE h.id_dispositivo = %s
+                       ORDER BY h.desde DESC, h.id_historial DESC""",
+                    (id_dispositivo,))
+        return cur.fetchall()
+    finally:
+        closeConnection(conn, cur)
+
+
+def updateDeviceConTraslado(id_dispositivo, codigo_serial, identificador_unico,
+                            nombre, firmware_version, notas, fecha_instalacion,
+                            id_modelo, id_estado_dispositivo, id_zona, activo,
+                            id_zona_anterior, motivo):
+    """HU-028: traslado atomico en una sola transaccion. Cierra el tramo
+    vigente (si existe) guardando el motivo, abre el nuevo y deja la zona
+    vigente del dispositivo en id_zona. El resto de los campos del
+    formulario viaja igual que en updateDevice."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute(
+            """UPDATE dispositivos SET codigo_serial = %s, identificador_unico = %s,
+                   nombre = %s, firmware_version = %s, notas = %s, fecha_instalacion = %s,
+                   id_modelo = %s, id_estado_dispositivo = %s, id_zona = %s, activo = %s
+               WHERE id_dispositivo = %s""",
+            (codigo_serial, identificador_unico, nombre, firmware_version,
+             notas, fecha_instalacion or None, id_modelo, id_estado_dispositivo,
+             id_zona, activo, id_dispositivo))
+        cur.execute("""SELECT id_historial, id_zona FROM dispositivo_zona_historial
+                       WHERE id_dispositivo = %s AND hasta IS NULL
+                       ORDER BY desde DESC LIMIT 1""", (id_dispositivo,))
+        tramo = cur.fetchone()
+        if tramo is None:
+            # Primer traslado: sintetiza el tramo de origen cerrado con la
+            # fecha de instalacion/alta del dispositivo y el motivo indicado.
+            cur.execute("""SELECT COALESCE(fecha_instalacion, fecha_alta) AS desde
+                           FROM dispositivos WHERE id_dispositivo = %s""",
+                        (id_dispositivo,))
+            desde_origen = cur.fetchone()["desde"]
+            cur.execute("""INSERT INTO dispositivo_zona_historial
+                           (id_dispositivo, id_zona, desde, hasta, motivo)
+                           VALUES (%s, %s, %s, NOW(), %s)""",
+                        (id_dispositivo, id_zona_anterior, desde_origen, motivo))
+        else:
+            cur.execute("""UPDATE dispositivo_zona_historial
+                           SET hasta = NOW(), motivo = %s
+                           WHERE id_historial = %s AND hasta IS NULL""",
+                        (motivo, tramo["id_historial"]))
+        cur.execute("""INSERT INTO dispositivo_zona_historial
+                       (id_dispositivo, id_zona, desde) VALUES (%s, %s, NOW())""",
+                    (id_dispositivo, id_zona))
+        conn.commit()
+    finally:
+        closeConnection(conn, cur)
+
+
 def setDeviceActivo(id_dispositivo, activo):
     """HU-014: activa o da de baja el dispositivo (bandera activo) preservando
     lecturas, alertas y demas informacion asociada."""

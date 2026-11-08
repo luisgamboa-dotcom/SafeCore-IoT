@@ -1,16 +1,21 @@
-"""Centro de notificaciones: listado de los avisos del usuario y lectura."""
+"""Centro de notificaciones: listado de los avisos del usuario y lectura.
+HU-022: configuracion de los canales web/email (habilitado, destino, prioridad)."""
 from uuid import UUID
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, Form
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from config.sessionsConfig import SessionData, cookie as session_cookie, verificador
 from models import notificationsModel as notif_model
+from models import usersModel as user_model
+from utils import authUtils as user_utils
 from utils.commonUtils import userSessionContext
 from utils.flashUtils import flashForm, popFormFlash
 
 templates = Jinja2Templates(directory="templates")
+
+PRIORIDADES = (1, 2, 3)
 
 
 def showNotificacionesPage(request: Request,
@@ -54,3 +59,76 @@ def marcarLeidaNotificacion(request: Request,
     else:
         flashForm(request, "La notificación no existe, no es tuya o ya está leída.")
     return RedirectResponse("/dashboard/notificaciones", status_code=303)
+
+
+# Configuracion de canales (HU-022).
+
+def showConfigCanales(request: Request,
+                      id_sesion: UUID = Depends(session_cookie),
+                      sesion: SessionData = Depends(verificador)):
+    """HU-022: vista para activar/desactivar web y correo, con destino y
+    prioridad. Si el canal email queda habilitado sin destino, el correo de la cuenta actua de prefill."""
+    perfil = notif_model.getPerfilCanales(sesion.id_usuario)
+    usuario = user_model.getUserById(sesion.id_usuario)
+    flash_msg, old, flash_ok = popFormFlash(request)
+    return templates.TemplateResponse(
+        request, "datos/notificaciones-config.html",
+        {"request": request, "perfil": perfil,
+         "email_cuenta": usuario["email"] if usuario else "",
+         "flash_msg": flash_msg, "flash_ok": flash_ok, "old": old,
+         **userSessionContext(sesion)})
+
+
+def saveConfigCanales(
+    request: Request,
+    id_sesion: UUID = Depends(session_cookie),
+    sesion: SessionData = Depends(verificador),
+    web_habilitado: str = Form(""),
+    web_prioridad: str = Form(""),
+    email_habilitado: str = Form(""),
+    email_prioridad: str = Form(""),
+    email_destino: str = Form(""),
+    ):
+    """HU-022: valida todo ANTES de persistir (destino del correo con formato
+    correcto, prioridad 1-3); si nada queda habilitado guarda igual y advierte
+    que no habrá notificaciones."""
+    filas = []
+    if web_habilitado:
+        prioridad_web = _prioridadValida(web_prioridad)
+        if prioridad_web is None:
+            return redirConfigConError(request, "La prioridad del canal web debe ser 1, 2 o 3.")
+        filas.append({"id_canal": notif_model.CANAL_WEB, "habilitado": True,
+                      "destino": None, "prioridad": prioridad_web})
+
+    destino_email = user_model.getUserById(sesion.id_usuario)["email"] \
+        if email_habilitado and not email_destino.strip() else email_destino
+    if email_habilitado:
+        prioridad_email = _prioridadValida(email_prioridad)
+        if prioridad_email is None:
+            return redirConfigConError(request, "La prioridad del canal correo debe ser 1, 2 o 3.")
+        correo_limpio, error_email = user_utils.validateEmail(destino_email.strip())
+        if error_email:
+            return redirConfigConError(request, error_email,
+                                       {"email_destino": email_destino})
+        filas.append({"id_canal": notif_model.CANAL_EMAIL, "habilitado": True,
+                      "destino": correo_limpio, "prioridad": prioridad_email})
+
+    notif_model.savePerfilCanales(sesion.id_usuario, filas)
+    if filas:
+        flashForm(request, "Canales de notificación guardados correctamente.", ok=True)
+    else:
+        flashForm(request, "No recibirás ninguna notificación.")
+    return RedirectResponse("/dashboard/notificaciones/configurar", status_code=303)
+
+
+def _prioridadValida(valor):
+    try:
+        prioridad = int(valor)
+    except (TypeError, ValueError):
+        return None
+    return prioridad if prioridad in PRIORIDADES else None
+
+
+def redirConfigConError(request, mensaje, old=None):
+    flashForm(request, mensaje, old)
+    return RedirectResponse("/dashboard/notificaciones/configurar", status_code=303)

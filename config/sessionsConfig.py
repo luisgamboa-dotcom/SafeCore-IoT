@@ -122,3 +122,16 @@ async def requireAdminUser(request: Request,
         flashForm(request, "Acceso denegado: tu usuario no tiene permisos de administrador.")
         raise HTTPException(status_code=303, headers={"Location": "/users/login"})
     return sesion
+
+
+async def requireSuperadminUser(request: Request,
+                                id_sesion: UUID = Depends(cookie),
+                                sesion: SessionData = Depends(verificador)):
+    # HU-032: la auditoria de cambios queda reservada al Superadmin.
+    from models import usersModel as user_model
+    from utils.flashUtils import flashForm
+    roles = user_model.getUserRoles(sesion.id_usuario)
+    if "Superadmin" not in roles:
+        flashForm(request, "Acceso restringido: la auditoría solo está disponible para superadmins.")
+        raise HTTPException(status_code=303, headers={"Location": "/admin"})
+    return sesion

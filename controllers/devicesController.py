@@ -76,6 +76,11 @@ def showDeviceDetail(request: Request,
         contexto["mantenimientos"] = []
         contexto["ultimo_mant"] = None
         contexto["proximo_mant"] = None
+    # HU-028: historial de ubicaciones del dispositivo (tramos cronologicos).
+    try:
+        contexto["historial_zonas"] = dev_model.getHistorialZonas(id_device)
+    except Exception:
+        contexto["historial_zonas"] = []
     # HU-031: formularios visibles para admin global o supervisor de la org.
     from controllers.mantenimientosController import puedeGestionar, contextoFormulario
     if puedeGestionar(sesion, dev):
@@ -153,6 +158,7 @@ def _formContext(sesion, dev=None):
 
 MSG_MODELO_BLOQUEADO = ("El modelo no puede cambiar si existe historial; "
                         "registre un equipo nuevo")
+MSG_ZONA_IGUAL = "El dispositivo ya está en esa zona; no se registró ningún traslado."
 
 
 def _haceCuanto(ts: float):
@@ -249,6 +255,7 @@ async def updateDeviceFromAdmin(request: Request,
                                 fecha_instalacion: str = Form(""),
                                 id_modelo: str = Form(...),
                                 id_zona: str = Form(...),
+                                motivo: str = Form(""),
                                 activo: str = Form("")):
     dev = dev_model.getDeviceDetail(id_device)
     if dev is None:
@@ -267,6 +274,18 @@ async def updateDeviceFromAdmin(request: Request,
     if int(id_modelo) != dev["id_modelo"] and dev_model.tieneLecturas(id_device):
         flashForm(request, MSG_MODELO_BLOQUEADO)
         return volver()
+
+    # HU-028: traslado de zona con historial. Exige dispositivo activo y
+    # motivo cuando la zona cambia; si la zona no cambia solo se advierte.
+    traslado = int(id_zona) != dev["id_zona"]
+    motivo_traslado = (motivo or "").strip()
+    if traslado and not dev["activo"]:
+        flashForm(request, "No se puede trasladar un dispositivo dado de baja.")
+        return volver()
+    if traslado and not motivo_traslado:
+        flashForm(request, "Indica el motivo del traslado para cambiar de zona.")
+        return volver()
+    aviso_zona_igual = (not traslado and bool(motivo_traslado))
 
     # Las frecuencias llegan dinámicamente como campos frec_<id_sensor> del formulario.
     frecuencias = []
@@ -291,11 +310,23 @@ async def updateDeviceFromAdmin(request: Request,
                     ('fecha_instalacion', dev["fecha_instalacion"],
                      fecha_instalacion or None),
                     ('id_modelo', dev["id_modelo"], int(id_modelo)),
-                    ('id_zona', dev["id_zona"], int(id_zona)),
+                    ('id_zona', dev["id_zona"],
+                     f"{int(id_zona)} (motivo: {motivo_traslado})"
+                     if traslado else int(id_zona)),
                     ('activo', 1 if dev["activo"] else 0, 1 if activo == "on" else 0)]
 
     try:
-        dev_model.updateDevice(
+        if traslado:
+            dev_model.updateDeviceConTraslado(
+                id_device, codigo_serial.strip(), identificador_unico.strip() or None,
+                nombre.strip(), firmware_version.strip() or None,
+                (notas or "").strip() or None,
+                fecha_instalacion or None, int(id_modelo),
+                dev["id_estado_dispositivo"], int(id_zona),
+                1 if activo == "on" else 0,
+                dev["id_zona"], motivo_traslado)
+        else:
+            dev_model.updateDevice(
             id_device, codigo_serial.strip(), identificador_unico.strip() or None,
             nombre.strip(), firmware_version.strip() or None,
             (notas or "").strip() or None,
@@ -340,6 +371,14 @@ async def updateDeviceFromAdmin(request: Request,
                                        f"{campo}: {anterior}",
                                        f"{campo}: {nuevo}")
     flashForm(request, "Dispositivo actualizado correctamente.", ok=True)
+    if traslado:
+        zona = zone_model.getZoneById(int(id_zona))
+        destino = zona["nombre"] if zona else f"zona {id_zona}"
+        flashForm(request,
+                  f"Traslado registrado: el dispositivo ahora está en la zona {destino}.",
+                  ok=True)
+    elif aviso_zona_igual:
+        flashForm(request, MSG_ZONA_IGUAL)
     return volver()
 
 

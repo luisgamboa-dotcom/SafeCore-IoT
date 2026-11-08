@@ -12,6 +12,10 @@ notifications_router = APIRouter(tags=["notifications"])
 notifications_router.get("/dashboard/notificaciones")(notificationsController.showNotificacionesPage)
 notifications_router.post("/dashboard/notificaciones/{id_notificacion}/leer")(notificationsController.marcarLeidaNotificacion)
 
+# HU-022: configuracion de canales del usuario.
+notifications_router.get("/dashboard/notificaciones/configurar")(notificationsController.showConfigCanales)
+notifications_router.post("/dashboard/notificaciones/configurar")(notificationsController.saveConfigCanales)
+
 
 def contarNoLeidas(id_sesion: UUID = Depends(session_cookie),
                    sesion: SessionData = Depends(verificador)):

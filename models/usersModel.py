@@ -270,6 +270,19 @@ def setUserOrganization(id_usuario, id_organizacion):
         _cerrar(conn, cur)
 
 
+def updatePasswordHash(id_usuario, password_hash):
+    """Nueva contrasena del restablecimiento por correo (HU-003)."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute("UPDATE usuarios SET password_hash = %s WHERE id_usuario = %s",
+                    (password_hash, id_usuario))
+        conn.commit()
+    finally:
+        _cerrar(conn, cur)
+
+
 def getAllRoles():
     conn = getConnection()
     cur = None

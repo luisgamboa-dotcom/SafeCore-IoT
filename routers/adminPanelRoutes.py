@@ -7,3 +7,4 @@ admin_router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 admin_router.get("")(adminPanelController.showAdminPanel)
+admin_router.get("/auditoria")(adminPanelController.showAuditoria)

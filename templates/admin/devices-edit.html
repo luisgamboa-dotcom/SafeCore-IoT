@@ -122,6 +122,11 @@ tailwind.config = {
                         </select>
                     </div>
                     <div>
+                        <label class="block font-label-md text-label-md mb-1" for="motivo">Motivo del traslado</label>
+                        <input class="w-full border border-outline-variant rounded-lg px-3 py-2" id="motivo" name="motivo" maxlength="200" type="text" placeholder="Requerido solo si cambias la zona" />
+                        <p class="text-[12px] text-on-surface-variant mt-1">Si mueves el dispositivo a otra zona, este motivo queda registrado en su historial de ubicaciones.</p>
+                    </div>
+                    <div>
                         <label class="block font-label-md text-label-md mb-1" for="notas">Notas</label>
                         <textarea class="w-full border border-outline-variant rounded-lg px-3 py-2" id="notas" name="notas" rows="3">{{ dev.notas or '' }}</textarea>
                     </div>

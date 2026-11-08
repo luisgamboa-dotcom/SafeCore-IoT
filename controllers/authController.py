@@ -1,6 +1,7 @@
 """Auth: register, login and logout."""
 import hashlib
 import hmac
+import os
 from uuid import UUID, uuid4
 
 import mysql.connector
@@ -16,7 +17,9 @@ from config.sessionsConfig import (
 )
 
 from models import usersModel as user_model
+from models import passwordResetModel as password_model
 from utils import authUtils as user_utils
+from utils import emailUtils as email_utils
 from utils.flashUtils import flashForm, popFormFlash
 
 templates = Jinja2Templates(directory="templates")
@@ -133,3 +136,76 @@ async def logoutUser(request: Request, session_id: UUID = Depends(session_cookie
     respuesta = RedirectResponse("/users/login", status_code=303)
     session_cookie.delete_from_response(respuesta)
     return respuesta
+
+
+# Recuperacion de contrasena.
+
+def showRecuperarForm(request: Request):
+    flash_msg, old, flash_ok = popFormFlash(request)
+    return templates.TemplateResponse(request, "users-login/recuperar.html",
+        {"request": request, "flash_msg": flash_msg, "flash_ok": flash_ok, "old": old})
+
+
+def requestPasswordReset(request: Request, email: str = Form(...)):
+    ctx_old = {"email": email}
+
+    def redirectWithMsg(mensaje, ok=False):
+        flashForm(request, mensaje, ctx_old, ok=ok)
+        return RedirectResponse("/users/recuperar", status_code=303)
+
+    correo_limpio, error_email = user_utils.validateEmail(email.strip())
+    if error_email:
+        return redirectWithMsg(error_email)
+
+    user = user_model.getUserByEmail(correo_limpio)
+    if user is None or user["id_usuario_estado"] != 1:
+        return redirectWithMsg(
+            "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.",
+            ok=True)
+
+    enlace = (os.getenv("APP_BASE_URL") or "http://localhost:8000") \
+        + "/users/restablecer/" + password_model.createToken(user["id_usuario"])
+    try:
+        email_utils.sendPasswordResetEmail(correo_limpio, user["nombre"], enlace)
+    except Exception:
+        return redirectWithMsg("No se pudo enviar el correo de recuperación. Inténtalo más tarde.")
+    return redirectWithMsg(
+        "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.",
+        ok=True)
+
+
+def showRestablecerForm(request: Request, token: str):
+    fila = password_model.getValidToken(token)
+    if fila is None:
+        return redirRecuperarConError(request)
+    flash_msg, old, flash_ok = popFormFlash(request)
+    return templates.TemplateResponse(request, "users-login/restablecer.html",
+        {"request": request, "token": token, "flash_msg": flash_msg,
+         "flash_ok": flash_ok, "old": old})
+
+
+def resetPassword(
+    request: Request,
+    token: str,
+    password: str = Form(...),
+    confirmPassword: str = Form(...)
+    ):
+    fila = password_model.getValidToken(token)
+    if fila is None:
+        return redirRecuperarConError(request)
+
+    error_claves = user_utils.validatePasswords(password, confirmPassword)
+    if error_claves:
+        flashForm(request, error_claves)
+        return RedirectResponse(f"/users/restablecer/{token}", status_code=303)
+
+    user_model.updatePasswordHash(fila["id_usuario"],
+                                  hashlib.sha256(password.encode()).hexdigest())
+    password_model.markUsed(fila["id_token"])
+    flashForm(request, "Contraseña restablecida correctamente. Inicia sesión con tu nueva clave.", ok=True)
+    return RedirectResponse("/users/login", status_code=303)
+
+
+def redirRecuperarConError(request: Request):
+    flashForm(request, "El enlace es inválido o ya expiró. Solicita uno nuevo.")
+    return RedirectResponse("/users/recuperar", status_code=303)

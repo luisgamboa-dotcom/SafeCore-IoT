@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html class="h-full" lang="es">
+    <head>
+        <meta charset="utf-8"/>
+        <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+        <title>Auditoría de cambios - SafeCore IoT</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+        <script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#2E1B5A",
+        "primary-container": "#8751F8",
+        "secondary": "#6D3DF5",
+        "secondary-container": "#A37FFF",
+        "tertiary": "#3D2A63",
+        "tertiary-container": "#5B4A8A",
+        "primary-fixed": "#E9DEFF",
+        "primary-fixed-dim": "#C9B0FF",
+        "secondary-fixed": "#EDE6FF",
+        "secondary-fixed-dim": "#D5C2FF",
+        "tertiary-fixed": "#E5DBFF",
+        "tertiary-fixed-dim": "#C4AFFF",
+        "surface": "#F6F1FF",
+        "surface-bright": "#F6F1FF",
+        "surface-container-lowest": "#ffffff",
+        "surface-container-low": "#EFE7FF",
+        "surface-container": "#E9DEFF",
+        "surface-container-high": "#E2D5FF",
+        "surface-variant": "#D9C9FF",
+        "surface-tint": "#7A5CA8",
+        "background": "#F6F1FF",
+        "on-surface": "#191c1f",
+        "on-surface-variant": "#43474e",
+        "on-primary": "#ffffff",
+        "on-primary-container": "#D9C8FF",
+        "on-secondary": "#ffffff",
+        "on-tertiary": "#ffffff",
+        "on-tertiary-container": "#A37FFF",
+        "outline": "#74777f",
+        "outline-variant": "#c4c6cf",
+        "error": "#ba1a1a",
+        "error-container": "#ffdad6"
+      },
+      borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+      boxShadow: {
+        'ambient': '0 10px 30px rgba(135, 81, 248, 0.08)',
+        'ambient-hover': '0 15px 35px rgba(135, 81, 248, 0.14)'
+      }
+    }
+  }
+}
+</script>
+        <link rel="stylesheet" href="/public/styles/dashboardStyles.css">
+        <link rel="stylesheet" href="/public/styles/adminUsersStyles.css">
+    </head>
+    <body class="font-body text-on-surface antialiased flex h-screen overflow-hidden bg-background" style="font-family:Inter,system-ui,sans-serif">
+
+        <div id="edgeZone" title="Acercar para mostrar menú"></div>
+        <div id="backdrop"></div>
+
+        {% set active_page = "admin_auditoria" %}
+        {% include "partials/sidebar.html" %}
+        <!-- Contenido principal -->
+        <div id="mainWrap" class="flex-1 flex flex-col h-screen min-w-0 w-full">
+        {% set page_title = "Auditoría de cambios" %}
+        {% include "partials/topbar.html" %}
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-[1280px] mx-auto p-4 md:p-8 pb-12 flex flex-col gap-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="font-headline-md text-headline-md text-primary">Auditoría de cambios</h2>
+                        <p class="font-body-md text-body-md text-on-surface-variant mt-1">Registro de todas las modificaciones de configuración realizadas por los usuarios del sistema.</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <span class="font-label-md text-label-md text-on-surface-variant">Conectado como <strong>{{ admin_nombre }}</strong> (Superadmin)</span>
+                    </div>
+                </div>
+                <div class="flex gap-2 flex-wrap items-center">
+                    <a class="px-4 py-2 rounded-lg border border-outline-variant font-label-md text-label-md" href="/admin">← Volver</a>
+                    <button id="btnFiltros" type="button" class="px-4 py-2 rounded-lg bg-surface-container text-on-surface border border-outline-variant font-label-md text-label-md flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[18px]">tune</span> Filtros
+                    </button>
+                </div>
+                {% include "partials/toast.html" %}
+                <div id="panelFiltros" class="hidden bg-surface-container-lowest rounded-xl shadow border border-surface-variant p-6">
+                    <form action="/admin/auditoria" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                        <div>
+                            <label class="block font-label-md text-label-md mb-1" for="entidad">Entidad</label>
+                            <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="entidad" name="entidad">
+                                <option value="">Todas</option>
+                                {% for e in entidades %}
+                                <option value="{{ e }}" {% if f_entidad == e %}selected{% endif %}>{{ e }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-label-md text-label-md mb-1" for="registro">ID de registro</label>
+                            <input class="w-full bg-surface border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md" id="registro" name="registro" placeholder="Ej: 1" type="text" value="{{ f_registro or '' }}" />
+                        </div>
+                        <div>
+                            <label class="block font-label-md text-label-md mb-1" for="usuario">Usuario</label>
+                            <select class="w-full border border-outline-variant rounded-lg px-3 py-2" id="usuario" name="usuario">
+                                <option value="">Todos</option>
+                                {% for u in usuarios %}
+                                <option value="{{ u.id_usuario }}" {% if f_usuario == u.id_usuario|string %}selected{% endif %}>{{ u.nombre }} {{ u.apellido }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-label-md text-label-md mb-1" for="desde">Desde</label>
+                            <input class="w-full border border-outline-variant rounded-lg px-3 py-2" id="desde" name="desde" type="date" value="{{ f_desde or '' }}" />
+                        </div>
+                        <div>
+                            <label class="block font-label-md text-label-md mb-1" for="hasta">Hasta</label>
+                            <input class="w-full border border-outline-variant rounded-lg px-3 py-2" id="hasta" name="hasta" type="date" value="{{ f_hasta or '' }}" />
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="bg-secondary text-on-secondary px-4 py-2 rounded-lg font-label-md text-label-md" type="submit">Aplicar</button>
+                            <a class="px-4 py-2 rounded-lg border border-outline-variant font-label-md text-label-md" href="/admin/auditoria">Limpiar</a>
+                        </div>
+                    </form>
+                </div>
+                <script>
+                    document.getElementById('btnFiltros').addEventListener('click', function () {
+                        document.getElementById('panelFiltros').classList.toggle('hidden');
+                    });
+                </script>
+                <div class="bg-surface-container-lowest rounded-xl shadow border border-surface-variant overflow-hidden flex-1">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-surface-container-low border-b border-surface-variant text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+                                    <th class="p-4 font-semibold">Fecha</th>
+                                    <th class="p-4 font-semibold">Usuario</th>
+                                    <th class="p-4 font-semibold">Entidad</th>
+                                    <th class="p-4 font-semibold">Registro</th>
+                                    <th class="p-4 font-semibold">Acción</th>
+                                    <th class="p-4 font-semibold">Valor anterior</th>
+                                    <th class="p-4 font-semibold">Valor nuevo</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-surface-variant font-body-md text-body-md text-on-surface">
+                                {% for a in filas %}
+                                <tr class="hover:bg-surface-container-low/50 transition-colors">
+                                    <td class="p-4 text-on-surface-variant whitespace-nowrap">{{ a.fecha }}</td>
+                                    <td class="p-4">
+                                        {% if a.nombre %}
+                                        <div class="font-medium text-primary">{{ a.nombre }} {{ a.apellido }}</div>
+                                        {% else %}
+                                        <span class="text-on-surface-variant">Sistema</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-variant text-on-surface-variant border border-outline-variant">{{ a.entidad }}</span>
+                                    </td>
+                                    <td class="p-4 text-on-surface-variant font-mono text-[13px]">#{{ a.registro_id }}</td>
+                                    <td class="p-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-label-sm font-label-sm border {% if a.accion == 'update' %}bg-secondary-container text-white{% elif a.accion == 'delete' %}bg-error-container text-error{% else %}bg-surface-container text-on-surface-variant border border-outline-variant{% endif %}">{{ a.accion }}</span>
+                                    </td>
+                                    <td class="p-4 text-[13px] text-on-surface-variant max-w-[240px] break-words">{{ a.valor_anterior }}</td>
+                                    <td class="p-4 text-[13px] max-w-[240px] break-words">{{ a.valor_nuevo }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td class="p-8 text-center text-on-surface-variant" colspan="7">No hay cambios registrados{% if f_entidad or f_registro or f_usuario or f_desde or f_hasta %} para los filtros indicados{% endif %}.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="px-4 py-3 border-t border-surface-variant bg-surface-container-lowest flex flex-wrap items-center justify-between gap-2">
+                        <span class="font-label-sm text-label-sm text-on-surface-variant">Mostrando {{ filas|length }} de {{ total }} cambios{% if paginas > 1 %} · página {{ pagina }} de {{ paginas }}{% endif %}</span>
+                        {% if paginas > 1 %}
+                        <div class="flex items-center gap-1">
+                            {% if pagina > 1 %}
+                            <a class="px-3 py-1.5 rounded-lg border border-outline-variant font-label-sm text-label-sm hover:bg-surface-container-low" href="/admin/auditoria?{% if base_qsa %}{{ base_qsa }}&amp;{% endif %}pagina={{ pagina - 1 }}">← Anterior</a>
+                            {% endif %}
+                            {% set rango_ini = [1, pagina - 2] | max %}
+                            {% set rango_fin = [paginas, pagina + 2] | min %}
+                            {% for p in range(rango_ini, rango_fin + 1) %}
+                            {% if p == pagina %}
+                            <span class="px-3 py-1.5 rounded-lg font-label-sm text-label-sm bg-primary text-white">{{ p }}</span>
+                            {% else %}
+                            <a class="px-3 py-1.5 rounded-lg border border-outline-variant font-label-sm text-label-sm hover:bg-surface-container-low" href="/admin/auditoria?{% if base_qsa %}{{ base_qsa }}&amp;{% endif %}pagina={{ p }}">{{ p }}</a>
+                            {% endif %}
+                            {% endfor %}
+                            {% if pagina < paginas %}
+                            <a class="px-3 py-1.5 rounded-lg border border-outline-variant font-label-sm text-label-sm hover:bg-surface-container-low" href="/admin/auditoria?{% if base_qsa %}{{ base_qsa }}&amp;{% endif %}pagina={{ pagina + 1 }}">Siguiente →</a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <footer class="mt-auto py-4 border-t border-surface-variant text-center text-label-sm font-label-sm text-on-surface-variant">
+                    © 2026 SafeCore IoT. Monitoreo de seguridad industrial.
+                </footer>
+            </div>
+        </main>
+        </div>
+        <script src="/public/scripts/sidebarToggle.js"></script>
+    </body>
+</html>

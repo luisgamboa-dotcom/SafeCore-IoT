@@ -293,6 +293,42 @@ tailwind.config = {
                             <p class="whitespace-pre-line">{{ dev.notas }}</p>
                         </div>
                         {% endif %}
+                        {% if historial_zonas %}
+                        <!-- HU-028: historial de ubicaciones (tramos por zona). -->
+                        <div class="sm:col-span-2 lg:col-span-4 pt-2 border-t border-surface-variant">
+                            <p class="text-[11px] text-on-surface-variant uppercase tracking-wider mb-2 font-semibold">Historial de ubicaciones</p>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="text-left text-[11px] uppercase tracking-wider text-on-surface-variant">
+                                            <th class="py-1.5 pr-3 font-semibold">Desde</th>
+                                            <th class="py-1.5 pr-3 font-semibold">Hasta</th>
+                                            <th class="py-1.5 pr-3 font-semibold">Instalación</th>
+                                            <th class="py-1.5 pr-3 font-semibold">Zona</th>
+                                            <th class="py-1.5 font-semibold">Motivo del traslado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for h in historial_zonas %}
+                                        <tr class="border-t border-surface-variant">
+                                            <td class="py-1.5 pr-3">{{ h.desde }}</td>
+                                            <td class="py-1.5 pr-3">
+                                                {% if h.hasta %}
+                                                    {{ h.hasta }}
+                                                {% else %}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-secondary-container text-white">vigente</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="py-1.5 pr-3">{{ h.instalacion }}</td>
+                                            <td class="py-1.5 pr-3 font-semibold">{{ h.zona }}</td>
+                                            <td class="py-1.5">{{ h.motivo or '—' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </section>
 
