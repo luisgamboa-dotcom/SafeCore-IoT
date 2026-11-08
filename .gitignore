@@ -1,8 +1,11 @@
 .env
 firmware/safecoreNode/secrets.h
 .venv
-__pycache__/**
 sql/
 *.log
 opencode.json
 .aider*
+__pycache__/
+*.pyc
+*.pyo
+*.pyd

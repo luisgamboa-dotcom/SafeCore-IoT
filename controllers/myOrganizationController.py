@@ -64,9 +64,16 @@ def showMyOrganization(request: Request,
 
 
 def _sesionCtx(sesion):
-    from utils.commonUtils import adminContext, userSessionContext
-    return {**adminContext(sesion, user_model.getUserById(sesion.id_usuario)),
-            "id_usuario": sesion.id_usuario}
+    """Contexto de sesion para las paginas de Mi organizacion. is_admin se
+    calcula con los roles reales: adminContext() lo fija en True y mostraba
+    el panel de administrador a usuarios comunes en la sidebar."""
+    from utils.commonUtils import userSessionContext
+    user = user_model.getUserById(sesion.id_usuario)
+    roles = user_model.getUserRoles(sesion.id_usuario)
+    return {**userSessionContext(sesion),
+            "is_superadmin": "Superadmin" in roles,
+            "admin_nombre": user["nombre"] if user else "Usuario",
+            "admin_roles": roles}
 
 
 def _guardInstalacion(id_instalacion, id_org):
