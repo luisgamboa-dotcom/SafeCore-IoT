@@ -13,6 +13,18 @@ def redirectToHome():
 
 async def showHome(request: Request):
     sesion = await getOptionalSession(request)
-    ctx = userSessionContext(sesion) if sesion is not None else {"logged": None, "iniciales": None}
+    if sesion is not None:
+        from models import usersModel as user_model
+        from utils.flashUtils import popFormFlash
+        usuario = user_model.getUserById(sesion.id_usuario)
+        flash_msg, old, flash_ok = popFormFlash(request)
+        ctx = {**userSessionContext(sesion),
+               "sesion_activa": True,
+               "usuario_email": usuario["email"] if usuario else None,
+               "flash_msg": flash_msg, "flash_ok": flash_ok, "old": old}
+    else:
+        ctx = {"logged": None, "iniciales": None, "sesion_activa": False,
+               "usuario_email": None,
+               "flash_msg": None, "flash_ok": False, "old": {}}
     return templates.TemplateResponse(request, "landing.html",
         {"request": request, **ctx})

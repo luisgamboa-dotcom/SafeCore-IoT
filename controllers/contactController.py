@@ -49,7 +49,11 @@ async def enviarContacto(request: Request,
                          contenido: str = Form(""),
                          nombre: str = Form(""),
                          correo: str = Form(""),
+                         origen: str = Form(""),
                          sesion: SessionData | None = Depends(getOptionalSession)):
+    # El formulario vive en la landing (/home#contacto) y en la pagina
+    # directa (/contacto): se vuelve al punto de origen tras el envio.
+    volver = "/home#contacto" if origen == "home" else "/contacto"
     usuario = user_model.getUserById(sesion.id_usuario) if sesion else None
     if usuario is not None:
         # Con sesion activa la identidad es la de la cuenta (no se edita).
@@ -64,7 +68,7 @@ async def enviarContacto(request: Request,
 
     def volverConError(mensaje):
         flashForm(request, mensaje, viejo)
-        return RedirectResponse("/contacto", status_code=303)
+        return RedirectResponse(volver, status_code=303)
 
     if not asunto:
         return volverConError("El asunto es obligatorio.")
@@ -93,4 +97,4 @@ async def enviarContacto(request: Request,
                               "Intenta nuevamente en unos minutos.")
     flashForm(request, "Mensaje enviado correctamente. Te responderemos al "
                        "correo indicado.", ok=True)
-    return RedirectResponse("/contacto", status_code=303)
+    return RedirectResponse(volver, status_code=303)
