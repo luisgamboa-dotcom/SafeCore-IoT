@@ -11,7 +11,8 @@ from utils import alertScheduler, discovery
 from routers import (authRoutes, homeRoutes, readingRoutes, deviceRoutes,
                      adminPanelRoutes, userRoutes, organizationRoutes,
                      installationRoutes, zoneRoutes, myOrganizationRoutes,
-                     ruleRoutes, notificationsRoutes, subscriptionRoutes)
+                     ruleRoutes, notificationsRoutes, subscriptionRoutes,
+                     contactRoutes)
 
 
 discovery.iniciar_descubrimiento()
@@ -35,3 +36,4 @@ app.include_router(myOrganizationRoutes.my_org_router)
 app.include_router(ruleRoutes.rules_router)
 app.include_router(notificationsRoutes.notifications_router)
 app.include_router(subscriptionRoutes.subscriptions_router)
+app.include_router(contactRoutes.contact_router)

@@ -32,6 +32,21 @@ HTML_ALERTA = """\
 """
 
 
+HTML_CONTACTO = """\
+<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px">
+  <h2 style="color:#2E1B5A;margin-bottom:4px">SafeCore IoT</h2>
+  <h3 style="color:#2E1B5A;margin-top:0">Mensaje desde Cont&aacute;ctanos</h3>
+  <p style="color:#43474e"><b style="color:#191c1f">Asunto:</b> {asunto}</p>
+  <p style="color:#43474e"><b style="color:#191c1f">Enviado por:</b> {remitente}</p>
+  <p style="color:#43474e"><b style="color:#191c1f">Mensaje:</b></p>
+  <div style="background:#F6F1FF;border:1px solid #c4c6cf;border-radius:8px;
+              padding:16px;white-space:pre-line;color:#191c1f">{contenido}</div>
+  <p style="color:#43474e">Puedes responder directamente a este correo si el
+  remitente indic&oacute; su direcci&oacute;n.</p>
+</div>
+"""
+
+
 def _enviar(msg):
     puerto = int(os.getenv("SMTP_PORT") or "587")
     with smtplib.SMTP(os.getenv("SMTP_HOST") or "smtp.gmail.com", puerto) as smtp:
@@ -68,4 +83,25 @@ def sendAlertaEmail(email_destino, asunto, contenido):
         "Revisa el panel para gestionarla.\n\nSafeCore IoT")
     msg.add_alternative(
         HTML_ALERTA.format(asunto=asunto, contenido=contenido), subtype="html")
+    _enviar(msg)
+
+
+def sendContactoEmail(asunto, contenido, remitente):
+    """Envia el formulario de Contactanos al buzón del equipo."""
+    msg = EmailMessage()
+    msg["Subject"] = f"Contacto SafeCore IoT: {asunto}"
+    msg["From"] = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or "safecore-iot@localhost"
+    msg["To"] = os.getenv("CONTACTO_EMAIL") or "luis.gamboa@puentemaipo.cl"
+    if remitente.get("correo"):
+        # Permite responder directamente al remitente con "Responder".
+        msg["Reply-To"] = remitente["correo"]
+    msg.set_content(
+        f"Mensaje desde la página Contáctanos de SafeCore IoT:\n\n"
+        f"Asunto: {asunto}\n"
+        f"Enviado por: {remitente.get('texto', 'Anónimo')}\n\n"
+        f"{contenido}\n\nSafeCore IoT")
+    msg.add_alternative(
+        HTML_CONTACTO.format(asunto=asunto,
+                             remitente=remitente.get("texto", "Anónimo"),
+                             contenido=contenido), subtype="html")
     _enviar(msg)
