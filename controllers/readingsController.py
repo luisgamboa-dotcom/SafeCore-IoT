@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 from typing import List, Literal, Optional
 
 from config.sessionsConfig import SessionData, cookie as session_cookie, verificador
+from utils.commonUtils import (userSessionContext, dashboardOrganization,
+                               esOrganizacionPremium)
 from models import readingsModel as lec_model
 from models import devicesModel as dev_model
 from models import zonesModel as zone_model
@@ -333,6 +335,7 @@ def showAlertasPage(request: Request,
                     sesion: SessionData = Depends(verificador)):
     params_q = request.query_params
     org = dashboardOrganization(sesion)
+    premium_bloqueado = not esOrganizacionPremium(sesion)
     estado = params_q.get("estado", "")
     if estado not in ("activas", "resueltas"):
         estado = None
@@ -350,22 +353,28 @@ def showAlertasPage(request: Request,
         fecha = None
     filtros = {"q": q, "id_dispositivo": _id("dispositivo"),
                "id_zona": _id("zona"), "severidad": severidad, "fecha": fecha}
-    try:
-        alertas = alerts_model.getAlertasCompletas(
-            org, limite=50, estado=estado, **filtros)
-        conteo_grupos = alerts_model.countAlertsByGroup(org)
-    except Exception:
-        alertas = []
-        conteo_grupos = {"todas": 0, "activas": 0, "resueltas": 0}
+    alertas = []
+    conteo_grupos = {"todas": 0, "activas": 0, "resueltas": 0}
+    dispositivos_filtro = []
+    zonas_filtro = []
+    if not premium_bloqueado:
+        # Plan gratuito: la seccion es Funcion Premium; sin datos reales.
+        try:
+            alertas = alerts_model.getAlertasCompletas(
+                org, limite=50, estado=estado, **filtros)
+            conteo_grupos = alerts_model.countAlertsByGroup(org)
+        except Exception:
+            alertas = []
+            conteo_grupos = {"todas": 0, "activas": 0, "resueltas": 0}
 
-    try:
-        dispositivos_filtro = dev_model.getActiveDevices(org)
-    except Exception:
-        dispositivos_filtro = []
-    try:
-        zonas_filtro = zone_model.getZonasOrganizacion(org)
-    except Exception:
-        zonas_filtro = []
+        try:
+            dispositivos_filtro = dev_model.getActiveDevices(org)
+        except Exception:
+            dispositivos_filtro = []
+        try:
+            zonas_filtro = zone_model.getZonasOrganizacion(org)
+        except Exception:
+            zonas_filtro = []
     conteo = {}
     for a in alertas:
         conteo[a["severidad"]] = conteo.get(a["severidad"], 0) + 1
@@ -378,6 +387,7 @@ def showAlertasPage(request: Request,
         {"request": request, "alertas": alertas,
          "conteo_severidad": conteo, "org_alcance": org,
          "sin_organizacion": org == -1,
+         "premium_bloqueado": premium_bloqueado,
          "estado_actual": estado, "conteo_grupos": conteo_grupos,
          **filtros,
          "dispositivos_filtro": dispositivos_filtro,
@@ -435,6 +445,10 @@ def reconocerAlerta(request: Request,
                     id_alerta: int,
                     id_sesion: UUID = Depends(session_cookie),
                     sesion: SessionData = Depends(verificador)):
+    if not esOrganizacionPremium(sesion):
+        flashForm(request, "Las alertas son parte del plan Premium. "
+                           "Mejora tu plan para usarlas.")
+        return RedirectResponse("/dashboard/alertas", status_code=303)
     alerta = alerts_model.getAlerta(id_alerta)
     org = dashboardOrganization(sesion)
     if (alerta is None or org == -1
@@ -460,6 +474,10 @@ async def resolverAlerta(request: Request,
                          id_sesion: UUID = Depends(session_cookie),
                          sesion: SessionData = Depends(verificador),
                          comentario: str = Form("")):
+    if not esOrganizacionPremium(sesion):
+        flashForm(request, "Las alertas son parte del plan Premium. "
+                           "Mejora tu plan para usarlas.")
+        return RedirectResponse("/dashboard/alertas", status_code=303)
     alerta = alerts_model.getAlerta(id_alerta)
     org = dashboardOrganization(sesion)
     if (alerta is None or org == -1
@@ -491,6 +509,9 @@ async def resolverAlerta(request: Request,
 def getAlertasActivasApi(request: Request,
                          id_sesion: UUID = Depends(session_cookie),
                          sesion: SessionData = Depends(verificador)):
+    # Plan gratuito: sin pop-up de alertas (Funcion Premium).
+    if not esOrganizacionPremium(sesion):
+        return JSONResponse({"ok": True, "alertas": []})
     org = dashboardOrganization(sesion)
     try:
         alertas = alerts_model.getAlertasActivas(org, limite=20)

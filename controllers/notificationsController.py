@@ -8,7 +8,7 @@ from config.sessionsConfig import SessionData, cookie as session_cookie, verific
 from models import notificationsModel as notif_model
 from models import usersModel as user_model
 from utils import authUtils as user_utils
-from utils.commonUtils import userSessionContext
+from utils.commonUtils import userSessionContext, esOrganizacionPremium
 from utils.flashUtils import flashForm, popFormFlash
 
 templates = Jinja2Templates(directory="templates")
@@ -23,20 +23,27 @@ def showNotificacionesPage(request: Request,
     solo_no_leidas = (estado == "sin_leer")
     if not solo_no_leidas:
         estado = None
-    try:
-        notificaciones = notif_model.getNotificacionesUsuario(
-            sesion.id_usuario, limite=100, solo_no_leidas=solo_no_leidas)
-        total_todas = notif_model.countUsuario(sesion.id_usuario)
-        total_sin_leer = notif_model.countNoLeidas(sesion.id_usuario)
-    except Exception:
-        notificaciones = []
-        total_todas = 0
-        total_sin_leer = 0
+    premium_bloqueado = not esOrganizacionPremium(sesion)
+    notificaciones = []
+    total_todas = 0
+    total_sin_leer = 0
+    if not premium_bloqueado:
+        # Plan gratuito: seccion Funcion Premium; sin datos reales.
+        try:
+            notificaciones = notif_model.getNotificacionesUsuario(
+                sesion.id_usuario, limite=100, solo_no_leidas=solo_no_leidas)
+            total_todas = notif_model.countUsuario(sesion.id_usuario)
+            total_sin_leer = notif_model.countNoLeidas(sesion.id_usuario)
+        except Exception:
+            notificaciones = []
+            total_todas = 0
+            total_sin_leer = 0
     flash_msg, _, flash_ok = popFormFlash(request)
     return templates.TemplateResponse(
         request, "datos/notificaciones.html",
         {"request": request, "notificaciones": notificaciones,
          "estado_actual": estado,
+         "premium_bloqueado": premium_bloqueado,
          "total_todas": total_todas, "total_sin_leer": total_sin_leer,
          "flash_msg": flash_msg, "flash_ok": flash_ok,
          **userSessionContext(sesion)})
@@ -46,6 +53,10 @@ def marcarLeidaNotificacion(request: Request,
                             id_notificacion: int,
                             id_sesion: UUID = Depends(session_cookie),
                             sesion: SessionData = Depends(verificador)):
+    if not esOrganizacionPremium(sesion):
+        flashForm(request, "Las notificaciones son parte del plan Premium. "
+                           "Mejora tu plan para usarlas.")
+        return RedirectResponse("/dashboard/notificaciones", status_code=303)
     ok = notif_model.marcarLeida(id_notificacion, sesion.id_usuario)
     if ok:
         flashForm(request, "Notificación marcada como leída.", ok=True)
@@ -59,6 +70,10 @@ def marcarLeidaNotificacion(request: Request,
 def showConfigCanales(request: Request,
                       id_sesion: UUID = Depends(session_cookie),
                       sesion: SessionData = Depends(verificador)):
+    if not esOrganizacionPremium(sesion):
+        flashForm(request, "Configurar canales de notificación es parte del "
+                           "plan Premium. Mejora tu plan para usarlo.")
+        return RedirectResponse("/dashboard/notificaciones", status_code=303)
     perfil = notif_model.getPerfilCanales(sesion.id_usuario)
     usuario = user_model.getUserById(sesion.id_usuario)
     flash_msg, old, flash_ok = popFormFlash(request)
@@ -81,6 +96,10 @@ def saveConfigCanales(
     email_destino: str = Form(""),
     ):
     filas = []
+    if not esOrganizacionPremium(sesion):
+        flashForm(request, "Configurar canales de notificación es parte del "
+                           "plan Premium. Mejora tu plan para usarlo.")
+        return RedirectResponse("/dashboard/notificaciones", status_code=303)
     if web_habilitado:
         prioridad_web = _prioridadValida(web_prioridad)
         if prioridad_web is None:

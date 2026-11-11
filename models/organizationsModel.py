@@ -1,14 +1,5 @@
 from config.dbConfig import getConnection
-
-
-def _cerrar(conn, *cursores):
-    for cur in cursores:
-        if cur is not None:
-            try:
-                cur.close()
-            except Exception:
-                pass
-    conn.close()
+from utils.db import closeConnection
 
 
 def getAllOrganizations(solo_activas=False):
@@ -21,7 +12,7 @@ def getAllOrganizations(solo_activas=False):
                     + " ORDER BY nombre")
         return cur.fetchall()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getOrganizationById(id_organizacion):
@@ -29,11 +20,36 @@ def getOrganizationById(id_organizacion):
     cur = None
     try:
         cur = conn.cursor(dictionary=True)
-        cur.execute("SELECT id_organizacion, nombre, descripcion, activa FROM organizaciones WHERE id_organizacion = %s",
+        cur.execute("SELECT id_organizacion, nombre, descripcion, activa,"
+                    " es_premium, fecha_premium"
+                    " FROM organizaciones WHERE id_organizacion = %s",
                     (id_organizacion,))
         return cur.fetchone()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
+
+
+def getPlanOrganizacion(id_organizacion):
+    """Plan de suscripcion de la organizacion: True = premium, False = gratis."""
+    org = getOrganizationById(id_organizacion)
+    return bool(org and org.get("es_premium"))
+
+
+def setPlanOrganizacion(id_organizacion, es_premium):
+    """Activa (1) o desactiva (0) el plan premium de la organizacion."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute("UPDATE organizaciones SET es_premium = %s,"
+                    " fecha_premium = CASE WHEN %s = 1 THEN NOW() ELSE NULL END"
+                    " WHERE id_organizacion = %s",
+                    (int(bool(es_premium)), int(bool(es_premium)),
+                     id_organizacion))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        closeConnection(conn, cur)
 
 
 def countOrganizationRelations(id_organizacion):
@@ -47,7 +63,7 @@ def countOrganizationRelations(id_organizacion):
         row = cur.fetchone()
         return row["total"] if row else 0
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def deactivateOrganization(id_organizacion):
@@ -59,7 +75,7 @@ def deactivateOrganization(id_organizacion):
                     (id_organizacion,))
         conn.commit()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def createOrganization(nombre, descripcion):
@@ -72,7 +88,7 @@ def createOrganization(nombre, descripcion):
         conn.commit()
         return cur.lastrowid
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def updateOrganization(id_organizacion, nombre, descripcion):
@@ -84,7 +100,7 @@ def updateOrganization(id_organizacion, nombre, descripcion):
                     (nombre, descripcion, id_organizacion))
         conn.commit()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def deleteOrganization(id_organizacion):
@@ -95,7 +111,7 @@ def deleteOrganization(id_organizacion):
         cur.execute("DELETE FROM organizaciones WHERE id_organizacion = %s", (id_organizacion,))
         conn.commit()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def forceDeleteOrganization(id_organizacion):
@@ -108,7 +124,7 @@ def forceDeleteOrganization(id_organizacion):
                     (id_organizacion,))
         instalaciones = cur.fetchall()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
     for inst in instalaciones:
         inst_model.forceDeleteInstallation(inst["id_instalacion"])
     conn = getConnection()
@@ -121,4 +137,4 @@ def forceDeleteOrganization(id_organizacion):
         conn.commit()
         return True
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)

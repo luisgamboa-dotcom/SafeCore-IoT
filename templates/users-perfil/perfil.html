@@ -129,7 +129,38 @@ tailwind.config = {
       </div>
 
       <!-- Cerrar sesion -->
-      <div class="mt-8 flex justify-end">
+      <div class="mt-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <!-- Plan de suscripcion de la organizacion -->
+        <section class="w-full md:w-auto flex-1 bg-surface-container-lowest rounded-xl shadow border border-outline-variant p-6">
+          <h3 class="font-title-md text-title-md text-primary mb-3">Plan de suscripci&oacute;n</h3>
+          {% if organizacion %}
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold {% if es_premium %}bg-primary text-on-primary{% else %}bg-surface-container-low text-on-surface-variant border border-outline-variant{% endif %}">
+              <span class="material-symbols-outlined text-sm">{% if es_premium %}workspace_premium{% else %}lock_open{% endif %}</span>
+              {% if es_premium %}Premium{% else %}Gratuito{% endif %}
+            </span>
+            <span class="text-sm text-on-surface-variant">Organizaci&oacute;n: <span class="font-semibold text-on-surface">{{ organizacion.nombre }}</span></span>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-2">
+            {% if es_premium %}
+            <form method="post" action="/users/bajar-plan">
+              <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant hover:text-error hover:border-error font-label-md text-label-md transition-colors">
+                <span class="material-symbols-outlined text-base">undo</span> Volver al plan Gratuito
+              </button>
+            </form>
+            {% else %}
+            <form method="post" action="/users/mejorar-plan">
+              <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-on-secondary font-label-md text-label-md hover:bg-primary transition-colors">
+                <span class="material-symbols-outlined text-base">upgrade</span> Mejorar plan
+              </button>
+            </form>
+            {% endif %}
+          </div>
+          {% else %}
+          <p class="text-sm text-on-surface-variant">No perteneces a ninguna organizaci&oacute;n: contacta con un administrador para unirte y gestionar un plan.</p>
+          {% endif %}
+        </section>
+
         <form action="/users/logout" method="POST">
           <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg border border-outline-variant text-on-surface-variant hover:text-error hover:border-error font-label-md text-label-md transition-colors">
             <span class="material-symbols-outlined text-base">logout</span> Cerrar sesión

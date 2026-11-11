@@ -21,11 +21,21 @@ def showMyProfile(request: Request,
         return RedirectResponse("/users/logout", status_code=303)
     flash_msg, old, flash_ok = popFormFlash(request)
 
+    organizacion = None
+    if usuario["id_organizacion"]:
+        try:
+            from models import organizationsModel as org_model
+            organizacion = org_model.getOrganizationById(
+                usuario["id_organizacion"])
+        except Exception:
+            organizacion = None
+
     viejo = old or {"nombre": usuario["nombre"], "apellido": usuario["apellido"],
                     "telefono": usuario["telefono"] or ""}
     return templates.TemplateResponse(
         request, "users-perfil/perfil.html",
         {"request": request, "usuario": usuario, "old": viejo,
+         "organizacion": organizacion,
          "flash_msg": flash_msg, "flash_ok": flash_ok,
          **userSessionContext(sesion)})
 

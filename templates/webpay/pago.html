@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Webpay - Pago del plan Premium - SafeCore IoT</title>
+<link rel="icon" type="image/png" href="/public/images/logo-icon.png">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#2E1B5A",
+        "primary-container": "#8751F8",
+        "secondary": "#6D3DF5",
+        "secondary-container": "#A37FFF",
+        "surface": "#F6F1FF",
+        "surface-container-lowest": "#ffffff",
+        "surface-container-low": "#EFE7FF",
+        "on-surface": "#191c1f",
+        "on-surface-variant": "#43474e",
+        "on-secondary": "#ffffff",
+        "outline": "#74777f",
+        "outline-variant": "#c4c6cf",
+        "error": "#ba1a1a"
+      },
+      borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }
+    }
+  }
+}
+</script>
+{% include "partials/toast.html" %}
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  .card-shadow { box-shadow: 0 2px 8px rgba(46,27,90,0.08), 0 8px 24px rgba(46,27,90,0.06); }
+</style>
+</head>
+<body class="bg-surface min-h-screen flex items-center justify-center p-4">
+
+  <!-- Placeholder de la pasarela Webpay Plus (Transbank): la integracion
+       real de pago aun no esta disponible. El boton principal esta
+       deshabilitado y solo existe la simulacion de demostracion. -->
+  <div class="w-full max-w-md">
+    <div class="bg-white rounded-xl border border-outline-variant card-shadow overflow-hidden">
+      <div class="bg-[#0f2557] px-6 py-4 flex items-center gap-3">
+        <img src="/public/images/logo-icon.png" alt="" class="w-8 h-8 object-contain">
+        <div class="flex-1">
+          <p class="text-white font-semibold text-sm">Webpay Plus</p>
+          <p class="text-white/70 text-[11px]">Pasarela de pago de Transbank</p>
+        </div>
+        <span class="material-symbols-outlined text-white/80">lock</span>
+      </div>
+
+      <div class="px-6 py-6">
+        <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-3">Detalle de la transacci&oacute;n</p>
+
+        <div class="flex items-start justify-between gap-3 py-3 border-b border-outline-variant">
+          <div>
+            <p class="font-semibold text-sm text-on-surface">SafeCore IoT - Plan Premium</p>
+            <p class="text-xs text-on-surface-variant mt-0.5">Suscripci&oacute;n mensual por organizaci&oacute;n</p>
+            {% if organizacion %}
+            <p class="text-xs text-on-surface-variant mt-1">Organizaci&oacute;n: {{ organizacion.nombre }}</p>
+            {% endif %}
+          </div>
+          <p class="font-bold text-primary whitespace-nowrap">$ {{ precio }}</p>
+        </div>
+
+        <div class="flex items-center justify-between py-3 border-b border-outline-variant">
+          <p class="text-sm text-on-surface-variant">Total a pagar</p>
+          <p class="text-lg font-bold text-primary">$ {{ precio }} CLP</p>
+        </div>
+
+        <div class="mt-5 rounded-lg bg-amber-50 border border-amber-300 p-4 flex items-start gap-3">
+          <span class="material-symbols-outlined text-amber-600 text-base mt-0.5">hourglass_top</span>
+          <p class="text-xs text-amber-800">
+            La integraci&oacute;n real con Webpay a&uacute;n no est&aacute; disponible:
+            el pago de esta transacci&oacute;n est&aacute; deshabilitado.
+          </p>
+        </div>
+
+        <form method="post" action="/users/pago-simulado" class="mt-5">
+          <button type="submit" disabled
+                  class="w-full flex items-center justify-center gap-2 bg-[#0f2557] text-white px-5 py-3 rounded-lg font-label-md text-label-md opacity-50 cursor-not-allowed">
+            <span class="material-symbols-outlined text-base">credit_card</span>
+            Pagar $ {{ precio }}
+          </button>
+        </form>
+
+        <form method="post" action="/users/pago-simulado" class="mt-3">
+          <button type="submit"
+                  class="w-full flex items-center justify-center gap-2 border border-secondary text-secondary px-5 py-3 rounded-lg font-label-md text-label-md hover:bg-secondary hover:text-on-secondary transition-colors">
+            <span class="material-symbols-outlined text-base">science</span>
+            Simular pago (demostraci&oacute;n)
+          </button>
+        </form>
+
+        <a href="/users/perfil"
+           class="mt-3 block text-center text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors py-2">
+          Cancelar y volver al perfil
+        </a>
+      </div>
+    </div>
+
+    <p class="text-center text-[11px] text-on-surface-variant mt-4">
+      Simulaci&oacute;n del flujo de pago para el proyecto SafeCore IoT. Sin cobros reales.
+    </p>
+  </div>
+<script src="/public/scripts/sidebarToggle.js"></script>
+</body>
+</html>
