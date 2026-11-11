@@ -1,5 +1,5 @@
 from config.dbConfig import getConnection
-from utils.commonUtils import closeConnection
+from utils.db import closeConnection
 
 
 def registrarAuditoria(id_usuario, entidad, registro_id, accion,

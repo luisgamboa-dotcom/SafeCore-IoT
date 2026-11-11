@@ -1,5 +1,5 @@
 from config.dbConfig import getConnection
-from utils.commonUtils import closeConnection
+from utils.db import closeConnection
 
 CANAL_WEB = 1
 CANAL_EMAIL = 2

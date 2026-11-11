@@ -1,5 +1,4 @@
 from config.sessionsConfig import SessionData
-from models import usersModel as user_model
 
 
 def initialsOf(user):
@@ -16,16 +15,48 @@ def initialsOf(user):
 
 
 def userSessionContext(sesion: SessionData):
+    from models import usersModel as user_model
     user = user_model.getUserById(sesion.id_usuario)
     roles = user_model.getUserRoles(sesion.id_usuario)
+    es_premium = esOrganizacionPremium(sesion)
     return {"logged": user["nombre"] if user else None,
             "iniciales": initialsOf(user),
             "is_admin": "Administrador" in roles or "Superadmin" in roles,
             "id_organizacion": user["id_organizacion"] if user else None,
             "id_usuario": sesion.id_usuario,
+            "es_premium": es_premium,
 
 
-            "notificaciones_no_leidas": notificacionesNoLeidas(sesion)}
+            "notificaciones_no_leidas": notificacionesNoLeidas(sesion) if es_premium else 0}
+
+
+def esOrganizacionPremium(sesion: SessionData) -> bool:
+    """Plan de suscripcion efectivo del usuario: el de su organizacion.
+    Los usuarios sin organizacion (cuentas de sistema) y ante cualquier
+    falla de BD se tratan como premium para no bloquear el panel."""
+    from models import usersModel as user_model
+    from models import organizationsModel as org_model
+    try:
+        user = user_model.getUserById(sesion.id_usuario)
+        if user is None:
+            return True
+        if user["id_organizacion"] is None:
+            return True
+        return org_model.getPlanOrganizacion(user["id_organizacion"])
+    except Exception:
+        return True
+
+
+def usuarioOrganizacion(sesion: SessionData):
+    """(id_organizacion, es_premium) del usuario en sesion, o (None, True)."""
+    from models import usersModel as user_model
+    try:
+        user = user_model.getUserById(sesion.id_usuario)
+        if user is None or user["id_organizacion"] is None:
+            return None, True
+        return user["id_organizacion"], esOrganizacionPremium(sesion)
+    except Exception:
+        return None, True
 
 
 def notificacionesNoLeidas(sesion: SessionData):
@@ -37,6 +68,7 @@ def notificacionesNoLeidas(sesion: SessionData):
 
 
 def adminContext(sesion: SessionData, user):
+    from models import usersModel as user_model
     roles = user_model.getUserRoles(sesion.id_usuario)
     return {"is_admin": True,
             "is_superadmin": "Superadmin" in roles,
@@ -47,6 +79,7 @@ def adminContext(sesion: SessionData, user):
 
 
 def restrictedOrganization(sesion: SessionData):
+    from models import usersModel as user_model
     user = user_model.getUserById(sesion.id_usuario)
     if user is None or user["id_organizacion"] is None:
         return None
@@ -57,6 +90,7 @@ def restrictedOrganization(sesion: SessionData):
 
 
 def dashboardOrganization(sesion: SessionData):
+    from models import usersModel as user_model
     user = user_model.getUserById(sesion.id_usuario)
     if user is None:
         return -1
@@ -89,3 +123,7 @@ def addressFromForm(form):
             "ciudad": (form.get("ciudad") or "").strip(),
             "region": (form.get("region") or "").strip(),
             "codigo_postal": (form.get("codigo_postal") or "").strip() or None}
+
+
+# Re-export for backward compatibility
+from utils.db import closeConnection

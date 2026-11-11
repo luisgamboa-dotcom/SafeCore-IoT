@@ -1,14 +1,5 @@
 from config.dbConfig import getConnection
-
-
-def _cerrar(conn, *cursores):
-    for cur in cursores:
-        if cur is not None:
-            try:
-                cur.close()
-            except Exception:
-                pass
-    conn.close()
+from utils.db import closeConnection
 
 
 def createUser(nombre, apellido, email, telefono, password_hash, id_organizacion):
@@ -22,7 +13,7 @@ def createUser(nombre, apellido, email, telefono, password_hash, id_organizacion
         conn.commit()
         return cur.lastrowid
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getRoleIdByName(nombre_rol):
@@ -35,7 +26,7 @@ def getRoleIdByName(nombre_rol):
         row = cur.fetchone()
         return row["id_catalogo_rol"] if row else None
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def assignRole(id_usuario, id_rol):
@@ -47,7 +38,7 @@ def assignRole(id_usuario, id_rol):
                     (id_usuario, id_rol))
         conn.commit()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getUserByEmail(email):
@@ -60,7 +51,7 @@ def getUserByEmail(email):
                     )
         return cur.fetchone()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getUserById(id_usuario):
@@ -73,7 +64,7 @@ def getUserById(id_usuario):
                     )
         return cur.fetchone()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getUserRoles(id_usuario):
@@ -87,7 +78,7 @@ def getUserRoles(id_usuario):
                     (id_usuario,))
         return [row["nombre_rol"] for row in cur.fetchall()]
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getAllUsersWithDetails(q=None, sort_by=None, sort_dir=None,
@@ -146,7 +137,7 @@ def getAllUsersWithDetails(q=None, sort_by=None, sort_dir=None,
                     tuple(parametros))
         return cur.fetchall()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def updatePerfil(id_usuario, nombre, apellido, telefono):
@@ -159,7 +150,7 @@ def updatePerfil(id_usuario, nombre, apellido, telefono):
             (nombre, apellido, telefono, id_usuario))
         conn.commit()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def updateUser(id_usuario, nombre, apellido, email, id_organizacion, id_estado):
@@ -172,7 +163,7 @@ def updateUser(id_usuario, nombre, apellido, email, id_organizacion, id_estado):
             (nombre, apellido, email, id_organizacion, id_estado, id_usuario))
         conn.commit()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getUserRoleIds(id_usuario):
@@ -187,7 +178,7 @@ def getUserRoleIds(id_usuario):
                     (id_usuario,))
         return cur.fetchall()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def replaceUserRoles(id_usuario, ids_rol):
@@ -202,7 +193,7 @@ def replaceUserRoles(id_usuario, ids_rol):
                 (id_usuario, id_rol))
         conn.commit()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getUsersByOrganization(id_organizacion):
@@ -221,7 +212,7 @@ def getUsersByOrganization(id_organizacion):
                     (id_organizacion,))
         return cur.fetchall()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getAllUsersBasic():
@@ -236,7 +227,7 @@ def getAllUsersBasic():
                        ORDER BY u.nombre, u.apellido""")
         return cur.fetchall()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getUsersOutsideOrganization(id_organizacion):
@@ -250,7 +241,7 @@ def getUsersOutsideOrganization(id_organizacion):
                     (id_organizacion,))
         return cur.fetchall()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def setUserOrganization(id_usuario, id_organizacion):
@@ -262,7 +253,7 @@ def setUserOrganization(id_usuario, id_organizacion):
                     (id_organizacion, id_usuario))
         conn.commit()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def updatePasswordHash(id_usuario, password_hash):
@@ -274,7 +265,7 @@ def updatePasswordHash(id_usuario, password_hash):
                     (password_hash, id_usuario))
         conn.commit()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getAllRoles():
@@ -285,7 +276,7 @@ def getAllRoles():
         cur.execute("SELECT id_catalogo_rol, nombre_rol FROM catalogo_roles ORDER BY nombre_rol")
         return cur.fetchall()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getAllUserStates():
@@ -296,4 +287,4 @@ def getAllUserStates():
         cur.execute("SELECT id_usuario_estado, nombre FROM usuarios_estados ORDER BY id_usuario_estado")
         return cur.fetchall()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)

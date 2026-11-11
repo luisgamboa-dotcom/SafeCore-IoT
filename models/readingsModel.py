@@ -1,7 +1,7 @@
 from math import ceil
 
 from config.dbConfig import getConnection
-from utils.commonUtils import closeConnection
+from utils.db import closeConnection
 
 MAGNITUDES = {
     "gas": {"nombre": "Gases inflamables", "unidad": "partes por millon", "simbolo": "ppm"},
@@ -161,7 +161,7 @@ def markDeviceAlive(id_dispositivo):
 
 def getLatest(limit=50, id_organizacion=None):
     limit = max(1, min(int(limit), 200))
-    from models.devicesModel import dispositivosOrganizacion_sql
+    from models.sql_utils import dispositivosOrganizacion_sql
     conn = getConnection()
     cur = None
     try:
@@ -230,7 +230,7 @@ def getSerieZona(id_zona, limite=300):
 
 def getHistoricoPorMagnitud(limite=150, id_organizacion=None, serial=None, horas=None):
     limite = max(1, min(int(limite), 2000))
-    from models.devicesModel import dispositivosOrganizacion_sql
+    from models.sql_utils import dispositivosOrganizacion_sql
     condiciones, params = [], []
     if id_organizacion is not None:
         condiciones.append(dispositivosOrganizacion_sql('d.id_dispositivo'))
@@ -347,7 +347,7 @@ def _respuestaVacia(magnitud):
 
 
 def getSerieDispositivo(serial, horas=None, magnitud="gas", id_organizacion=None):
-    from models.devicesModel import dispositivosOrganizacion_sql
+    from models.sql_utils import dispositivosOrganizacion_sql
     condiciones = ["d.codigo_serial = %s", "m.nombre = %s"]
     params = [serial, MAGNITUDES[magnitud]["nombre"]]
     if id_organizacion is not None:
@@ -365,7 +365,7 @@ def getSerieDispositivo(serial, horas=None, magnitud="gas", id_organizacion=None
 
 
 def getSerieOrganizacion(horas=None, magnitud="gas", id_organizacion=None):
-    from models.devicesModel import dispositivosOrganizacion_sql
+    from models.sql_utils import dispositivosOrganizacion_sql
     condiciones = ["d.activo = 1", "m.nombre = %s"]
     params = [MAGNITUDES[magnitud]["nombre"]]
     if id_organizacion is not None:

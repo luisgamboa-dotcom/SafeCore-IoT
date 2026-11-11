@@ -4,18 +4,9 @@ import os
 from datetime import datetime, timedelta
 
 from config.dbConfig import getConnection
+from utils.db import closeConnection
 
 TTL_HORAS = int(os.getenv("RESET_TOKEN_TTL_HOURS") or "1")
-
-
-def _cerrar(conn, *cursores):
-    for cur in cursores:
-        if cur is not None:
-            try:
-                cur.close()
-            except Exception:
-                pass
-    conn.close()
 
 
 def createToken(id_usuario):
@@ -33,7 +24,7 @@ def createToken(id_usuario):
         conn.commit()
         return token
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def getValidToken(token):
@@ -52,7 +43,7 @@ def getValidToken(token):
             return None
         return fila
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)
 
 
 def markUsed(id_token):
@@ -65,4 +56,4 @@ def markUsed(id_token):
                     (id_token,))
         conn.commit()
     finally:
-        _cerrar(conn, cur)
+        closeConnection(conn, cur)

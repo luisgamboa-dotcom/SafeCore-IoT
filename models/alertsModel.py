@@ -1,5 +1,5 @@
 from config.dbConfig import getConnection
-from utils.commonUtils import closeConnection
+from utils.db import closeConnection
 
 PENDIENTE = 1
 RECONOCIDA = 2
@@ -121,19 +121,7 @@ def resolverAlerta(id_alerta, id_usuario, comentario):
         closeConnection(conn, cur)
 
 
-def resolveAlerta(id_alerta):
-    conn = getConnection()
-    cur = None
-    try:
-        cur = conn.cursor()
-        cur.execute("""UPDATE alertas SET id_estado_alerta = %s,
-                       fecha_resolucion = NOW()
-                       WHERE id_alerta = %s AND id_estado_alerta IN (1, 2)""",
-                    (RESUELTA, id_alerta))
-        conn.commit()
-        return cur.rowcount > 0
-    finally:
-        closeConnection(conn, cur)
+
 
 
 def resolveAlertasDeRegla(id_regla, motivo=None):
@@ -154,7 +142,7 @@ def resolveAlertasDeRegla(id_regla, motivo=None):
 
 def getRecentAlerts(id_organizacion=None, limite=10):
     limite = max(1, min(int(limite), 50))
-    from models.devicesModel import dispositivosOrganizacion_sql
+    from models.sql_utils import dispositivosOrganizacion_sql
     conn = getConnection()
     cur = None
     try:
@@ -193,7 +181,7 @@ def getAlertasCompletas(id_organizacion=None, limite=50, estado=None,
                         q=None, id_dispositivo=None, id_zona=None,
                         severidad=None, fecha=None):
     limite = max(1, min(int(limite), 200))
-    from models.devicesModel import dispositivosOrganizacion_sql
+    from models.sql_utils import dispositivosOrganizacion_sql
     conn = getConnection()
     cur = None
     try:
@@ -259,7 +247,7 @@ def getAlertasCompletas(id_organizacion=None, limite=50, estado=None,
 
 
 def countActiveAlerts(id_organizacion=None):
-    from models.devicesModel import dispositivosOrganizacion_sql
+    from models.sql_utils import dispositivosOrganizacion_sql
     conn = getConnection()
     cur = None
     try:
@@ -278,7 +266,7 @@ def countActiveAlerts(id_organizacion=None):
 
 
 def countAlertsByGroup(id_organizacion=None):
-    from models.devicesModel import dispositivosOrganizacion_sql
+    from models.sql_utils import dispositivosOrganizacion_sql
     conn = getConnection()
     cur = None
     try:
@@ -307,7 +295,7 @@ def countAlertsByGroup(id_organizacion=None):
 
 def getAlertasActivas(id_organizacion=None, limite=20):
     limite = max(1, min(int(limite), 50))
-    from models.devicesModel import dispositivosOrganizacion_sql
+    from models.sql_utils import dispositivosOrganizacion_sql
     conn = getConnection()
     cur = None
     try:

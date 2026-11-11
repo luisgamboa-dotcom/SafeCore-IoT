@@ -1,5 +1,5 @@
 from config.dbConfig import getConnection
-from utils.commonUtils import closeConnection
+from utils.db import closeConnection
 
 _BASE_SELECT = """SELECT mn.id_mantenimiento, mn.fecha_programada, mn.fecha_ejecucion,
                          mn.estado, mn.resultado, mn.proxima_fecha,

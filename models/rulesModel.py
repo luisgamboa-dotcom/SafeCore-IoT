@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
 from config.dbConfig import getConnection
-from utils.commonUtils import closeConnection
+from utils.db import closeConnection
 
 OPERADORES = (">", ">=", "<", "<=", "=", "!=")
 SEVERIDADES = ("baja", "media", "alta", "critica")
@@ -281,7 +281,8 @@ def evaluateDeviceRule(dev, regla):
         alerta = getOpenAlertaFor(regla["id_regla"], dev["id_dispositivo"])
         if alerta is not None:
             from models import alertsModel
-            alertsModel.resolveAlerta(alerta["id_alerta"])
+            alertsModel.resolveAlertasDeRegla(regla["id_regla"],
+                "Regla ya no incumplida (auto-resuelta)")
         return
     inicio_racha = lecturas[-racha]["fecha_hora"]
     sostenido = ((now - inicio_racha).total_seconds() + TOLERANCIA_LOTE_S

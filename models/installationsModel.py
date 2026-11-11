@@ -1,6 +1,6 @@
 
 from config.dbConfig import getConnection
-from utils.commonUtils import closeConnection
+from utils.db import closeConnection
 
 
 def getAllInstallations():
