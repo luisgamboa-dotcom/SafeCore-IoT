@@ -288,3 +288,25 @@ def getAllUserStates():
         return cur.fetchall()
     finally:
         closeConnection(conn, cur)
+
+
+def getPlanUsuario(id_usuario):
+    """Plan de suscripcion del usuario: True = premium, False = gratis."""
+    user = getUserById(id_usuario)
+    return bool(user and user.get("es_premium"))
+
+
+def setPlanUsuario(id_usuario, es_premium):
+    """Activa (1) o desactiva (0) el plan premium del usuario."""
+    conn = getConnection()
+    cur = None
+    try:
+        cur = conn.cursor()
+        cur.execute("UPDATE usuarios SET es_premium = %s,"
+                    " fecha_premium = CASE WHEN %s = 1 THEN NOW() ELSE NULL END"
+                    " WHERE id_usuario = %s",
+                    (int(bool(es_premium)), int(bool(es_premium)), id_usuario))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        closeConnection(conn, cur)

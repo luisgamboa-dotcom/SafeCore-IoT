@@ -20,8 +20,8 @@ def contarNoLeidas(id_sesion: UUID = Depends(session_cookie),
                    sesion: SessionData = Depends(verificador)):
     # Plan gratuito: campana inactiva (Funcion Premium).
     try:
-        from utils.commonUtils import esOrganizacionPremium
-        if not esOrganizacionPremium(sesion):
+        from utils.commonUtils import esUsuarioPremium
+        if not esUsuarioPremium(sesion):
             return {"ok": True, "no_leidas": 0}
     except Exception:
         pass

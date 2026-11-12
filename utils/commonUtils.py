@@ -18,7 +18,7 @@ def userSessionContext(sesion: SessionData):
     from models import usersModel as user_model
     user = user_model.getUserById(sesion.id_usuario)
     roles = user_model.getUserRoles(sesion.id_usuario)
-    es_premium = esOrganizacionPremium(sesion)
+    es_premium = esUsuarioPremium(sesion)
     return {"logged": user["nombre"] if user else None,
             "iniciales": initialsOf(user),
             "is_admin": "Administrador" in roles or "Superadmin" in roles,
@@ -30,19 +30,16 @@ def userSessionContext(sesion: SessionData):
             "notificaciones_no_leidas": notificacionesNoLeidas(sesion) if es_premium else 0}
 
 
-def esOrganizacionPremium(sesion: SessionData) -> bool:
-    """Plan de suscripcion efectivo del usuario: el de su organizacion.
-    Los usuarios sin organizacion (cuentas de sistema) y ante cualquier
-    falla de BD se tratan como premium para no bloquear el panel."""
+def esUsuarioPremium(sesion: SessionData) -> bool:
+    """Plan de suscripcion efectivo: el propio del usuario en sesion.
+    Ante cualquier falla de BD se trata como premium para no bloquear
+    el panel."""
     from models import usersModel as user_model
-    from models import organizationsModel as org_model
     try:
         user = user_model.getUserById(sesion.id_usuario)
         if user is None:
             return True
-        if user["id_organizacion"] is None:
-            return True
-        return org_model.getPlanOrganizacion(user["id_organizacion"])
+        return bool(user["es_premium"])
     except Exception:
         return True
 
@@ -52,9 +49,9 @@ def usuarioOrganizacion(sesion: SessionData):
     from models import usersModel as user_model
     try:
         user = user_model.getUserById(sesion.id_usuario)
-        if user is None or user["id_organizacion"] is None:
+        if user is None:
             return None, True
-        return user["id_organizacion"], esOrganizacionPremium(sesion)
+        return user["id_organizacion"], bool(user["es_premium"])
     except Exception:
         return None, True
 

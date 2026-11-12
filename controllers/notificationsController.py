@@ -8,7 +8,7 @@ from config.sessionsConfig import SessionData, cookie as session_cookie, verific
 from models import notificationsModel as notif_model
 from models import usersModel as user_model
 from utils import authUtils as user_utils
-from utils.commonUtils import userSessionContext, esOrganizacionPremium
+from utils.commonUtils import userSessionContext, esUsuarioPremium
 from utils.flashUtils import flashForm, popFormFlash
 
 templates = Jinja2Templates(directory="templates")
@@ -23,7 +23,7 @@ def showNotificacionesPage(request: Request,
     solo_no_leidas = (estado == "sin_leer")
     if not solo_no_leidas:
         estado = None
-    premium_bloqueado = not esOrganizacionPremium(sesion)
+    premium_bloqueado = not esUsuarioPremium(sesion)
     notificaciones = []
     total_todas = 0
     total_sin_leer = 0
@@ -53,7 +53,7 @@ def marcarLeidaNotificacion(request: Request,
                             id_notificacion: int,
                             id_sesion: UUID = Depends(session_cookie),
                             sesion: SessionData = Depends(verificador)):
-    if not esOrganizacionPremium(sesion):
+    if not esUsuarioPremium(sesion):
         flashForm(request, "Las notificaciones son parte del plan Premium. "
                            "Mejora tu plan para usarlas.")
         return RedirectResponse("/dashboard/notificaciones", status_code=303)
@@ -70,7 +70,7 @@ def marcarLeidaNotificacion(request: Request,
 def showConfigCanales(request: Request,
                       id_sesion: UUID = Depends(session_cookie),
                       sesion: SessionData = Depends(verificador)):
-    if not esOrganizacionPremium(sesion):
+    if not esUsuarioPremium(sesion):
         flashForm(request, "Configurar canales de notificación es parte del "
                            "plan Premium. Mejora tu plan para usarlo.")
         return RedirectResponse("/dashboard/notificaciones", status_code=303)
@@ -96,7 +96,7 @@ def saveConfigCanales(
     email_destino: str = Form(""),
     ):
     filas = []
-    if not esOrganizacionPremium(sesion):
+    if not esUsuarioPremium(sesion):
         flashForm(request, "Configurar canales de notificación es parte del "
                            "plan Premium. Mejora tu plan para usarlo.")
         return RedirectResponse("/dashboard/notificaciones", status_code=303)

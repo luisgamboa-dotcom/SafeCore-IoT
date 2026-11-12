@@ -541,7 +541,7 @@
             <div class="max-w-container-max mx-auto">
                 <div class="max-w-2xl mb-stack-lg">
                     <p class="text-sm font-semibold text-secondary uppercase tracking-wider mb-3">Planes</p>
-                    <h2 class="font-headline-md text-headline-md text-primary mb-4">Elige el plan para tu organizaci&oacute;n</h2>
+                    <h2 class="font-headline-md text-headline-md text-primary mb-4">Elige tu plan</h2>
                     <p class="font-body-md text-body-md text-on-surface-variant">Comienza gratis con el monitoreo de tus dispositivos y sube a Premium cuando necesites alertas y notificaciones.</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter max-w-4xl mx-auto">
@@ -557,7 +557,7 @@
                         <ul class="flex flex-col gap-3 mb-8 flex-1">
                             <li class="flex items-start gap-2 text-sm text-on-surface">
                                 <span class="material-symbols-outlined text-base text-green-600 mt-0.5">check_circle</span>
-                                Fichas de los dispositivos de tu organizaci&oacute;n
+                                Fichas de los dispositivos conectados
                             </li>
                             <li class="flex items-start gap-2 text-sm text-on-surface">
                                 <span class="material-symbols-outlined text-base text-green-600 mt-0.5">check_circle</span>
@@ -577,19 +577,9 @@
                             </li>
                         </ul>
                         {% if logged %}
-                            {% if es_premium %}
                             <span class="mt-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-label-md text-label-md bg-surface-container-low text-on-surface-variant border border-outline-variant">
-                                <span class="material-symbols-outlined text-base">workspace_premium</span> Plan actual de tu organizaci&oacute;n
+                                <span class="material-symbols-outlined text-base">check_circle</span> Tu plan actual
                             </span>
-                            {% elif id_organizacion %}
-                            <a href="#planes" class="mt-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-label-md text-label-md border border-outline-variant text-primary hover:bg-surface-container-low transition-colors">
-                                Plan actual de tu organizaci&oacute;n
-                            </a>
-                            {% else %}
-                            <span class="mt-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-label-md text-label-md bg-surface-container-low text-on-surface-variant border border-outline-variant text-center">
-                                Necesitas pertenecer a una organizaci&oacute;n
-                            </span>
-                            {% endif %}
                         {% else %}
                         <a href="/users/register" class="mt-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-label-md text-label-md border border-primary text-primary hover:bg-surface-container-low transition-colors">
                             Crear cuenta gratis
@@ -605,7 +595,7 @@
                             <h3 class="font-headline-sm text-headline-sm text-on-primary">Premium</h3>
                         </div>
                         <p class="text-3xl font-bold text-on-primary mb-1">$ 6.000</p>
-                        <p class="text-xs text-on-primary/70 mb-6">Por mes, por organizaci&oacute;n</p>
+                        <p class="text-xs text-on-primary/70 mb-6">Por mes, por usuario</p>
                         <ul class="flex flex-col gap-3 mb-8 flex-1">
                             <li class="flex items-start gap-2 text-sm text-on-primary">
                                 <span class="material-symbols-outlined text-base text-green-300 mt-0.5">check_circle</span>
@@ -631,18 +621,14 @@
                         {% if logged %}
                             {% if es_premium %}
                             <span class="mt-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-label-md text-label-md bg-white/15 text-on-primary">
-                                <span class="material-symbols-outlined text-base">check_circle</span> Plan actual de tu organizaci&oacute;n
+                                <span class="material-symbols-outlined text-base">check_circle</span> Tu plan actual
                             </span>
-                            {% elif id_organizacion %}
+                            {% else %}
                             <form method="post" action="/users/mejorar-plan" class="mt-auto">
                                 <button type="submit" class="w-full inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary px-5 py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary-container transition-colors">
                                     <span class="material-symbols-outlined text-base">upgrade</span> Mejorar plan
                                 </button>
                             </form>
-                            {% else %}
-                            <span class="mt-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-label-md text-label-md bg-white/15 text-on-primary text-center">
-                                Necesitas pertenecer a una organizaci&oacute;n
-                            </span>
                             {% endif %}
                         {% else %}
                         <a href="/users/register" class="mt-auto inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary px-5 py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary-container transition-colors">

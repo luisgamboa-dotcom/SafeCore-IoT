@@ -61,9 +61,9 @@ tailwind.config = {
         <div class="flex items-start justify-between gap-3 py-3 border-b border-outline-variant">
           <div>
             <p class="font-semibold text-sm text-on-surface">SafeCore IoT - Plan Premium</p>
-            <p class="text-xs text-on-surface-variant mt-0.5">Suscripci&oacute;n mensual por organizaci&oacute;n</p>
-            {% if organizacion %}
-            <p class="text-xs text-on-surface-variant mt-1">Organizaci&oacute;n: {{ organizacion.nombre }}</p>
+            <p class="text-xs text-on-surface-variant mt-0.5">Suscripci&oacute;n mensual por usuario</p>
+            {% if usuario %}
+            <p class="text-xs text-on-surface-variant mt-1">Titular: {{ usuario.nombre }} {{ usuario.apellido }} &middot; {{ usuario.email }}</p>
             {% endif %}
           </div>
           <p class="font-bold text-primary whitespace-nowrap">$ {{ precio }}</p>

@@ -12,7 +12,7 @@ from typing import List, Literal, Optional
 
 from config.sessionsConfig import SessionData, cookie as session_cookie, verificador
 from utils.commonUtils import (userSessionContext, dashboardOrganization,
-                               esOrganizacionPremium)
+                               esUsuarioPremium)
 from models import readingsModel as lec_model
 from models import devicesModel as dev_model
 from models import zonesModel as zone_model
@@ -335,7 +335,7 @@ def showAlertasPage(request: Request,
                     sesion: SessionData = Depends(verificador)):
     params_q = request.query_params
     org = dashboardOrganization(sesion)
-    premium_bloqueado = not esOrganizacionPremium(sesion)
+    premium_bloqueado = not esUsuarioPremium(sesion)
     estado = params_q.get("estado", "")
     if estado not in ("activas", "resueltas"):
         estado = None
@@ -445,7 +445,7 @@ def reconocerAlerta(request: Request,
                     id_alerta: int,
                     id_sesion: UUID = Depends(session_cookie),
                     sesion: SessionData = Depends(verificador)):
-    if not esOrganizacionPremium(sesion):
+    if not esUsuarioPremium(sesion):
         flashForm(request, "Las alertas son parte del plan Premium. "
                            "Mejora tu plan para usarlas.")
         return RedirectResponse("/dashboard/alertas", status_code=303)
@@ -474,7 +474,7 @@ async def resolverAlerta(request: Request,
                          id_sesion: UUID = Depends(session_cookie),
                          sesion: SessionData = Depends(verificador),
                          comentario: str = Form("")):
-    if not esOrganizacionPremium(sesion):
+    if not esUsuarioPremium(sesion):
         flashForm(request, "Las alertas son parte del plan Premium. "
                            "Mejora tu plan para usarlas.")
         return RedirectResponse("/dashboard/alertas", status_code=303)
@@ -510,7 +510,7 @@ def getAlertasActivasApi(request: Request,
                          id_sesion: UUID = Depends(session_cookie),
                          sesion: SessionData = Depends(verificador)):
     # Plan gratuito: sin pop-up de alertas (Funcion Premium).
-    if not esOrganizacionPremium(sesion):
+    if not esUsuarioPremium(sesion):
         return JSONResponse({"ok": True, "alertas": []})
     org = dashboardOrganization(sesion)
     try:
